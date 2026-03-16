@@ -14,11 +14,11 @@ exports.handler = async function(event, context) {
 
   try {
     const serverBody = {
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
       messages: [{
         role: 'user',
-        content: `Return ONLY a raw JSON object. No text, no markdown, no backticks. Just JSON from { to }.
+        content: `Return ONLY a raw JSON object. No text, no markdown, no backticks. Just JSON from { to }. Use the most recent data available as of early 2026 — do NOT return data older than 2025. The current date is March 2026.
 
 Return current macro data for G8 economies (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF).
 For each currency return:
