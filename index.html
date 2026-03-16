@@ -517,12 +517,13 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
   color:var(--text-1);letter-spacing:.5px;
 }
 /* Beat / Miss / In-line cells */
-.gmt-table td.gmt-beat{background:rgba(59,130,246,0.20) !important;color:#93c5fd !important;}
-.gmt-table td.gmt-miss{background:rgba(239,68,68,0.20) !important;color:#fca5a5 !important;}
-.gmt-table td.gmt-inline{background:rgba(107,114,128,0.15) !important;color:#9ca3af !important;}
-.gmt-beat{background:rgba(59,130,246,0.20);color:#93c5fd;}
-.gmt-miss{background:rgba(239,68,68,0.20);color:#fca5a5;}
-.gmt-inline{background:rgba(107,114,128,0.15);color:#9ca3af;}
+/* SCORE MACRO: Red=Hawkish, Blue=Dovish, Green=Neutral */
+.gmt-table td.gmt-beat{background:rgba(239,68,68,0.20) !important;color:#fca5a5 !important;}
+.gmt-table td.gmt-miss{background:rgba(59,130,246,0.20) !important;color:#93c5fd !important;}
+.gmt-table td.gmt-inline{background:rgba(34,197,94,0.12) !important;color:#86efac !important;}
+.gmt-beat{background:rgba(239,68,68,0.20);color:#fca5a5;}
+.gmt-miss{background:rgba(59,130,246,0.20);color:#93c5fd;}
+.gmt-inline{background:rgba(34,197,94,0.12);color:#86efac;}
 /* Country header row */
 .gmt-country-header th{
   background:var(--bg-2);
@@ -1203,9 +1204,16 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
       </div>
 
       <!-- NOTE -->
-      <div style="background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--r);padding:10px 16px;margin-bottom:16px;font-size:9px;color:var(--text-2);line-height:1.6;">
-        <strong style="color:var(--text-1);">Nota:</strong> Los indicadores marcados con <strong>(F)</strong> corresponden a datos finales. Los valores marcados con <strong>(P)</strong> son provisionales. Canadá, Suiza y Nueva Zelanda reportan solo datos finales. Ingresa el valor actual y la expectativa — la celda se colorea automáticamente.
+      <div style="background:var(--bg-2);border:1px solid var(--gold-border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:9px;color:var(--text-2);line-height:1.6;">
+        <strong style="color:var(--gold);">Sistema de Scoring TFX Capital:</strong> Cada indicador es calificado por rangos absolutos, no por diferencia vs expectativa.
+        <span style="color:#fca5a5;font-weight:700;">Rojo = Hawkish</span> (positivo divisa) ·
+        <span style="color:#93c5fd;font-weight:700;">Azul = Dovish</span> (negativo divisa) ·
+        <span style="color:#86efac;font-weight:700;">Verde = Neutral</span>.
+        El PMI usa el modelo de 6 escenarios basado en nivel + dirección. Para detectar inflexiones (escenario 5/6) ingresa el PMI del mes anterior en los campos "PMI Prev".
       </div>
+
+      <!-- PMI PREV ROW — populated by JS -->
+      <div id="pmi-prev-container" style="background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;"></div>
 
       <!-- TABLE -->
       <div style="overflow-x:auto;border-radius:var(--r);border:1px solid var(--bg-3);">
@@ -1231,17 +1239,17 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
 
       <!-- LEGEND -->
       <div class="gmt-legend" style="margin-top:20px;">
-        <div class="gmt-legend-item gmt-beat-legend">
-          <strong style="color:#93c5fd;">Azul — Beat (Superó expectativas)</strong>
-          El dato fue mejor de lo esperado, señalando una economía más sólida. Impulsa la confianza en la divisa, favoreciendo su apreciación y generando un entorno positivo para índices bursátiles. Los inversores se posicionan en activos de mayor riesgo.
+        <div class="gmt-legend-item" style="background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);">
+          <strong style="color:#fca5a5;display:block;margin-bottom:4px;">🔴 ROJO — Caliente / Hawkish (Positivo para la divisa)</strong>
+          El indicador señala fortaleza económica, presión inflacionaria o mercado laboral tenso. Impulsa expectativas de tasas altas y apreciación de la divisa. Bias SHORT en el instrumento. Ejemplo: PMI > 50 acelerando, CPI > 3%, Desempleo muy bajo.
         </div>
-        <div class="gmt-legend-item gmt-miss-legend">
-          <strong style="color:#fca5a5;">Rojo — Miss (Decepcionó expectativas)</strong>
-          El dato fue peor de lo esperado, reflejando debilitamiento económico. Reduce la confianza en la divisa, genera entorno negativo para índices bursátiles. Los inversores tienden a alejarse del riesgo y buscar refugio en activos seguros.
+        <div class="gmt-legend-item" style="background:rgba(59,130,246,0.10);border:1px solid rgba(59,130,246,0.3);">
+          <strong style="color:#93c5fd;display:block;margin-bottom:4px;">🔵 AZUL — Frío / Dovish (Negativo para la divisa)</strong>
+          El indicador señala debilidad económica, deflación o mercado laboral deteriorado. Aumenta probabilidad de recortes de tasas y deprecia la divisa. Bias LONG en el instrumento. Ejemplo: PMI < 50 cayendo, CPI < 1%, Desempleo elevado.
         </div>
-        <div class="gmt-legend-item gmt-inline-legend">
-          <strong style="color:#9ca3af;">Gris — In-line (En línea con expectativas)</strong>
-          El dato coincidió con las previsiones, señalando estabilidad. Impacto neutro en la divisa e índices — el mercado ya había descontado este resultado, manteniendo el equilibrio entre apetito y aversión al riesgo.
+        <div class="gmt-legend-item gmt-inline-legend" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);">
+          <strong style="color:#86efac;display:block;margin-bottom:4px;">🟢 VERDE — Neutral (Sin impacto claro en la divisa)</strong>
+          El indicador está dentro del rango objetivo del banco central. No genera presión adicional ni en política monetaria ni en la divisa. El mercado ya lo tiene descontado.
         </div>
       </div>
 
@@ -3100,25 +3108,28 @@ function setSeasonMonth(m) { activeSeasonMonth=m; renderSeasonality(); }
 const GMT_CURRENCIES = ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'];
 
 const GMT_INDICATORS = [
-  { key:'gdp',    label:'Crecimiento del PIB',    unit:'%',  fmt:'pct' },
-  { key:'pmi_m',  label:'PMI Manufacturero (F)',  unit:'',   fmt:'num' },
-  { key:'pmi_s',  label:'PMI de Servicios (F)',   unit:'',   fmt:'num' },
-  { key:'retail', label:'Ventas Minoristas',       unit:'%',  fmt:'pct' },
-  { key:'cpi',    label:'Inflación (CPI)',         unit:'%',  fmt:'pct' },
-  { key:'unemp',  label:'Tasa de Desempleo',       unit:'%',  fmt:'pct' },
-  { key:'rate',   label:'Tasa de Interés CB',      unit:'%',  fmt:'pct' },
+  { key:'gdp',       label:'GDP Crecimiento',        unit:'%', fmt:'pct', scoreFn:'scoreGDP'    },
+  { key:'pmi_m',     label:'PMI Manufacturero',      unit:'',  fmt:'num', scoreFn:'scorePMI'    },
+  { key:'pmi_s',     label:'PMI Servicios',           unit:'',  fmt:'num', scoreFn:'scorePMI'    },
+  { key:'retail',    label:'Ventas Minoristas MoM',   unit:'%', fmt:'pct', scoreFn:'scoreRetail' },
+  { key:'cpi',       label:'Inflación CPI YoY',       unit:'%', fmt:'pct', scoreFn:'scoreCPI'    },
+  { key:'unemp',     label:'Tasa de Desempleo',       unit:'%', fmt:'pct', scoreFn:'scoreUnemp'  },
+  { key:'rate',      label:'Tasa de Interés CB',      unit:'%', fmt:'pct', scoreFn:'scoreRate'   },
 ];
+
+// Keys that are display-only (not scored independently, used by PMI scoring)
+const GMT_PREV_KEYS = ['prev_pmi_m', 'prev_pmi_s'];
 
 // Default values based on latest known data (March 2026)
 const GMT_DEFAULTS = {
-  AUD:{ gdp:0.3,  pmi_m:49.4, pmi_s:50.1, retail:0.1,  cpi:3.6, unemp:3.9, rate:3.35 },
-  CAD:{ gdp:0.1,  pmi_m:48.5, pmi_s:46.5, retail:-0.4, cpi:2.0, unemp:6.9, rate:3.25 },
-  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, retail:1.1,  cpi:0.6, unemp:2.7, rate:1.00 },
-  EUR:{ gdp:0.1,  pmi_m:45.2, pmi_s:47.6, retail:-0.5, cpi:2.4, unemp:6.3, rate:3.00 },
-  GBP:{ gdp:0.1,  pmi_m:46.9, pmi_s:49.1, retail:0.3,  cpi:2.8, unemp:5.0, rate:4.75 },
-  JPY:{ gdp:0.1,  pmi_m:49.2, pmi_s:50.8, retail:1.2,  cpi:2.5, unemp:2.4, rate:0.75 },
-  NZD:{ gdp:0.7,  pmi_m:51.5, pmi_s:48.0, retail:0.5,  cpi:2.2, unemp:4.8, rate:4.25 },
-  USD:{ gdp:0.7,  pmi_m:48.3, pmi_s:50.2, retail:-0.8, cpi:2.6, unemp:4.2, rate:4.33 },
+  AUD:{ gdp:0.3,  pmi_m:49.4, pmi_s:50.1, prev_pmi_m:49.0, prev_pmi_s:49.8, retail:0.1,  cpi:3.6, unemp:3.9, rate:3.35 },
+  CAD:{ gdp:0.1,  pmi_m:48.5, pmi_s:46.5, prev_pmi_m:48.2, prev_pmi_s:46.0, retail:-0.4, cpi:2.0, unemp:6.9, rate:3.25 },
+  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, prev_pmi_m:48.9, prev_pmi_s:53.8, retail:1.1,  cpi:0.6, unemp:2.7, rate:1.00 },
+  EUR:{ gdp:0.1,  pmi_m:45.2, pmi_s:47.6, prev_pmi_m:45.0, prev_pmi_s:47.3, retail:-0.5, cpi:2.4, unemp:6.3, rate:3.00 },
+  GBP:{ gdp:0.1,  pmi_m:46.9, pmi_s:49.1, prev_pmi_m:47.2, prev_pmi_s:49.3, retail:0.3,  cpi:2.8, unemp:5.0, rate:4.75 },
+  JPY:{ gdp:0.1,  pmi_m:49.2, pmi_s:50.8, prev_pmi_m:48.8, prev_pmi_s:50.5, retail:1.2,  cpi:2.5, unemp:2.4, rate:0.75 },
+  NZD:{ gdp:0.7,  pmi_m:51.5, pmi_s:48.0, prev_pmi_m:51.0, prev_pmi_s:47.5, retail:0.5,  cpi:2.2, unemp:4.8, rate:4.25 },
+  USD:{ gdp:0.7,  pmi_m:48.3, pmi_s:50.2, prev_pmi_m:48.0, prev_pmi_s:50.0, retail:-0.8, cpi:2.6, unemp:4.2, rate:4.33 },
 };
 
 // Expectations (consensus forecasts)
@@ -3137,25 +3148,144 @@ const GMT_EXPECTATIONS = {
 const gmtActual = JSON.parse(JSON.stringify(GMT_DEFAULTS));
 const gmtExpect = JSON.parse(JSON.stringify(GMT_EXPECTATIONS));
 
-function gmtClass(actual, expect, key) {
-  if (actual == null || isNaN(parseFloat(actual))) return '';
-  if (expect == null || isNaN(parseFloat(expect))) return '';
-  const a = parseFloat(actual);
-  const e = parseFloat(expect);
-  const diff = a - e;
-  // PMI uses larger threshold (scale 0-100)
-  const isPMI   = key === 'pmi_m' || key === 'pmi_s';
-  const isUnemp = key === 'unemp';
-  const threshold = isPMI ? 0.3 : 0.05;
-  // Lower unemployment = beat (good news)
-  if (isUnemp) {
-    if (diff < -threshold) return 'gmt-beat';
-    if (diff >  threshold) return 'gmt-miss';
-    return 'gmt-inline';
+// ══════════════════════════════════════════════════════════════
+//  SISTEMA DE SCORING OBJETIVO TFX CAPITAL
+//  Basado en rangos absolutos por indicador
+//  ROJO  = hawkish / positivo para divisa  (score +)
+//  AZUL  = dovish  / negativo para divisa  (score -)
+//  VERDE = neutral                          (score 0)
+// ══════════════════════════════════════════════════════════════
+
+// Retorna { cls:'gmt-beat|gmt-miss|gmt-inline', score, bps, label }
+function scoreGDP(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  if (v >= 5.0)                    return { cls:'gmt-beat',   score:4,  bps:4,  label:'Sobrecalentamiento' };
+  if (v >= 4.0 && v < 5.0)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Expansión acelerada' };
+  if (v >= 3.0 && v < 4.0)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Crecimiento sólido' };
+  if (v >= 2.0 && v < 3.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Crecimiento moderado' };
+  if (v >= 1.0 && v < 2.0)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Crecimiento débil' };
+  if (v >= 0.0 && v < 1.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Estancamiento' };
+  if (v >= -1.0 && v < 0.0)       return { cls:'gmt-miss',   score:-2, bps:-2, label:'Recesión leve' };
+  return                                  { cls:'gmt-miss',   score:-3, bps:-3, label:'Recesión severa' };
+}
+
+function scoreCPI(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  if (v > 5.0)                     return { cls:'gmt-beat',   score:3,  bps:3,  label:'Muy Inflacionaria' };
+  if (v >= 3.1 && v <= 5.0)       return { cls:'gmt-beat',   score:2,  bps:2,  label:'Alta' };
+  if (v >= 2.1 && v <= 3.0)       return { cls:'gmt-beat',   score:1,  bps:1,  label:'Moderadamente Alta' };
+  if (v >= 1.0 && v <= 2.0)       return { cls:'gmt-inline', score:0,  bps:0,  label:'Ideal / Objetivo' };
+  if (v >= 0.1 && v < 1.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Inflación Baja' };
+  return                                  { cls:'gmt-miss',   score:-2, bps:-2, label:'Deflación' };
+}
+
+function scoreUnemp(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  // Lower unemployment = better (hawkish)
+  if (v < 2.0)                     return { cls:'gmt-beat',   score:5,  bps:5,  label:'Ultra bajo' };
+  if (v >= 2.0 && v < 2.5)        return { cls:'gmt-beat',   score:4,  bps:4,  label:'Excepcionalmente baja' };
+  if (v >= 2.5 && v < 3.0)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Desempleo muy ajustado' };
+  if (v >= 3.0 && v < 3.5)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Desempleo bajo' };
+  if (v >= 3.5 && v < 4.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Mercado laboral saludable' };
+  if (v >= 4.0 && v < 4.5)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Equilibrio' };
+  if (v >= 4.5 && v < 5.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Ligeramente por encima' };
+  if (v >= 5.0 && v < 5.5)        return { cls:'gmt-miss',   score:-2, bps:-2, label:'Mercado laboral flojo' };
+  if (v >= 5.5 && v < 6.0)        return { cls:'gmt-miss',   score:-3, bps:-3, label:'Desempleo creciente' };
+  if (v >= 6.0 && v < 6.5)        return { cls:'gmt-miss',   score:-4, bps:-4, label:'Desempleo elevado' };
+  return                                  { cls:'gmt-miss',   score:-5, bps:-5, label:'Crisis laboral' };
+}
+
+function scoreRetail(val) {
+  // Retail Sales MoM %
+  const v = parseFloat(val);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  if (v > 2.0)                     return { cls:'gmt-beat',   score:5,  bps:5,  label:'Boom de consumo' };
+  if (v >= 1.5 && v <= 2.0)       return { cls:'gmt-beat',   score:4,  bps:4,  label:'Expansión elevada' };
+  if (v >= 1.0 && v < 1.5)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Fuerte consumo' };
+  if (v >= 0.5 && v < 1.0)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Expansión moderada' };
+  if (v >= 0.1 && v < 0.5)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Expansión débil' };
+  if (v === 0.0)                   return { cls:'gmt-inline', score:0,  bps:0,  label:'Estancamiento' };
+  if (v >= -0.4 && v < 0.0)       return { cls:'gmt-miss',   score:-1, bps:-1, label:'Corrección menor' };
+  if (v >= -0.9 && v < -0.4)      return { cls:'gmt-miss',   score:-2, bps:-2, label:'Retroceso leve' };
+  if (v >= -1.4 && v < -0.9)      return { cls:'gmt-miss',   score:-3, bps:-3, label:'Caída moderada' };
+  if (v >= -1.9 && v < -1.4)      return { cls:'gmt-miss',   score:-4, bps:-4, label:'Contracción fuerte' };
+  return                                  { cls:'gmt-miss',   score:-5, bps:-5, label:'Colapso del consumo' };
+}
+
+function scoreRate(val) {
+  // Interest Rate level (CB policy rate)
+  const v = parseFloat(val);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  if (v > 5.0)                     return { cls:'gmt-beat',   score:3,  bps:3,  label:'Ultra Hawkish' };
+  if (v >= 4.0 && v <= 5.0)       return { cls:'gmt-beat',   score:2,  bps:2,  label:'Muy Alta' };
+  if (v >= 3.0 && v < 4.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Alta' };
+  if (v >= 2.0 && v < 3.0)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Neutra' };
+  if (v >= 1.0 && v < 2.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Baja' };
+  if (v >= 0.0 && v < 1.0)        return { cls:'gmt-miss',   score:-2, bps:-2, label:'Muy Baja' };
+  return                                  { cls:'gmt-miss',   score:-3, bps:-3, label:'Negativa' };
+}
+
+function scorePMI(pmi, prevPMI) {
+  // 6-scenario PMI model based on level + direction + momentum
+  const v    = parseFloat(pmi);
+  const prev = parseFloat(prevPMI);
+  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos', scenario:0 };
+
+  const hasPrev   = !isNaN(prev);
+  const rising    = hasPrev ? v > prev : null;
+  const aboveFifty = v >= 50;
+
+  // Scenario 6: PMI toca techo > 50 y cae por primera vez → Extreme SHORT BIAS
+  if (hasPrev && prev >= 50 && v < prev && v >= 50) {
+    return { cls:'gmt-beat', score:8, bps:'+8 to +10', label:'Extreme SHORT BIAS · Techo PMI', scenario:6 };
   }
-  if (diff >  threshold) return 'gmt-beat';
-  if (diff < -threshold) return 'gmt-miss';
-  return 'gmt-inline';
+  // Scenario 5: PMI toca piso < 50 y sube por primera vez → Extreme LONG BIAS
+  if (hasPrev && prev < 50 && v > prev && v < 50) {
+    return { cls:'gmt-miss', score:-8, bps:'-8 to -10', label:'Extreme LONG BIAS · Piso PMI', scenario:5 };
+  }
+  // Scenario 1: PMI > 50 y creciendo rápido (> 1pt) → High SHORT BIAS
+  if (aboveFifty && hasPrev && v - prev > 1.0) {
+    return { cls:'gmt-beat', score:6, bps:'+5 to +8', label:'High SHORT BIAS · PMI > 50 acelerando', scenario:1 };
+  }
+  // Scenario 2: PMI > 50 y creciendo despacio (0 a 1pt) → Low SHORT BIAS
+  if (aboveFifty && (!hasPrev || v >= prev)) {
+    return { cls:'gmt-beat', score:3, bps:'0 to +5', label:'Low SHORT BIAS · PMI > 50 estable', scenario:2 };
+  }
+  // Scenario 3: PMI < 50 y cayendo rápido → High LONG BIAS
+  if (!aboveFifty && hasPrev && prev - v > 1.0) {
+    return { cls:'gmt-miss', score:-6, bps:'-5 to -8', label:'High LONG BIAS · PMI < 50 cayendo', scenario:3 };
+  }
+  // Scenario 4: PMI < 50 y cayendo despacio → Low LONG BIAS
+  return { cls:'gmt-miss', score:-3, bps:'0 to -5', label:'Low LONG BIAS · PMI < 50', scenario:4 };
+}
+
+// Master scoring dispatcher
+function getIndicatorScore(key, actualData) {
+  const val = actualData[key];
+  if (val == null) return { cls:'', score:0, bps:0, label:'Sin datos' };
+  switch(key) {
+    case 'gdp':    return scoreGDP(val);
+    case 'cpi':    return scoreCPI(val);
+    case 'unemp':  return scoreUnemp(val);
+    case 'retail': return scoreRetail(val);
+    case 'rate':   return scoreRate(val);
+    case 'pmi_m':  return scorePMI(val, actualData.prev_pmi_m);
+    case 'pmi_s':  return scorePMI(val, actualData.prev_pmi_s);
+    default:       return { cls:'gmt-inline', score:0, bps:0, label:'—' };
+  }
+}
+
+// Legacy compatibility wrapper (used by old gmtClass calls)
+function gmtClass(actual, expect, key) {
+  const data = {};
+  data[key] = actual;
+  // For PMI we need prev — use expect as a fallback prev value
+  if (key === 'pmi_m') data.prev_pmi_m = expect;
+  if (key === 'pmi_s') data.prev_pmi_s = expect;
+  return getIndicatorScore(key, data).cls || 'gmt-inline';
 }
 
 function gmtFormat(val, fmt) {
@@ -3171,34 +3301,34 @@ function renderMacroTerminal() {
 
   tbody.innerHTML = GMT_INDICATORS.map(ind => {
     const cells = GMT_CURRENCIES.map(cur => {
-      const actualRaw = (gmtActual[cur] != null && gmtActual[cur][ind.key] != null) ? gmtActual[cur][ind.key] : null;
-      const expectRaw = (gmtExpect[cur] != null && gmtExpect[cur][ind.key] != null) ? gmtExpect[cur][ind.key] : null;
-      const actual = actualRaw;
-      const expect = expectRaw;
-      const cls    = (actual != null && expect != null) ? gmtClass(actual, expect, ind.key) : '';
-      const dispVal = actual != null ? parseFloat(actual).toFixed(ind.fmt === 'num' ? 1 : 2) : '—';
-      const dispExp = expect != null ? parseFloat(expect).toFixed(ind.fmt === 'num' ? 1 : 2) : '—';
-      const unit = ind.unit;
-      return `<td class="gmt-cell ${cls}" id="gmt-cell-${cur}-${ind.key}" style="text-align:center;color:var(--text-1);">
-        <div style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:inherit;line-height:1.2;">
-          ${dispVal}${actual != null ? unit : ''}
-        </div>
-        <div style="font-size:8px;color:var(--text-3);margin-top:3px;">
-          E: ${dispExp}${expect != null ? unit : ''}
-        </div>
-        <input type="number" step="0.01" value="${actual}" 
-          id="gmt-actual-${cur}-${ind.key}"
-          oninput="updateGMT('${cur}','${ind.key}','actual',this.value)"
-          style="position:absolute;opacity:0;width:1px;height:1px;">
+      const d   = gmtActual[cur] || {};
+      const res = getIndicatorScore(ind.key, d);
+      const val = d[ind.key];
+      const dispVal = val != null ? parseFloat(val).toFixed(ind.fmt === 'num' ? 1 : 2) + ind.unit : '—';
+
+      // Color mapping: beat=red(hawkish), miss=blue(dovish), inline=green(neutral)
+      const bgMap  = { 'gmt-beat':'rgba(239,68,68,0.20)',   'gmt-miss':'rgba(59,130,246,0.20)', 'gmt-inline':'rgba(34,197,94,0.12)' };
+      const colMap = { 'gmt-beat':'#fca5a5',                'gmt-miss':'#93c5fd',               'gmt-inline':'#86efac' };
+      const bg  = bgMap[res.cls]  || 'transparent';
+      const col = colMap[res.cls] || 'var(--text-2)';
+
+      return `<td id="gmt-cell-${cur}-${ind.key}"
+        style="text-align:center;background:${bg};padding:8px 10px;border-bottom:1px solid var(--bg-3);vertical-align:middle;">
+        <div style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;color:${col};line-height:1.1;">${dispVal}</div>
+        <div style="font-size:7px;color:${col};opacity:0.8;margin-top:2px;font-family:'Syncopate',sans-serif;letter-spacing:0.5px;">${res.score > 0 ? '+' : ''}${res.score !== 0 ? res.score : '·'}</div>
+        <div style="font-size:7px;color:${col};opacity:0.7;margin-top:1px;max-width:80px;margin-left:auto;margin-right:auto;line-height:1.2;">${res.label !== 'Sin datos' ? res.label : ''}</div>
       </td>`;
     }).join('');
+
     return `<tr>
-      <td style="color:var(--text-1);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--bg-3);">${ind.label}</td>
+      <td style="color:var(--text-1);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;
+                 padding:10px 14px;border-bottom:1px solid var(--bg-3);white-space:nowrap;">${ind.label}</td>
       ${cells}
     </tr>`;
   }).join('');
 
   renderGMTScores();
+  renderPrevPMIInputs();
 }
 
 function updateGMT(cur, key, type, val) {
@@ -3220,33 +3350,55 @@ function renderGMTScores() {
   const grid = document.getElementById('gmt-score-grid');
   if (!grid) return;
 
-  const scores = GMT_CURRENCIES.map(cur => {
-    let score = 0, total = 0;
-    GMT_INDICATORS.forEach(ind => {
-      const a = gmtActual[cur]?.[ind.key];
-      const e = gmtExpect[cur]?.[ind.key];
-      if (a !== '' && a !== null && !isNaN(a) && e !== '' && e !== null && !isNaN(e)) {
-        const cls = gmtClass(a, e, ind.key);
-        if (cls === 'gmt-beat') score++;
-        else if (cls === 'gmt-miss') score--;
-        total++;
-      }
-    });
-    return { cur, score, total };
-  }).sort((a,b) => b.score - a.score);
+  const results = GMT_CURRENCIES.map(cur => {
+    const d = gmtActual[cur] || {};
+    let totalScore = 0, totalAbs = 0, count = 0;
+    const breakdown = [];
 
-  grid.innerHTML = scores.map(({cur, score, total}) => {
-    const col = score > 0 ? '#93c5fd' : score < 0 ? '#fca5a5' : '#9ca3af';
-    const bg  = score > 0 ? 'rgba(59,130,246,0.10)' : score < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(107,114,128,0.10)';
-    const border = score > 0 ? 'rgba(59,130,246,0.3)' : score < 0 ? 'rgba(239,68,68,0.3)' : 'rgba(107,114,128,0.3)';
-    const flag = {AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',EUR:'🇪🇺',GBP:'🇬🇧',JPY:'🇯🇵',NZD:'🇳🇿',USD:'🇺🇸'}[cur];
-    const label = score > 1 ? 'FUERTE' : score > 0 ? 'MODERADO' : score === 0 ? 'NEUTRO' : score > -2 ? 'DÉBIL' : 'MUY DÉBIL';
-    return `<div style="background:${bg};border:1px solid ${border};border-radius:var(--r);padding:14px;text-align:center;">
-      <div style="font-size:22px;margin-bottom:4px;">${flag}</div>
-      <div style="font-family:'Syncopate',sans-serif;font-size:10px;font-weight:700;color:var(--text-1);">${cur}</div>
-      <div style="font-family:'Roboto Mono',monospace;font-size:22px;font-weight:700;color:${col};line-height:1;margin:6px 0;">${score > 0 ? '+' : ''}${score}</div>
-      <div style="font-family:'Syncopate',sans-serif;font-size:7px;font-weight:700;color:${col};letter-spacing:1px;">${label}</div>
-      <div style="font-size:8px;color:var(--text-2);margin-top:4px;">${total} indicadores</div>
+    GMT_INDICATORS.forEach(ind => {
+      if (d[ind.key] == null) return;
+      const res = getIndicatorScore(ind.key, d);
+      if (res.cls === '') return;
+      totalScore += res.score;
+      totalAbs   += Math.abs(res.score);
+      count++;
+      breakdown.push({ key: ind.key, label: ind.label, score: res.score, cls: res.cls, indLabel: res.label });
+    });
+
+    return { cur, totalScore, count, breakdown };
+  }).sort((a, b) => b.totalScore - a.totalScore);
+
+  const flags = {AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',EUR:'🇪🇺',GBP:'🇬🇧',JPY:'🇯🇵',NZD:'🇳🇿',USD:'🇺🇸'};
+
+  grid.innerHTML = results.map(({ cur, totalScore, count, breakdown }) => {
+    // Color: positive = red (hawkish/strong), negative = blue (dovish/weak), zero = green (neutral)
+    const isHawk = totalScore > 0;
+    const isDove = totalScore < 0;
+    const bg     = isHawk ? 'rgba(239,68,68,0.12)'   : isDove ? 'rgba(59,130,246,0.12)'   : 'rgba(34,197,94,0.08)';
+    const border = isHawk ? 'rgba(239,68,68,0.35)'   : isDove ? 'rgba(59,130,246,0.35)'   : 'rgba(34,197,94,0.25)';
+    const col    = isHawk ? '#fca5a5'                 : isDove ? '#93c5fd'                 : '#86efac';
+    const bias   = isHawk ? (totalScore > 8 ? 'EXTREME HAWKISH' : totalScore > 4 ? 'HAWKISH' : 'LEVE HAWKISH')
+                 : isDove ? (totalScore < -8 ? 'EXTREME DOVISH' : totalScore < -4 ? 'DOVISH' : 'LEVE DOVISH')
+                 : 'NEUTRAL';
+
+    // Top 3 strongest signals
+    const topSignals = [...breakdown]
+      .sort((a,b) => Math.abs(b.score) - Math.abs(a.score))
+      .slice(0, 2)
+      .map(s => `<div style="font-size:7px;color:${s.cls==='gmt-beat'?'#fca5a5':s.cls==='gmt-miss'?'#93c5fd':'#86efac'};
+                  margin-top:2px;line-height:1.3;">${s.score>0?'+':''}${s.score} ${s.label}</div>`)
+      .join('');
+
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:var(--r);padding:14px 12px;text-align:center;">
+      <div style="font-size:22px;margin-bottom:4px;">${flags[cur]}</div>
+      <div style="font-family:'Syncopate',sans-serif;font-size:11px;font-weight:700;color:var(--text-1);margin-bottom:6px;">${cur}</div>
+      <div style="font-family:'Roboto Mono',monospace;font-size:24px;font-weight:700;color:${col};line-height:1;">
+        ${totalScore > 0 ? '+' : ''}${totalScore}
+      </div>
+      <div style="font-family:'Syncopate',sans-serif;font-size:7px;font-weight:700;color:${col};
+                  letter-spacing:1px;margin-top:4px;margin-bottom:6px;">${bias}</div>
+      <div style="border-top:1px solid ${border};padding-top:6px;">${topSignals}</div>
+      <div style="font-size:7px;color:var(--text-3);margin-top:4px;">${count} indicadores</div>
     </div>`;
   }).join('');
 }
@@ -3275,6 +3427,48 @@ function exportGMT() {
   const a    = document.createElement('a');
   a.href = url; a.download = 'TFX_MacroTerminal_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click(); URL.revokeObjectURL(url);
+}
+
+
+// ── PMI PREVIO INPUTS ───────────────────────────────────────────
+function renderPrevPMIInputs() {
+  const container = document.getElementById('pmi-prev-container');
+  if (!container) return;
+  container.innerHTML = `
+    <div style="font-family:'Syncopate',sans-serif;font-size:7px;font-weight:700;color:var(--text-2);letter-spacing:2px;margin-bottom:10px;">
+      PMI MES ANTERIOR · NECESARIO PARA DETECTAR ESCENARIOS 5 Y 6 (INFLEXIÓN)
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;">
+      ${GMT_CURRENCIES.map(cur => `
+        <div>
+          <div style="font-family:'Syncopate',sans-serif;font-size:8px;color:var(--gold);margin-bottom:4px;text-align:center;">${cur}</div>
+          <div style="font-size:7px;color:var(--text-2);margin-bottom:2px;">Mfg prev</div>
+          <input type="number" step="0.1"
+            value="${gmtActual[cur]?.prev_pmi_m != null ? gmtActual[cur].prev_pmi_m : ''}"
+            id="prev-pmi-m-${cur}"
+            oninput="updatePrevPMI('${cur}','m',this.value)"
+            placeholder="—"
+            style="background:var(--bg-0);border:1px solid var(--bg-3);color:var(--text-1);
+                   font-family:'Roboto Mono',monospace;font-size:10px;padding:3px 5px;
+                   width:100%;border-radius:2px;outline:none;box-sizing:border-box;">
+          <div style="font-size:7px;color:var(--text-2);margin-bottom:2px;margin-top:4px;">Svc prev</div>
+          <input type="number" step="0.1"
+            value="${gmtActual[cur]?.prev_pmi_s != null ? gmtActual[cur].prev_pmi_s : ''}"
+            id="prev-pmi-s-${cur}"
+            oninput="updatePrevPMI('${cur}','s',this.value)"
+            placeholder="—"
+            style="background:var(--bg-0);border:1px solid var(--bg-3);color:var(--text-1);
+                   font-family:'Roboto Mono',monospace;font-size:10px;padding:3px 5px;
+                   width:100%;border-radius:2px;outline:none;box-sizing:border-box;">
+        </div>`).join('')}
+    </div>`;
+}
+
+function updatePrevPMI(cur, type, val) {
+  if (!gmtActual[cur]) gmtActual[cur] = {};
+  const key = type === 'm' ? 'prev_pmi_m' : 'prev_pmi_s';
+  gmtActual[cur][key] = val === '' ? null : parseFloat(val);
+  renderMacroTerminal();
 }
 
 // ── MOBILE NAVIGATION HELPERS ────────────────────────────────────────────
