@@ -2592,28 +2592,25 @@ async function runDataEngine(manual = false) {
     appendLog('✓ Datos inyectados en el scoring engine');
     appendLog('✓ Scores recalculados con datos en tiempo real');
 
-    // Auto-update GMT table with live data
+    // Auto-update GMT Score Macro table with live data
     try {
-      if (typeof gmtActual !== 'undefined' && payload && payload.data) {
-        Object.entries(payload.data).forEach(([code, d]) => {
+      if (typeof gmtActual !== 'undefined' && parsed && parsed.data) {
+        Object.entries(parsed.data).forEach(([code, d]) => {
           if (!gmtActual[code]) return;
-          // Core macro (always present)
-          if (d.rate  !== undefined) { gmtActual[code].rate  = d.rate;  gmtExpect[code].rate  = d.rate; }
-          if (d.cpi   !== undefined) { gmtActual[code].cpi   = d.cpi;   gmtExpect[code].cpi   = parseFloat((d.cpi  * 0.97).toFixed(2)); }
-          if (d.unemp !== undefined) { gmtActual[code].unemp = d.unemp; gmtExpect[code].unemp = parseFloat((d.unemp * 1.01).toFixed(2)); }
-          // Extended macro (new fields)
-          if (d.gdp    !== undefined) { gmtActual[code].gdp    = d.gdp;   gmtExpect[code].gdp   = parseFloat((d.gdp   * 0.90).toFixed(2)); }
-          if (d.pmi_m  !== undefined) { gmtActual[code].pmi_m  = d.pmi_m; gmtExpect[code].pmi_m = parseFloat((d.pmi_m * 0.99).toFixed(1)); }
-          if (d.pmi_s  !== undefined) { gmtActual[code].pmi_s  = d.pmi_s; gmtExpect[code].pmi_s = parseFloat((d.pmi_s * 0.99).toFixed(1)); }
-          if (d.retail !== undefined) { gmtActual[code].retail = d.retail; gmtExpect[code].retail = parseFloat((d.retail * 0.80).toFixed(2)); }
+          if (d.rate   !== undefined) { gmtActual[code].rate   = d.rate;   gmtExpect[code].rate   = d.rate; }
+          if (d.cpi    !== undefined) { gmtActual[code].cpi    = d.cpi;    gmtExpect[code].cpi    = parseFloat((d.cpi   * 0.97).toFixed(2)); }
+          if (d.unemp  !== undefined) { gmtActual[code].unemp  = d.unemp;  gmtExpect[code].unemp  = parseFloat((d.unemp * 1.01).toFixed(2)); }
+          if (d.gdp    !== undefined) { gmtActual[code].gdp    = d.gdp;    gmtExpect[code].gdp    = parseFloat((d.gdp   * 0.90).toFixed(2)); }
+          if (d.pmi_m  !== undefined) { gmtActual[code].pmi_m  = d.pmi_m;  gmtExpect[code].pmi_m  = parseFloat((d.pmi_m * 0.99).toFixed(1)); }
+          if (d.pmi_s  !== undefined) { gmtActual[code].pmi_s  = d.pmi_s;  gmtExpect[code].pmi_s  = parseFloat((d.pmi_s * 0.99).toFixed(1)); }
+          if (d.retail !== undefined) { gmtActual[code].retail = d.retail;  gmtExpect[code].retail = parseFloat((d.retail * 0.80).toFixed(2)); }
         });
-        // Always update GMT data — render only if panel is visible
-        if (typeof renderMacroTerminal === 'function') {
-          setTimeout(renderMacroTerminal, 100);
-        }
-        appendLog('✓ Score Macro actualizado · 7 indicadores × 8 divisas listos.');
+        if (typeof renderMacroTerminal === 'function') setTimeout(renderMacroTerminal, 150);
+        appendLog('✓ Score Macro · 7 indicadores × 8 divisas sincronizados.');
       }
-    } catch(e) { /* silent */ }
+    } catch(gmtErr) {
+      appendLog('GMT sync error: ' + gmtErr.message);
+    }
     if (parsed.notes) appendLog('NOTAS: ' + parsed.notes);
 
     lastDataPayload = parsed;
