@@ -3148,50 +3148,30 @@ function gmtFormat(val, fmt) {
 function renderMacroTerminal() {
   const tbody = document.getElementById('gmt-tbody');
   if (!tbody) return;
-  // Sync from scoring engine if data is available
-  if (typeof scores !== 'undefined' && Object.keys(scores).length > 0) {
-    const G8codes = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];
-    G8codes.forEach(code => {
-      if (typeof G8 !== 'undefined') {
-        const cur = G8.find(c => c.code === code);
-        if (cur && typeof inputs !== 'undefined') {
-          const rateEl  = document.getElementById('inp-rate-'  + code);
-          const cpiEl   = document.getElementById('inp-cpi-'   + code);
-          const unempEl = document.getElementById('inp-unemp-' + code);
-          if (rateEl  && rateEl.value  && gmtActual[code]) gmtActual[code].rate  = parseFloat(rateEl.value);
-          if (cpiEl   && cpiEl.value   && gmtActual[code]) gmtActual[code].cpi   = parseFloat(cpiEl.value);
-          if (unempEl && unempEl.value && gmtActual[code]) gmtActual[code].unemp = parseFloat(unempEl.value);
-        }
-      }
-    });
-  }
 
   tbody.innerHTML = GMT_INDICATORS.map(ind => {
     const cells = GMT_CURRENCIES.map(cur => {
-      const actual = gmtActual[cur]?.[ind.key] ?? '';
-      const expect = gmtExpect[cur]?.[ind.key] ?? '';
-      const cls    = gmtClass(actual, expect, ind.key);
-      return `<td class="gmt-cell ${cls}" id="gmt-cell-${cur}-${ind.key}">
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          <input class="gmt-input" type="number" step="0.01"
-            value="${actual !== '' ? actual : ''}"
-            placeholder="—"
-            id="gmt-actual-${cur}-${ind.key}"
-            oninput="updateGMT('${cur}','${ind.key}','actual',this.value)"
-            style="color:inherit;">
-          <div style="font-size:8px;color:var(--text-3);font-family:'Roboto Mono',monospace;">
-            E: <input class="gmt-input" type="number" step="0.01"
-              value="${expect !== '' ? expect : ''}"
-              placeholder="—"
-              id="gmt-expect-${cur}-${ind.key}"
-              oninput="updateGMT('${cur}','${ind.key}','expect',this.value)"
-              style="font-size:8px;width:55px;color:var(--text-2);">
-          </div>
+      const actual = gmtActual[cur] !== undefined && gmtActual[cur][ind.key] !== undefined ? gmtActual[cur][ind.key] : '';
+      const expect = gmtExpect[cur] !== undefined && gmtExpect[cur][ind.key] !== undefined ? gmtExpect[cur][ind.key] : '';
+      const cls    = (actual !== '' && expect !== '') ? gmtClass(actual, expect, ind.key) : '';
+      const dispVal = actual !== '' ? parseFloat(actual).toFixed(ind.fmt === 'num' ? 1 : 2) : '—';
+      const dispExp = expect !== '' ? parseFloat(expect).toFixed(ind.fmt === 'num' ? 1 : 2) : '—';
+      const unit = ind.unit;
+      return `<td class="gmt-cell ${cls}" id="gmt-cell-${cur}-${ind.key}" style="text-align:center;">
+        <div style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:inherit;line-height:1.2;">
+          ${dispVal}${actual !== '' ? unit : ''}
         </div>
+        <div style="font-size:8px;color:var(--text-3);margin-top:3px;">
+          E: ${dispExp}${expect !== '' ? unit : ''}
+        </div>
+        <input type="number" step="0.01" value="${actual}" 
+          id="gmt-actual-${cur}-${ind.key}"
+          oninput="updateGMT('${cur}','${ind.key}','actual',this.value)"
+          style="position:absolute;opacity:0;width:1px;height:1px;">
       </td>`;
     }).join('');
     return `<tr>
-      <td style="color:var(--text-1);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;">${ind.label}</td>
+      <td style="color:var(--text-1);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--bg-3);">${ind.label}</td>
       ${cells}
     </tr>`;
   }).join('');
