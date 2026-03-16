@@ -1,4 +1,6 @@
 exports.handler = async function(event, context) {
+  context.callbackWaitsForEmptyEventLoop = false;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
@@ -8,7 +10,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured in Netlify environment variables.' })
+      body: JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured.' })
     };
   }
 
@@ -22,7 +24,8 @@ exports.handler = async function(event, context) {
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(25000)
     });
 
     const data = await response.json();
