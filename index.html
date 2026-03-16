@@ -517,9 +517,12 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
   color:var(--text-1);letter-spacing:.5px;
 }
 /* Beat / Miss / In-line cells */
-.gmt-beat{background:rgba(59,130,246,0.18);color:#93c5fd;}
-.gmt-miss{background:rgba(239,68,68,0.18);color:#fca5a5;}
-.gmt-inline{background:rgba(107,114,128,0.18);color:#9ca3af;}
+.gmt-table td.gmt-beat{background:rgba(59,130,246,0.20) !important;color:#93c5fd !important;}
+.gmt-table td.gmt-miss{background:rgba(239,68,68,0.20) !important;color:#fca5a5 !important;}
+.gmt-table td.gmt-inline{background:rgba(107,114,128,0.15) !important;color:#9ca3af !important;}
+.gmt-beat{background:rgba(59,130,246,0.20);color:#93c5fd;}
+.gmt-miss{background:rgba(239,68,68,0.20);color:#fca5a5;}
+.gmt-inline{background:rgba(107,114,128,0.15);color:#9ca3af;}
 /* Country header row */
 .gmt-country-header th{
   background:var(--bg-2);
@@ -3135,12 +3138,17 @@ const gmtActual = JSON.parse(JSON.stringify(GMT_DEFAULTS));
 const gmtExpect = JSON.parse(JSON.stringify(GMT_EXPECTATIONS));
 
 function gmtClass(actual, expect, key) {
-  if (actual === '' || actual === null || isNaN(actual)) return '';
+  if (actual == null || isNaN(parseFloat(actual))) return '';
+  if (expect == null || isNaN(parseFloat(expect))) return '';
   const a = parseFloat(actual);
   const e = parseFloat(expect);
   const diff = a - e;
-  const threshold = ['unemp'].includes(key) ? -0.1 : 0.1; // lower unemp = beat
-  if (['unemp'].includes(key)) {
+  // PMI uses larger threshold (scale 0-100)
+  const isPMI   = key === 'pmi_m' || key === 'pmi_s';
+  const isUnemp = key === 'unemp';
+  const threshold = isPMI ? 0.3 : 0.05;
+  // Lower unemployment = beat (good news)
+  if (isUnemp) {
     if (diff < -threshold) return 'gmt-beat';
     if (diff >  threshold) return 'gmt-miss';
     return 'gmt-inline';
