@@ -2607,9 +2607,11 @@ async function runDataEngine(manual = false) {
           if (d.pmi_s  !== undefined) { gmtActual[code].pmi_s  = d.pmi_s; gmtExpect[code].pmi_s = parseFloat((d.pmi_s * 0.99).toFixed(1)); }
           if (d.retail !== undefined) { gmtActual[code].retail = d.retail; gmtExpect[code].retail = parseFloat((d.retail * 0.80).toFixed(2)); }
         });
-        const gmtEl = document.getElementById('v-macro-terminal');
-        if (gmtEl && gmtEl.classList.contains('active')) renderMacroTerminal();
-        appendLog('✓ Score Macro sincronizado · 7 indicadores por divisa.');
+        // Always update GMT data — render only if panel is visible
+        if (typeof renderMacroTerminal === 'function') {
+          renderMacroTerminal();
+        }
+        appendLog('✓ Score Macro sincronizado · GDP, PMI Mfg, PMI Svc, Retail, CPI, Unemp, Tasa CB.');
       }
     } catch(e) { /* silent */ }
     if (parsed.notes) appendLog('NOTAS: ' + parsed.notes);
@@ -3097,26 +3099,26 @@ const GMT_INDICATORS = [
 
 // Default values based on latest known data (March 2026)
 const GMT_DEFAULTS = {
-  AUD:{ gdp:0.8,  pmi_m:51.0, pmi_s:52.8, retail:1.2,  cpi:3.8, unemp:4.1, rate:4.10 },
-  CAD:{ gdp:0.2,  pmi_m:51.0, pmi_s:46.5, retail:-0.4, cpi:1.8, unemp:6.7, rate:2.25 },
-  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, retail:1.1,  cpi:0.1, unemp:3.2, rate:0.25 },
-  EUR:{ gdp:0.2,  pmi_m:50.8, pmi_s:51.9, retail:-0.1, cpi:1.9, unemp:6.1, rate:2.00 },
-  GBP:{ gdp:0.0,  pmi_m:51.7, pmi_s:53.9, retail:1.8,  cpi:3.0, unemp:5.2, rate:3.75 },
-  JPY:{ gdp:0.3,  pmi_m:53.0, pmi_s:53.8, retail:4.1,  cpi:1.5, unemp:2.7, rate:0.50 },
-  NZD:{ gdp:1.1,  pmi_m:55.0, pmi_s:48.0, retail:0.9,  cpi:3.1, unemp:5.4, rate:3.50 },
-  USD:{ gdp:0.7,  pmi_m:51.6, pmi_s:51.7, retail:-0.2, cpi:2.4, unemp:4.4, rate:3.625},
+  AUD:{ gdp:0.3,  pmi_m:49.4, pmi_s:50.1, retail:0.1,  cpi:3.6, unemp:3.9, rate:3.35 },
+  CAD:{ gdp:0.1,  pmi_m:48.5, pmi_s:46.5, retail:-0.4, cpi:2.0, unemp:6.9, rate:3.25 },
+  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, retail:1.1,  cpi:0.6, unemp:2.7, rate:1.00 },
+  EUR:{ gdp:0.1,  pmi_m:45.2, pmi_s:47.6, retail:-0.5, cpi:2.4, unemp:6.3, rate:3.00 },
+  GBP:{ gdp:0.1,  pmi_m:46.9, pmi_s:49.1, retail:0.3,  cpi:2.8, unemp:5.0, rate:4.75 },
+  JPY:{ gdp:0.1,  pmi_m:49.2, pmi_s:50.8, retail:1.2,  cpi:2.5, unemp:2.4, rate:0.75 },
+  NZD:{ gdp:0.7,  pmi_m:51.5, pmi_s:48.0, retail:0.5,  cpi:2.2, unemp:4.8, rate:4.25 },
+  USD:{ gdp:0.7,  pmi_m:48.3, pmi_s:50.2, retail:-0.8, cpi:2.6, unemp:4.2, rate:4.33 },
 };
 
 // Expectations (consensus forecasts)
 const GMT_EXPECTATIONS = {
-  AUD:{ gdp:0.6,  pmi_m:50.5, pmi_s:51.0, retail:0.8,  cpi:3.5, unemp:4.2, rate:4.10 },
-  CAD:{ gdp:0.3,  pmi_m:50.0, pmi_s:48.0, retail:0.2,  cpi:2.0, unemp:6.5, rate:2.25 },
-  CHF:{ gdp:0.2,  pmi_m:50.0, pmi_s:53.0, retail:0.8,  cpi:0.2, unemp:3.0, rate:0.25 },
-  EUR:{ gdp:0.3,  pmi_m:50.5, pmi_s:52.0, retail:0.2,  cpi:2.1, unemp:6.2, rate:2.00 },
-  GBP:{ gdp:0.1,  pmi_m:51.5, pmi_s:53.5, retail:1.0,  cpi:2.8, unemp:5.0, rate:3.75 },
-  JPY:{ gdp:0.2,  pmi_m:52.0, pmi_s:52.5, retail:3.0,  cpi:1.8, unemp:2.8, rate:0.50 },
-  NZD:{ gdp:0.8,  pmi_m:53.0, pmi_s:49.0, retail:0.5,  cpi:2.8, unemp:5.2, rate:3.50 },
-  USD:{ gdp:0.5,  pmi_m:51.0, pmi_s:51.0, retail:0.2,  cpi:2.5, unemp:4.3, rate:3.625},
+  AUD:{ gdp:0.4,  pmi_m:50.0, pmi_s:50.5, retail:0.3,  cpi:3.4, unemp:4.0, rate:3.35 },
+  CAD:{ gdp:0.2,  pmi_m:49.0, pmi_s:47.5, retail:0.0,  cpi:2.0, unemp:6.7, rate:3.25 },
+  CHF:{ gdp:0.2,  pmi_m:50.0, pmi_s:53.0, retail:0.8,  cpi:0.5, unemp:2.7, rate:1.00 },
+  EUR:{ gdp:0.2,  pmi_m:46.0, pmi_s:48.5, retail:-0.2, cpi:2.3, unemp:6.3, rate:3.00 },
+  GBP:{ gdp:0.2,  pmi_m:48.0, pmi_s:50.5, retail:0.5,  cpi:2.7, unemp:5.0, rate:4.75 },
+  JPY:{ gdp:0.2,  pmi_m:50.0, pmi_s:51.5, retail:2.0,  cpi:2.3, unemp:2.5, rate:0.75 },
+  NZD:{ gdp:0.5,  pmi_m:51.0, pmi_s:48.5, retail:0.3,  cpi:2.4, unemp:4.9, rate:4.25 },
+  USD:{ gdp:0.6,  pmi_m:49.5, pmi_s:50.5, retail:0.0,  cpi:2.5, unemp:4.3, rate:4.33 },
 };
 
 // State
