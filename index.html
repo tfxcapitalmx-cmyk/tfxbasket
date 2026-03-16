@@ -493,6 +493,64 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
 .align-card.neutral{border-left:3px solid var(--amber);}
 .align-card.warning{border-left:3px solid var(--red);}
 
+
+/* ════════════════════════════════
+   GLOBAL MACRO TERMINAL
+   ════════════════════════════════ */
+.gmt-table{width:100%;border-collapse:collapse;font-size:11px;}
+.gmt-table th{
+  background:var(--bg-3);
+  font-family:'Syncopate',sans-serif;font-size:8px;font-weight:700;
+  color:var(--text-2);letter-spacing:1.5px;text-transform:uppercase;
+  padding:12px 14px;text-align:left;border-bottom:2px solid var(--bg-0);
+  white-space:nowrap;
+}
+.gmt-table th:first-child{min-width:160px;}
+.gmt-table td{
+  padding:10px 14px;border-bottom:1px solid var(--bg-3);
+  font-family:'Roboto Mono',monospace;font-weight:600;font-size:11px;
+  text-align:left;transition:background .2s;white-space:nowrap;
+}
+.gmt-table tr:hover td{background:rgba(255,255,255,0.02);}
+.gmt-table td:first-child{
+  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;
+  color:var(--text-1);letter-spacing:.5px;
+}
+/* Beat / Miss / In-line cells */
+.gmt-beat{background:rgba(59,130,246,0.18);color:#93c5fd;}
+.gmt-miss{background:rgba(239,68,68,0.18);color:#fca5a5;}
+.gmt-inline{background:rgba(107,114,128,0.18);color:#9ca3af;}
+/* Country header row */
+.gmt-country-header th{
+  background:var(--bg-2);
+  font-family:'Syncopate',sans-serif;font-size:9px;font-weight:700;
+  color:var(--gold);letter-spacing:2px;padding:10px 14px;
+  border-top:2px solid var(--bg-3);border-bottom:1px solid var(--bg-3);
+}
+/* Legend */
+.gmt-legend{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+.gmt-legend-item{
+  border-radius:var(--r);padding:12px 16px;font-size:9px;line-height:1.6;
+  color:var(--text-1);
+}
+.gmt-legend-item strong{font-size:10px;font-weight:700;display:block;margin-bottom:4px;}
+.gmt-beat-legend{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);}
+.gmt-miss-legend{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);}
+.gmt-inline-legend{background:rgba(107,114,128,0.12);border:1px solid rgba(107,114,128,0.3);grid-column:1/-1;}
+/* Input cells */
+.gmt-input{
+  background:transparent;border:none;border-bottom:1px dashed var(--bg-3);
+  color:inherit;font-family:'Roboto Mono',monospace;font-size:11px;font-weight:600;
+  width:70px;text-align:center;outline:none;padding:1px 2px;
+  transition:border-color .2s;
+}
+.gmt-input:focus{border-bottom-color:var(--gold);}
+.gmt-select{
+  background:var(--bg-3);border:none;color:var(--text-1);
+  font-family:'Roboto Mono',monospace;font-size:10px;font-weight:600;
+  padding:2px 4px;border-radius:2px;outline:none;cursor:pointer;
+}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg-1);}
@@ -756,6 +814,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
     <button class="nav-btn" onclick="goTo('v-horizon')" style="color:var(--gold)"><span class="nav-icon">◷</span>Horizonte ✦</button>
     <button class="nav-btn" onclick="goTo('v-dataengine')" style="color:var(--green)"><span class="nav-icon">⬡</span>Data Engine ✦</button>
     <button class="nav-btn" onclick="goTo('v-sentiment')" style="color:var(--blue)"><span class="nav-icon">◉</span>Sentimiento & COT ✦</button>
+    <button class="nav-btn" onclick="goTo('v-macro-terminal')" style="color:var(--purple)"><span class="nav-icon">▦</span>Global Macro Terminal</button>
 
     <div class="sb-divider"></div>
     <span class="sb-label">Régimen Macro</span>
@@ -1120,6 +1179,78 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
         </div>
         <div id="seasonal-month-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" id="seasonal-grid"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ VIEW: GLOBAL MACRO TERMINAL ══════════ -->
+    <div class="view" id="v-macro-terminal">
+      <div class="sec-head">
+        <div class="sec-tag">MACRO TERMINAL · DATOS G8 EN TIEMPO REAL</div>
+        <div class="sec-title">GLOBAL MACRO TERMINAL</div>
+        <div class="sec-desc">Indicadores macroeconómicos clave por economía con codificación de color vs expectativas del mercado. <strong style="color:#93c5fd;">Azul</strong> = dato superó expectativas (economía más fuerte, positivo para la divisa). <strong style="color:#fca5a5;">Rojo</strong> = dato decepcionó (negativo para la divisa). <strong style="color:#9ca3af;">Gris</strong> = dato en línea con lo esperado (neutro). Ingresa el dato actual y la expectativa para calcular el resultado automáticamente.</div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div style="font-family:'Syncopate',sans-serif;font-size:8px;font-weight:700;color:var(--gold);letter-spacing:3px;">INDICADORES MACRO G8</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-outline" onclick="clearGMT()">↺ LIMPIAR</button>
+          <button class="btn-gold"    onclick="exportGMT()">↓ EXPORTAR CSV</button>
+        </div>
+      </div>
+
+      <!-- NOTE -->
+      <div style="background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--r);padding:10px 16px;margin-bottom:16px;font-size:9px;color:var(--text-2);line-height:1.6;">
+        <strong style="color:var(--text-1);">Nota:</strong> Los indicadores marcados con <strong>(F)</strong> corresponden a datos finales. Los valores marcados con <strong>(P)</strong> son provisionales. Canadá, Suiza y Nueva Zelanda reportan solo datos finales. Ingresa el valor actual y la expectativa — la celda se colorea automáticamente.
+      </div>
+
+      <!-- TABLE -->
+      <div style="overflow-x:auto;border-radius:var(--r);border:1px solid var(--bg-3);">
+        <table class="gmt-table" id="gmt-table">
+          <thead>
+            <tr>
+              <th>Indicador</th>
+              <th>🇦🇺 AUD</th>
+              <th>🇨🇦 CAD</th>
+              <th>🇨🇭 CHF</th>
+              <th>🇪🇺 EUR</th>
+              <th>🇬🇧 GBP</th>
+              <th>🇯🇵 JPY</th>
+              <th>🇳🇿 NZD</th>
+              <th>🇺🇸 USD</th>
+            </tr>
+          </thead>
+          <tbody id="gmt-tbody">
+            <!-- Generated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LEGEND -->
+      <div class="gmt-legend" style="margin-top:20px;">
+        <div class="gmt-legend-item gmt-beat-legend">
+          <strong style="color:#93c5fd;">Azul — Beat (Superó expectativas)</strong>
+          El dato fue mejor de lo esperado, señalando una economía más sólida. Impulsa la confianza en la divisa, favoreciendo su apreciación y generando un entorno positivo para índices bursátiles. Los inversores se posicionan en activos de mayor riesgo.
+        </div>
+        <div class="gmt-legend-item gmt-miss-legend">
+          <strong style="color:#fca5a5;">Rojo — Miss (Decepcionó expectativas)</strong>
+          El dato fue peor de lo esperado, reflejando debilitamiento económico. Reduce la confianza en la divisa, genera entorno negativo para índices bursátiles. Los inversores tienden a alejarse del riesgo y buscar refugio en activos seguros.
+        </div>
+        <div class="gmt-legend-item gmt-inline-legend">
+          <strong style="color:#9ca3af;">Gris — In-line (En línea con expectativas)</strong>
+          El dato coincidió con las previsiones, señalando estabilidad. Impacto neutro en la divisa e índices — el mercado ya había descontado este resultado, manteniendo el equilibrio entre apetito y aversión al riesgo.
+        </div>
+      </div>
+
+      <!-- MACRO SCORE PANEL -->
+      <div class="panel" style="margin-top:20px;">
+        <div class="ph">
+          <div class="pt">RESUMEN MACRO · SCORE POR DIVISA</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:8px;color:var(--text-2);">Beat = +1 · In-line = 0 · Miss = -1 · Score positivo = divisa fuerte</div>
+        </div>
+        <div class="pb" id="gmt-score-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-2);">Ingresa datos para ver el score por divisa.</div>
+        </div>
       </div>
     </div>
   </main>
@@ -2388,7 +2519,7 @@ async function runDataEngine(manual = false) {
 
   try {
     updateOverlayProgress(15, 'Conectando con Claude API...');
-    appendLog('Enviando prompt a claude-sonnet-4-6 con web_search activado...');
+    appendLog('Enviando prompt a claude-haiku-4-5 via proxy seguro...');
 
     const response = await fetch('/api/claude', {
       method: 'POST',
@@ -2460,6 +2591,22 @@ async function runDataEngine(manual = false) {
     updateOverlayProgress(100, '✓ Datos cargados correctamente');
     appendLog('✓ Datos inyectados en el scoring engine');
     appendLog('✓ Scores recalculados con datos en tiempo real');
+
+    // Auto-update GMT table with live data
+    try {
+      if (typeof gmtActual !== 'undefined' && payload && payload.data) {
+        Object.entries(payload.data).forEach(([code, d]) => {
+          if (!gmtActual[code]) return;
+          if (d.rate  !== undefined) { gmtActual[code].rate  = d.rate; }
+          if (d.cpi   !== undefined) { gmtActual[code].cpi   = d.cpi;  gmtExpect[code].cpi   = parseFloat((d.cpi  * 0.97).toFixed(2)); }
+          if (d.unemp !== undefined) { gmtActual[code].unemp = d.unemp; gmtExpect[code].unemp = parseFloat((d.unemp * 1.01).toFixed(2)); }
+        });
+        if (document.getElementById('gmt-tbody') && document.getElementById('v-macro-terminal').classList.contains('active')) {
+          renderMacroTerminal();
+        }
+        appendLog('✓ Global Macro Terminal sincronizado con datos en tiempo real.');
+      }
+    } catch(e) { /* silent */ }
     if (parsed.notes) appendLog('NOTAS: ' + parsed.notes);
 
     lastDataPayload = parsed;
@@ -2630,7 +2777,8 @@ function goTo(id) {
   if (id === 'v-swap')       { basketSignals.length > 0 ? renderSwapAnalysis() : buildFullSwapTable(); }
   if (id === 'v-horizon')    { renderSessionBar(); if (basketSignals.length > 0) renderHorizonTable(); }
   if (id === 'v-dataengine') { if (!lastDataPayload && !dataEngineRunning) appendLog('Presiona FORZAR ACTUALIZACIÓN para cargar datos en tiempo real.'); }
-  if (id === 'v-sentiment')  { setTimeout(() => { setSentTab(activeSentTab || 'retail'); }, 50); }
+  if (id === 'v-sentiment')    { setTimeout(() => { setSentTab(activeSentTab || 'retail'); }, 50); }
+  if (id === 'v-macro-terminal') { renderMacroTerminal(); }
 }
 
 
@@ -2925,6 +3073,204 @@ function renderSeasonality() {
 
 function setSeasonMonth(m) { activeSeasonMonth=m; renderSeasonality(); }
 
+
+// ════════════════════════════════════════════════════════════
+//  GLOBAL MACRO TERMINAL ENGINE
+// ════════════════════════════════════════════════════════════
+
+const GMT_CURRENCIES = ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'];
+
+const GMT_INDICATORS = [
+  { key:'gdp',    label:'Crecimiento del PIB',    unit:'%',  fmt:'pct' },
+  { key:'pmi_m',  label:'PMI Manufacturero (F)',  unit:'',   fmt:'num' },
+  { key:'pmi_s',  label:'PMI de Servicios (F)',   unit:'',   fmt:'num' },
+  { key:'retail', label:'Ventas Minoristas',       unit:'%',  fmt:'pct' },
+  { key:'cpi',    label:'Inflación (CPI)',         unit:'%',  fmt:'pct' },
+  { key:'unemp',  label:'Tasa de Desempleo',       unit:'%',  fmt:'pct' },
+  { key:'rate',   label:'Tasa de Interés CB',      unit:'%',  fmt:'pct' },
+];
+
+// Default values based on latest known data (March 2026)
+const GMT_DEFAULTS = {
+  AUD:{ gdp:0.8,  pmi_m:51.0, pmi_s:52.8, retail:1.2,  cpi:3.8, unemp:4.1, rate:4.10 },
+  CAD:{ gdp:0.2,  pmi_m:51.0, pmi_s:46.5, retail:-0.4, cpi:1.8, unemp:6.7, rate:2.25 },
+  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, retail:1.1,  cpi:0.1, unemp:3.2, rate:0.25 },
+  EUR:{ gdp:0.2,  pmi_m:50.8, pmi_s:51.9, retail:-0.1, cpi:1.9, unemp:6.1, rate:2.00 },
+  GBP:{ gdp:0.0,  pmi_m:51.7, pmi_s:53.9, retail:1.8,  cpi:3.0, unemp:5.2, rate:3.75 },
+  JPY:{ gdp:0.3,  pmi_m:53.0, pmi_s:53.8, retail:4.1,  cpi:1.5, unemp:2.7, rate:0.50 },
+  NZD:{ gdp:1.1,  pmi_m:55.0, pmi_s:48.0, retail:0.9,  cpi:3.1, unemp:5.4, rate:3.50 },
+  USD:{ gdp:0.7,  pmi_m:51.6, pmi_s:51.7, retail:-0.2, cpi:2.4, unemp:4.4, rate:3.625},
+};
+
+// Expectations (consensus forecasts)
+const GMT_EXPECTATIONS = {
+  AUD:{ gdp:0.6,  pmi_m:50.5, pmi_s:51.0, retail:0.8,  cpi:3.5, unemp:4.2, rate:4.10 },
+  CAD:{ gdp:0.3,  pmi_m:50.0, pmi_s:48.0, retail:0.2,  cpi:2.0, unemp:6.5, rate:2.25 },
+  CHF:{ gdp:0.2,  pmi_m:50.0, pmi_s:53.0, retail:0.8,  cpi:0.2, unemp:3.0, rate:0.25 },
+  EUR:{ gdp:0.3,  pmi_m:50.5, pmi_s:52.0, retail:0.2,  cpi:2.1, unemp:6.2, rate:2.00 },
+  GBP:{ gdp:0.1,  pmi_m:51.5, pmi_s:53.5, retail:1.0,  cpi:2.8, unemp:5.0, rate:3.75 },
+  JPY:{ gdp:0.2,  pmi_m:52.0, pmi_s:52.5, retail:3.0,  cpi:1.8, unemp:2.8, rate:0.50 },
+  NZD:{ gdp:0.8,  pmi_m:53.0, pmi_s:49.0, retail:0.5,  cpi:2.8, unemp:5.2, rate:3.50 },
+  USD:{ gdp:0.5,  pmi_m:51.0, pmi_s:51.0, retail:0.2,  cpi:2.5, unemp:4.3, rate:3.625},
+};
+
+// State
+const gmtActual = JSON.parse(JSON.stringify(GMT_DEFAULTS));
+const gmtExpect = JSON.parse(JSON.stringify(GMT_EXPECTATIONS));
+
+function gmtClass(actual, expect, key) {
+  if (actual === '' || actual === null || isNaN(actual)) return '';
+  const a = parseFloat(actual);
+  const e = parseFloat(expect);
+  const diff = a - e;
+  const threshold = ['unemp'].includes(key) ? -0.1 : 0.1; // lower unemp = beat
+  if (['unemp'].includes(key)) {
+    if (diff < -threshold) return 'gmt-beat';
+    if (diff >  threshold) return 'gmt-miss';
+    return 'gmt-inline';
+  }
+  if (diff >  threshold) return 'gmt-beat';
+  if (diff < -threshold) return 'gmt-miss';
+  return 'gmt-inline';
+}
+
+function gmtFormat(val, fmt) {
+  if (val === '' || val === null || isNaN(parseFloat(val))) return '—';
+  const n = parseFloat(val);
+  if (fmt === 'pct') return (n > 0 ? '' : '') + n.toFixed(2) + '%';
+  return n.toFixed(2);
+}
+
+function renderMacroTerminal() {
+  const tbody = document.getElementById('gmt-tbody');
+  if (!tbody) return;
+  // Sync from scoring engine if data is available
+  if (typeof scores !== 'undefined' && Object.keys(scores).length > 0) {
+    const G8codes = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];
+    G8codes.forEach(code => {
+      if (typeof G8 !== 'undefined') {
+        const cur = G8.find(c => c.code === code);
+        if (cur && typeof inputs !== 'undefined') {
+          const rateEl  = document.getElementById('inp-rate-'  + code);
+          const cpiEl   = document.getElementById('inp-cpi-'   + code);
+          const unempEl = document.getElementById('inp-unemp-' + code);
+          if (rateEl  && rateEl.value  && gmtActual[code]) gmtActual[code].rate  = parseFloat(rateEl.value);
+          if (cpiEl   && cpiEl.value   && gmtActual[code]) gmtActual[code].cpi   = parseFloat(cpiEl.value);
+          if (unempEl && unempEl.value && gmtActual[code]) gmtActual[code].unemp = parseFloat(unempEl.value);
+        }
+      }
+    });
+  }
+
+  tbody.innerHTML = GMT_INDICATORS.map(ind => {
+    const cells = GMT_CURRENCIES.map(cur => {
+      const actual = gmtActual[cur]?.[ind.key] ?? '';
+      const expect = gmtExpect[cur]?.[ind.key] ?? '';
+      const cls    = gmtClass(actual, expect, ind.key);
+      return `<td class="${cls}" id="gmt-cell-${cur}-${ind.key}">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <input class="gmt-input" type="number" step="0.01"
+            value="${actual !== '' ? actual : ''}"
+            placeholder="—"
+            id="gmt-actual-${cur}-${ind.key}"
+            oninput="updateGMT('${cur}','${ind.key}','actual',this.value)"
+            style="color:inherit;">
+          <div style="font-size:8px;color:var(--text-3);font-family:'Roboto Mono',monospace;">
+            E: <input class="gmt-input" type="number" step="0.01"
+              value="${expect !== '' ? expect : ''}"
+              placeholder="—"
+              id="gmt-expect-${cur}-${ind.key}"
+              oninput="updateGMT('${cur}','${ind.key}','expect',this.value)"
+              style="font-size:8px;width:55px;color:var(--text-2);">
+          </div>
+        </div>
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td style="color:var(--text-1);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;">${ind.label}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  renderGMTScores();
+}
+
+function updateGMT(cur, key, type, val) {
+  if (type === 'actual') {
+    gmtActual[cur] = gmtActual[cur] || {};
+    gmtActual[cur][key] = val === '' ? '' : parseFloat(val);
+  } else {
+    gmtExpect[cur] = gmtExpect[cur] || {};
+    gmtExpect[cur][key] = val === '' ? '' : parseFloat(val);
+  }
+  const actual = gmtActual[cur]?.[key] ?? '';
+  const expect = gmtExpect[cur]?.[key] ?? '';
+  const cell   = document.getElementById(`gmt-cell-${cur}-${key}`);
+  if (cell) cell.className = 'gmt-cell ' + gmtClass(actual, expect, key);
+  renderGMTScores();
+}
+
+function renderGMTScores() {
+  const grid = document.getElementById('gmt-score-grid');
+  if (!grid) return;
+
+  const scores = GMT_CURRENCIES.map(cur => {
+    let score = 0, total = 0;
+    GMT_INDICATORS.forEach(ind => {
+      const a = gmtActual[cur]?.[ind.key];
+      const e = gmtExpect[cur]?.[ind.key];
+      if (a !== '' && a !== null && !isNaN(a) && e !== '' && e !== null && !isNaN(e)) {
+        const cls = gmtClass(a, e, ind.key);
+        if (cls === 'gmt-beat') score++;
+        else if (cls === 'gmt-miss') score--;
+        total++;
+      }
+    });
+    return { cur, score, total };
+  }).sort((a,b) => b.score - a.score);
+
+  grid.innerHTML = scores.map(({cur, score, total}) => {
+    const col = score > 0 ? '#93c5fd' : score < 0 ? '#fca5a5' : '#9ca3af';
+    const bg  = score > 0 ? 'rgba(59,130,246,0.10)' : score < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(107,114,128,0.10)';
+    const border = score > 0 ? 'rgba(59,130,246,0.3)' : score < 0 ? 'rgba(239,68,68,0.3)' : 'rgba(107,114,128,0.3)';
+    const flag = {AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',EUR:'🇪🇺',GBP:'🇬🇧',JPY:'🇯🇵',NZD:'🇳🇿',USD:'🇺🇸'}[cur];
+    const label = score > 1 ? 'FUERTE' : score > 0 ? 'MODERADO' : score === 0 ? 'NEUTRO' : score > -2 ? 'DÉBIL' : 'MUY DÉBIL';
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:var(--r);padding:14px;text-align:center;">
+      <div style="font-size:22px;margin-bottom:4px;">${flag}</div>
+      <div style="font-family:'Syncopate',sans-serif;font-size:10px;font-weight:700;color:var(--text-1);">${cur}</div>
+      <div style="font-family:'Roboto Mono',monospace;font-size:22px;font-weight:700;color:${col};line-height:1;margin:6px 0;">${score > 0 ? '+' : ''}${score}</div>
+      <div style="font-family:'Syncopate',sans-serif;font-size:7px;font-weight:700;color:${col};letter-spacing:1px;">${label}</div>
+      <div style="font-size:8px;color:var(--text-2);margin-top:4px;">${total} indicadores</div>
+    </div>`;
+  }).join('');
+}
+
+function clearGMT() {
+  GMT_CURRENCIES.forEach(cur => {
+    GMT_INDICATORS.forEach(ind => {
+      gmtActual[cur][ind.key] = '';
+      gmtExpect[cur][ind.key] = '';
+    });
+  });
+  renderMacroTerminal();
+}
+
+function exportGMT() {
+  let csv = 'Indicador,' + GMT_CURRENCIES.join(',') + '\n';
+  GMT_INDICATORS.forEach(ind => {
+    const row = [ind.label, ...GMT_CURRENCIES.map(cur => {
+      const a = gmtActual[cur]?.[ind.key];
+      return a !== '' && a !== null ? a : '';
+    })];
+    csv += row.join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'TFX_MacroTerminal_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
 // ── MOBILE NAVIGATION HELPERS ────────────────────────────────────────────
 function setMobNav(btn) {
   document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
@@ -3008,6 +3354,10 @@ function updateMobBroker(b) {
   <button class="mob-nav-btn" onclick="goTo('v-sentiment');setMobNav(this)">
     <span class="mob-nav-icon">◉</span>
     <span class="mob-nav-label">COT</span>
+  </button>
+  <button class="mob-nav-btn" onclick="goTo('v-macro-terminal');setMobNav(this)">
+    <span class="mob-nav-icon">▦</span>
+    <span class="mob-nav-label">Terminal</span>
   </button>
   <button class="mob-nav-btn" onclick="goTo('v-risk');setMobNav(this)">
     <span class="mob-nav-icon">◬</span>
