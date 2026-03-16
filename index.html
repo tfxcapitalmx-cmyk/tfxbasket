@@ -2609,9 +2609,9 @@ async function runDataEngine(manual = false) {
         });
         // Always update GMT data — render only if panel is visible
         if (typeof renderMacroTerminal === 'function') {
-          renderMacroTerminal();
+          setTimeout(renderMacroTerminal, 100);
         }
-        appendLog('✓ Score Macro sincronizado · GDP, PMI Mfg, PMI Svc, Retail, CPI, Unemp, Tasa CB.');
+        appendLog('✓ Score Macro actualizado · 7 indicadores × 8 divisas listos.');
       }
     } catch(e) { /* silent */ }
     if (parsed.notes) appendLog('NOTAS: ' + parsed.notes);
@@ -3174,7 +3174,7 @@ function renderMacroTerminal() {
       const actual = gmtActual[cur]?.[ind.key] ?? '';
       const expect = gmtExpect[cur]?.[ind.key] ?? '';
       const cls    = gmtClass(actual, expect, ind.key);
-      return `<td class="${cls}" id="gmt-cell-${cur}-${ind.key}">
+      return `<td class="gmt-cell ${cls}" id="gmt-cell-${cur}-${ind.key}">
         <div style="display:flex;flex-direction:column;gap:3px;">
           <input class="gmt-input" type="number" step="0.01"
             value="${actual !== '' ? actual : ''}"
