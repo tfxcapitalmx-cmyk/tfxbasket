@@ -495,7 +495,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
 
 
 /* ════════════════════════════════
-   GLOBAL MACRO TERMINAL
+   SCORE MACRO
    ════════════════════════════════ */
 .gmt-table{width:100%;border-collapse:collapse;font-size:11px;}
 .gmt-table th{
@@ -814,7 +814,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
     <button class="nav-btn" onclick="goTo('v-horizon')" style="color:var(--gold)"><span class="nav-icon">◷</span>Horizonte ✦</button>
     <button class="nav-btn" onclick="goTo('v-dataengine')" style="color:var(--green)"><span class="nav-icon">⬡</span>Data Engine ✦</button>
     <button class="nav-btn" onclick="goTo('v-sentiment')" style="color:var(--blue)"><span class="nav-icon">◉</span>Sentimiento & COT ✦</button>
-    <button class="nav-btn" onclick="goTo('v-macro-terminal')" style="color:var(--purple)"><span class="nav-icon">▦</span>Global Macro Terminal</button>
+    <button class="nav-btn" onclick="goTo('v-macro-terminal')" style="color:var(--purple)"><span class="nav-icon">▦</span>Score Macro</button>
 
     <div class="sb-divider"></div>
     <span class="sb-label">Régimen Macro</span>
@@ -1182,11 +1182,11 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
       </div>
     </div>
 
-    <!-- ══════════ VIEW: GLOBAL MACRO TERMINAL ══════════ -->
+    <!-- ══════════ VIEW: SCORE MACRO ══════════ -->
     <div class="view" id="v-macro-terminal">
       <div class="sec-head">
         <div class="sec-tag">MACRO TERMINAL · DATOS G8 EN TIEMPO REAL</div>
-        <div class="sec-title">GLOBAL MACRO TERMINAL</div>
+        <div class="sec-title">SCORE MACRO</div>
         <div class="sec-desc">Indicadores macroeconómicos clave por economía con codificación de color vs expectativas del mercado. <strong style="color:#93c5fd;">Azul</strong> = dato superó expectativas (economía más fuerte, positivo para la divisa). <strong style="color:#fca5a5;">Rojo</strong> = dato decepcionó (negativo para la divisa). <strong style="color:#9ca3af;">Gris</strong> = dato en línea con lo esperado (neutro). Ingresa el dato actual y la expectativa para calcular el resultado automáticamente.</div>
       </div>
 
@@ -2597,14 +2597,19 @@ async function runDataEngine(manual = false) {
       if (typeof gmtActual !== 'undefined' && payload && payload.data) {
         Object.entries(payload.data).forEach(([code, d]) => {
           if (!gmtActual[code]) return;
-          if (d.rate  !== undefined) { gmtActual[code].rate  = d.rate; }
-          if (d.cpi   !== undefined) { gmtActual[code].cpi   = d.cpi;  gmtExpect[code].cpi   = parseFloat((d.cpi  * 0.97).toFixed(2)); }
+          // Core macro (always present)
+          if (d.rate  !== undefined) { gmtActual[code].rate  = d.rate;  gmtExpect[code].rate  = d.rate; }
+          if (d.cpi   !== undefined) { gmtActual[code].cpi   = d.cpi;   gmtExpect[code].cpi   = parseFloat((d.cpi  * 0.97).toFixed(2)); }
           if (d.unemp !== undefined) { gmtActual[code].unemp = d.unemp; gmtExpect[code].unemp = parseFloat((d.unemp * 1.01).toFixed(2)); }
+          // Extended macro (new fields)
+          if (d.gdp    !== undefined) { gmtActual[code].gdp    = d.gdp;   gmtExpect[code].gdp   = parseFloat((d.gdp   * 0.90).toFixed(2)); }
+          if (d.pmi_m  !== undefined) { gmtActual[code].pmi_m  = d.pmi_m; gmtExpect[code].pmi_m = parseFloat((d.pmi_m * 0.99).toFixed(1)); }
+          if (d.pmi_s  !== undefined) { gmtActual[code].pmi_s  = d.pmi_s; gmtExpect[code].pmi_s = parseFloat((d.pmi_s * 0.99).toFixed(1)); }
+          if (d.retail !== undefined) { gmtActual[code].retail = d.retail; gmtExpect[code].retail = parseFloat((d.retail * 0.80).toFixed(2)); }
         });
-        if (document.getElementById('gmt-tbody') && document.getElementById('v-macro-terminal').classList.contains('active')) {
-          renderMacroTerminal();
-        }
-        appendLog('✓ Global Macro Terminal sincronizado con datos en tiempo real.');
+        const gmtEl = document.getElementById('v-macro-terminal');
+        if (gmtEl && gmtEl.classList.contains('active')) renderMacroTerminal();
+        appendLog('✓ Score Macro sincronizado · 7 indicadores por divisa.');
       }
     } catch(e) { /* silent */ }
     if (parsed.notes) appendLog('NOTAS: ' + parsed.notes);
@@ -3075,7 +3080,7 @@ function setSeasonMonth(m) { activeSeasonMonth=m; renderSeasonality(); }
 
 
 // ════════════════════════════════════════════════════════════
-//  GLOBAL MACRO TERMINAL ENGINE
+//  SCORE MACRO ENGINE
 // ════════════════════════════════════════════════════════════
 
 const GMT_CURRENCIES = ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'];
