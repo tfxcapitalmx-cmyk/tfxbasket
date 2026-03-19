@@ -6,7 +6,7 @@
   node_bundler = "esbuild"
 
 [functions."claude-proxy"]
-  timeout = 26
+  timeout = 30
 
 [[redirects]]
   from = "/api/claude"
