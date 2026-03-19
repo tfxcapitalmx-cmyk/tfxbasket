@@ -916,7 +916,6 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
           <span class="ws-val" id="wv-rate">25%</span>
         </div>
         <input class="ws-slider" type="range" min="5" max="50" value="25" id="ws-rate" oninput="updateWeights()">
-        <div class="ws-note">Modulado por stance del banco central. Hawkish = ×1.4 · Dovish = ×0.6</div>
       </div>
     </div>
 
@@ -942,28 +941,11 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
     <div class="view active" id="v-scoring">
       <div class="sec-head">
         <div class="sec-tag">FASE 1 + 2 · MOTOR DE SCORING DINÁMICO</div>
-        <div class="sec-title">MACRO SCORING G8 · PONDERACIÓN DINÁMICA</div>
-        <div class="sec-desc">CPI y Desempleo son indicadores coincidentes con mayor peso base (40%/35%). La Tasa CB es un indicador líder/rezagado modulado por el stance del banco central: Hawkish multiplica su relevancia (×1.4), Dovish la reduce (×0.6), reflejando si el mercado ya descontó el ciclo. Score compuesto de −10 a +10.</div>
+        <div class="sec-title">MACRO SCORING G8</div>
+        <div class="sec-desc">Scoring objetivo por rangos absolutos para las 8 economías G8. Cada indicador es calificado según tablas de referencia TFX Capital. Score total por divisa determina el bias macro.</div>
       </div>
 
-      <!-- WEIGHT SUMMARY -->
-      <div class="weight-display">
-        <div class="wd-card">
-          <div class="wd-label">CPI · Coincidente</div>
-          <div class="wd-pct" id="wd-cpi" style="color:var(--green)">40%</div>
-          <div class="wd-note">Alta frecuencia · Señal directa de presión de precios</div>
-        </div>
-        <div class="wd-card">
-          <div class="wd-label">Desempleo · Coincidente</div>
-          <div class="wd-pct" id="wd-unemp" style="color:var(--amber)">35%</div>
-          <div class="wd-note">Demanda interna · Correlación directa con política monetaria futura</div>
-        </div>
-        <div class="wd-card">
-          <div class="wd-label">Tasa CB × Stance</div>
-          <div class="wd-pct" id="wd-rate" style="color:var(--blue)">25%</div>
-          <div class="wd-note">Líder/rezagado · Peso modulado por postura del banco central</div>
-        </div>
-      </div>
+      
 
       <div class="g8-grid" id="g8-grid"></div>
     </div>
