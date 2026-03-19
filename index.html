@@ -1180,10 +1180,20 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
 
       <!-- ─── TAB RETAIL ─── -->
       <div id="stab-content-retail">
+        <!-- AUTO-UPDATE CONTROLS -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <button id="sent-update-btn" class="btn-gold" onclick="runSentimentEngine()" style="font-size:9px;">
+            ↻ ACTUALIZAR SENTIMIENTO
+          </button>
+          <div id="sent-status" style="font-family:'Roboto Mono',monospace;font-size:8px;color:var(--text-2);line-height:1.6;flex:1;min-width:200px;">
+            Fuentes: Myfxbook (retail) · CFTC (COT) · Presiona actualizar para cargar datos en tiempo real.
+          </div>
+        </div>
+
         <div style="background:var(--bg-2);border:1px solid var(--gold-border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
           <div style="font-size:20px;flex-shrink:0;">💡</div>
           <div style="font-size:10px;color:var(--text-1);line-height:1.7;">
-            <strong style="color:var(--gold);">Cómo usar este panel:</strong> Ingresa el % LONG actual de cada par (el % SHORT se calcula automáticamente). Si el retail tiene más del 65% en una dirección y nuestra señal del basket apunta en la <em>dirección contraria</em>, eso confirma la señal (smart money va contra el retail). Si el retail está alineado con nuestra señal, considera reducir tamaño al Escenario B.
+            <strong style="color:var(--gold);">Cómo usar este panel:</strong> Los datos se actualizan automáticamente desde Myfxbook. Si el retail tiene más del 65% en una dirección y nuestra señal del basket apunta en la <em>dirección contraria</em>, eso confirma la señal (smart money va contra el retail). Si el retail está alineado con nuestra señal, considera reducir tamaño al Escenario B.
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="retail-sentiment-grid"></div>
@@ -2857,7 +2867,15 @@ function goTo(id) {
   if (id === 'v-swap')       { basketSignals.length > 0 ? renderSwapAnalysis() : buildFullSwapTable(); }
   if (id === 'v-horizon')    { renderSessionBar(); if (basketSignals.length > 0) renderHorizonTable(); }
   if (id === 'v-dataengine') { if (!lastDataPayload && !dataEngineRunning) appendLog('Presiona FORZAR ACTUALIZACIÓN para cargar datos en tiempo real.'); }
-  if (id === 'v-sentiment')    { setTimeout(() => { setSentTab(activeSentTab || 'retail'); }, 50); }
+  if (id === 'v-sentiment') {
+    setTimeout(() => { setSentTab(activeSentTab || 'retail'); }, 50);
+    // Auto-fetch if data not yet loaded
+    const hasSent = Object.values(RETAIL_SENTIMENT).some(d => d.long !== 50);
+    const hasCot  = Object.values(COT_DATA).some(d => d.long !== 50000);
+    if (!hasSent && !hasCot && typeof runSentimentEngine === 'function') {
+      setTimeout(runSentimentEngine, 400);
+    }
+  }
   if (id === 'v-macro-terminal') { renderMacroTerminal(); }
 }
 
@@ -3062,6 +3080,84 @@ function renderCOT() {
   }).join('');
   renderCOTAnalysis();
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  SENTIMENT ENGINE — Myfxbook + CFTC automático
+// ═══════════════════════════════════════════════════════════════
+let sentimentEngineRunning = false;
+
+async function runSentimentEngine() {
+  if (sentimentEngineRunning) return;
+  sentimentEngineRunning = true;
+
+  const btn = document.getElementById('sent-update-btn');
+  if (btn) { btn.textContent = '⬡ CONSULTANDO...'; btn.disabled = true; }
+
+  const statusEl = document.getElementById('sent-status');
+  if (statusEl) statusEl.textContent = 'Consultando Myfxbook + CFTC...';
+
+  try {
+    const res = await fetch('/api/sentiment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // ── Inject Myfxbook retail sentiment ──────────────────────
+    if (data.sentiment && Object.keys(data.sentiment).length > 0) {
+      Object.entries(data.sentiment).forEach(([pair, s]) => {
+        if (RETAIL_SENTIMENT[pair] !== undefined || true) {
+          RETAIL_SENTIMENT[pair] = {
+            long:  s.longPct  || 50,
+            short: s.shortPct || 50,
+          };
+        }
+      });
+      renderRetailSentiment();
+      if (statusEl) statusEl.innerHTML += '<br>✓ Sentimiento Retail: ' + data.sources.myfxbook;
+    } else {
+      if (statusEl) statusEl.innerHTML += '<br>⚠ Myfxbook: ' + (data.sources.myfxbook || 'sin datos');
+    }
+
+    // ── Inject CFTC COT data ───────────────────────────────────
+    if (data.cot && Object.keys(data.cot).length > 0) {
+      Object.entries(data.cot).forEach(([currency, c]) => {
+        COT_DATA[currency] = {
+          long:     c.long,
+          short:    c.short,
+          prev_net: c.prev_net,
+        };
+      });
+      renderCOT();
+
+      // Update COT report date
+      const firstCOT = Object.values(data.cot)[0];
+      const cotDateEl = document.getElementById('cot-update-date');
+      if (cotDateEl && firstCOT?.report_date) {
+        cotDateEl.textContent = 'Reporte COT · Datos al: ' + firstCOT.report_date + ' · Fuente: CFTC';
+      }
+      if (statusEl) statusEl.innerHTML += '<br>✓ COT CFTC: ' + data.sources.cftc;
+    } else {
+      if (statusEl) statusEl.innerHTML += '<br>⚠ CFTC: ' + (data.sources.cftc || 'sin datos');
+    }
+
+    // ── Log errors if any ──────────────────────────────────────
+    if (data.errors && data.errors.length) {
+      data.errors.forEach(e => console.warn('Sentiment error:', e));
+    }
+
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '✗ Error: ' + e.message;
+    console.error('Sentiment engine error:', e);
+  } finally {
+    sentimentEngineRunning = false;
+    if (btn) { btn.textContent = '↻ ACTUALIZAR SENTIMIENTO'; btn.disabled = false; }
+  }
+}
+
 
 function updateCOT(code) {
   const lng = parseInt(document.getElementById('cot-long-'+code)?.value)||0;
