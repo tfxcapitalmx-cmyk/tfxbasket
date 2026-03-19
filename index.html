@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TFX Capital · Macro Basket Engine v3</title>
 <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Montserrat:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -29,10 +29,10 @@
   --blue-dim:     rgba(77,158,255,0.10);
   --purple:#A78BFA;--purple-dim:rgba(167,139,250,0.10);
   --orange:#FF8C42;--orange-dim:rgba(255,140,66,0.10);
-  --r: 5px;
-  --r2: 9px;
+  --r: 6px;
+  --r2: 10px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;} html{scroll-behavior:smooth;} button,input,select{touch-action:manipulation;}
 html{scroll-behavior:smooth;}
 body{font-family:'Montserrat',sans-serif;background:var(--bg-0);color:var(--text-1);min-height:100vh;overflow-x:hidden;}
 
@@ -565,210 +565,273 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
 /* ════════════════════════════════════════
    RESPONSIVE — TABLET 1300px
    ════════════════════════════════════════ */
-@media(max-width:1300px){
-  .g8-grid{grid-template-columns:repeat(2,1fr);}
-  .corr-grid{grid-template-columns:repeat(2,1fr);}
-  .acc-grid{grid-template-columns:repeat(3,1fr);}
-  .swap-grid{grid-template-columns:repeat(2,1fr);}
-  .horizon-grid{grid-template-columns:1fr 1fr;}
-  .swap-kpis{grid-template-columns:repeat(2,1fr);}
-  .risk-summary{grid-template-columns:repeat(2,1fr);}
-  .source-grid{grid-template-columns:1fr 1fr;}
-  .weight-display{grid-template-columns:1fr 1fr 1fr;}
+/* ══════════════════════════════════════════════════════════════
+   TFX CAPITAL · MACRO BASKET ENGINE
+   RESPONSIVE SYSTEM — Full Breakpoint Coverage
+   
+   Breakpoints:
+   ≥ 1600px  →  Large monitors (24–26")
+   1280–1599 →  Laptops 15–17" / medium monitors  
+   1024–1279 →  Laptops 13–14" (compact)
+   768–1023  →  Tablet / iPad landscape
+   390–767   →  iPhone 12 → iPhone 16 Pro Max
+   ≤ 389px   →  iPhone SE / small phones
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────
+   LARGE MONITORS — 24" to 26" (≥1600px)
+   Wider sidebar, bigger type, more breathing room
+───────────────────────────────────────────────────────────────*/
+@media (min-width: 1600px) {
+  .page                { grid-template-columns: 260px 1fr; }
+  .content             { padding: 32px 40px 80px; }
+  .nav-btn             { font-size: 11px; padding: 10px 20px; }
+  .sec-title           { font-size: 22px; }
+  .sec-desc            { font-size: 11px; }
+  .g8-grid             { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .sig-grid            { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .cc                  { padding: 18px 20px; }
+  .cc-score            { font-size: 28px; }
+  .panel               { border-radius: 8px; }
+  .rtable th, .rtable td { padding: 13px 18px; font-size: 12px; }
+  .sh-table th, .sh-table td { padding: 13px 18px; font-size: 12px; }
+  .gmt-table th        { font-size: 10px; padding: 13px 16px; }
+  .gmt-table td        { padding: 12px 16px; font-size: 13px; }
+  .conv-summary-grid   { grid-template-columns: repeat(4, 1fr); }
+  .horizon-grid        { grid-template-columns: repeat(3, 1fr); }
+  .swap-kpis           { grid-template-columns: repeat(4, 1fr); }
+  .risk-summary        { grid-template-columns: repeat(4, 1fr); }
+  header               { height: 66px; }
+  .logo-txt            { font-size: 13px; letter-spacing: 5px; }
+  .logo-sub            { font-size: 9px; }
 }
 
-/* ════════════════════════════════════════
-   RESPONSIVE — TABLET/MOBILE 900px
-   ════════════════════════════════════════ */
-@media(max-width:900px){
-  /* Layout */
-  .page{grid-template-columns:1fr;}
-  .sidebar{display:none;}
-  .content{padding:16px 16px 48px;}
+/* ─────────────────────────────────────────────────────────────
+   LAPTOP MEDIUM — 15"–17" (1280px–1599px)
+   Default layout — mostly already correct, minor tweaks
+───────────────────────────────────────────────────────────────*/
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .page                { grid-template-columns: 220px 1fr; }
+  .content             { padding: 24px 28px 60px; }
+  .g8-grid             { grid-template-columns: repeat(4, 1fr); }
+  .sig-grid            { grid-template-columns: repeat(3, 1fr); }
+  .horizon-grid        { grid-template-columns: repeat(3, 1fr); }
+  .swap-kpis           { grid-template-columns: repeat(4, 1fr); }
+  .risk-summary        { grid-template-columns: repeat(4, 1fr); }
+  .conv-summary-grid   { grid-template-columns: repeat(4, 1fr); }
+}
 
-  /* Mobile nav bar */
-  .mobile-nav{display:flex;}
+/* ─────────────────────────────────────────────────────────────
+   LAPTOP COMPACT — 13"–14" (1024px–1279px)
+   Narrower sidebar, tighter grids, smaller type
+───────────────────────────────────────────────────────────────*/
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .page                { grid-template-columns: 190px 1fr; }
+  .content             { padding: 18px 20px 60px; }
+  .nav-btn             { font-size: 9px; padding: 8px 12px; gap: 8px; }
+  .nav-icon            { font-size: 12px; }
+  .sb-label            { font-size: 6px; padding: 6px 12px 3px; }
+  .sec-title           { font-size: 16px; letter-spacing: 2px; }
+  .sec-desc            { font-size: 9px; }
+  .g8-grid             { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .sig-grid            { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .corr-grid           { grid-template-columns: repeat(2, 1fr); }
+  .horizon-grid        { grid-template-columns: repeat(2, 1fr); }
+  .swap-kpis           { grid-template-columns: repeat(2, 1fr); }
+  .swap-grid           { grid-template-columns: repeat(2, 1fr); }
+  .risk-summary        { grid-template-columns: repeat(2, 1fr); }
+  .conv-summary-grid   { grid-template-columns: repeat(2, 1fr); }
+  .source-grid         { grid-template-columns: repeat(2, 1fr); }
+  .weight-display      { grid-template-columns: repeat(3, 1fr); }
+  .gmt-table th        { font-size: 7px; padding: 10px 8px; }
+  .gmt-table td        { padding: 8px 8px; font-size: 11px; }
+  .rtable th, .rtable td { padding: 9px 10px; font-size: 10px; }
+  .sh-table th, .sh-table td { padding: 9px 10px; font-size: 10px; }
+  .cc                  { padding: 12px 14px; }
+  .panel               { }
+  header               { height: 56px; }
+  .logo-txt            { font-size: 10px; letter-spacing: 3px; }
+  .header-title        { font-size: 9px; letter-spacing: 4px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLET / IPAD LANDSCAPE — (768px–1023px)
+   Sidebar hidden, mobile nav shown, 2-col grids
+───────────────────────────────────────────────────────────────*/
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page                { grid-template-columns: 1fr; min-height: calc(100vh - 56px); }
+  .sidebar             { display: none; }
+  .mobile-nav          { display: flex; }
+  .content             { padding: 20px 24px 80px; }
+  .sec-title           { font-size: 15px; letter-spacing: 2px; }
+  .sec-desc            { font-size: 10px; }
+  header               { height: 56px; padding: 0 20px; }
+  .logo-sub            { display: none; }
+  .g8-grid             { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .sig-grid            { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .corr-grid           { grid-template-columns: repeat(2, 1fr); }
+  .horizon-grid        { grid-template-columns: repeat(2, 1fr); }
+  .swap-kpis           { grid-template-columns: repeat(2, 1fr); }
+  .swap-grid           { grid-template-columns: repeat(2, 1fr); }
+  .risk-summary        { grid-template-columns: repeat(2, 1fr); }
+  .conv-summary-grid   { grid-template-columns: repeat(2, 1fr); }
+  .source-grid         { grid-template-columns: repeat(2, 1fr); }
+  .weight-display      { grid-template-columns: repeat(3, 1fr); }
+  .gmt-table th        { font-size: 8px; padding: 10px 10px; }
+  .gmt-table td        { padding: 9px 10px; font-size: 11px; }
+  .rtable th, .rtable td { padding: 10px 12px; font-size: 11px; }
+  .sh-table th, .sh-table td { padding: 10px 12px; font-size: 11px; }
+  .conv-toggles        { grid-template-columns: repeat(3, 1fr); }
+  .mob-nav-btn         { font-size: 7px; padding: 6px 4px; }
+  .mob-nav-icon        { font-size: 16px; }
+  .mobile-nav          { height: 62px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   IPHONE 12 → IPHONE 16 PRO MAX (390px–767px)
+   
+   iPhone 12 / 13 / 14:     390×844
+   iPhone 14 Plus:           428×926
+   iPhone 15 / 16:           393×852
+   iPhone 15 Plus / 16 Plus: 430×932
+   iPhone 15 Pro:            393×852
+   iPhone 15 Pro Max:        430×932
+   iPhone 16 Pro:            402×874
+   iPhone 16 Pro Max:        440×956
+   
+   Single column, larger touch targets, readable type
+───────────────────────────────────────────────────────────────*/
+@media (min-width: 390px) and (max-width: 767px) {
+  /* Layout */
+  .page                { grid-template-columns: 1fr; }
+  .sidebar             { display: none; }
+  .mobile-nav          { display: flex; }
+  .content             { padding: 14px 14px 80px; }
 
   /* Header */
-  header{padding:0 14px;gap:10px;height:54px;}
-  .logo-sub{display:none;}
-  .header-title{display:none;}
-  .hbadge{display:none;}
-  #clock{font-size:10px;letter-spacing:1px;}
-  .regime-tag{font-size:6px;padding:3px 8px;}
-  #session-hdr-pill{display:none;}
+  header               { height: 52px; padding: 0 14px; gap: 8px; }
+  .logo-sq             { width: 32px; height: 32px; font-size: 10px; }
+  .logo-txt            { font-size: 9px; letter-spacing: 2px; }
+  .logo-sub            { display: none; }
+  .header-title        { font-size: 8px; letter-spacing: 3px; }
+  #clock               { font-size: 10px; letter-spacing: 0; }
+  .regime-tag          { font-size: 6px; padding: 3px 8px; letter-spacing: 1px; }
+  #session-hdr-pill    { display: none; }
 
   /* Data status bar */
-  .data-status-bar{padding:5px 14px;gap:10px;flex-wrap:wrap;}
-  .dsb-item{font-size:8px;}
-  .dsb-item:nth-child(3),.dsb-item:nth-child(4){display:none;}
-
-  /* Grids */
-  .g8-grid{grid-template-columns:1fr 1fr;}
-  .sig-grid{grid-template-columns:1fr 1fr;}
-  .risk-summary{grid-template-columns:1fr 1fr;}
-  .swap-kpis{grid-template-columns:1fr 1fr;}
-  .swap-grid{grid-template-columns:1fr 1fr;}
-  .acc-grid{grid-template-columns:1fr 1fr;}
-  .corr-grid{grid-template-columns:1fr 1fr;}
-  .horizon-grid{grid-template-columns:1fr;}
-  .session-bar-grid{grid-template-columns:1fr;}
-  .source-grid{grid-template-columns:1fr;}
-  .weight-display{grid-template-columns:1fr 1fr 1fr;}
-  .broker-tabs{gap:6px;}
+  .data-status-bar     { padding: 5px 14px; gap: 8px; flex-wrap: wrap; }
+  .dsb-item            { font-size: 8px; }
+  .dsb-item:nth-child(3),
+  .dsb-item:nth-child(4) { display: none; }
+  .dsb-refresh-btn     { font-size: 7px; padding: 3px 10px; }
 
   /* Section headers */
-  .sec-title{font-size:12px;}
-  .sec-desc{font-size:9px;}
-
-  /* Panel headers */
-  .ph{flex-wrap:wrap;gap:8px;}
-  .ph .btn-gold,.ph .btn-outline{font-size:7px;padding:7px 12px;}
-
-  /* Ranking table — hide less critical columns */
-  .rtable th:nth-child(8),.rtable td:nth-child(8){display:none;}
-  .sh-table th:nth-child(8),.sh-table td:nth-child(8){display:none;}
-}
-
-/* ════════════════════════════════════════
-   RESPONSIVE — MOBILE 600px
-   ════════════════════════════════════════ */
-@media(max-width:600px){
-  /* Header */
-  header{padding:0 12px;height:50px;}
-  .logo-txt{font-size:9px;letter-spacing:2px;}
-  .regime-tag{display:none;}
-  #clock{font-size:9px;}
-
-  /* Layout */
-  .content{padding:12px 12px 56px;}
-
-  /* Grids — single column for key sections */
-  .g8-grid{grid-template-columns:1fr;}
-  .sig-grid{grid-template-columns:1fr;}
-  .acc-grid{grid-template-columns:1fr 1fr;}
-  .swap-grid{grid-template-columns:1fr;}
-  .horizon-grid{grid-template-columns:1fr;}
-  .session-bar-grid{grid-template-columns:1fr;}
-  .risk-summary{grid-template-columns:1fr 1fr;}
-  .swap-kpis{grid-template-columns:1fr 1fr;}
-  .weight-display{grid-template-columns:1fr;}
-  .source-grid{grid-template-columns:1fr;}
-  .corr-grid{grid-template-columns:1fr;}
-  .broker-toggle{gap:4px;}
-
-  /* Section headers */
-  .sec-title{font-size:11px;letter-spacing:1px;}
-  .sec-tag{font-size:6px;letter-spacing:2px;}
+  .sec-tag             { font-size: 7px; letter-spacing: 2px; }
+  .sec-title           { font-size: 14px; letter-spacing: 1px; }
+  .sec-desc            { font-size: 9px; line-height: 1.6; }
 
   /* G8 Cards */
-  .cc-head{padding:10px 12px 8px;}
-  .cc-flag{font-size:16px;}
-  .cc-code{font-size:12px;}
-  .cc-score-n{font-size:18px;}
-  .cc-body{padding:10px 12px;}
-  .ax-in{width:54px;font-size:9px;}
+  .g8-grid             { grid-template-columns: 1fr; gap: 10px; }
+  .cc                  { padding: 14px 16px; }
+  .cc-header           { gap: 8px; }
+  .cc-flag             { font-size: 18px; }
+  .cc-code             { font-size: 14px; }
+  .cc-score            { font-size: 20px; }
+  .cc-bias             { font-size: 8px; }
+  .ax-name             { font-size: 7px; }
 
-  /* Basket signal cards */
-  .sig-pair{font-size:12px;}
-  .sig-meta{grid-template-columns:1fr 1fr;}
+  /* Basket signals */
+  .sig-grid            { grid-template-columns: 1fr; gap: 10px; }
+  .sig-pair            { font-size: 14px; }
+  .conv-toggles        { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .conv-summary-grid   { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
-  /* Swap cards */
-  .sw-stats{grid-template-columns:1fr 1fr;}
-
-  /* Account cards */
-  .acc-card{padding:10px 12px;}
-  .acc-name-in{font-size:10px;}
+  /* Correlation */
+  .corr-grid           { grid-template-columns: 1fr; }
 
   /* Tables — horizontal scroll */
-  .matrix-scroll{padding:0 12px 12px;}
-  .rtable th,.rtable td{padding:8px 10px;font-size:9px;}
-  .sh-table th,.sh-table td{padding:8px 10px;font-size:9px;}
-
-  /* Hide non-essential table columns on mobile */
-  .rtable th:nth-child(4),.rtable td:nth-child(4),
-  .rtable th:nth-child(7),.rtable td:nth-child(7),
-  .rtable th:nth-child(8),.rtable td:nth-child(8){display:none;}
-  .sh-table th:nth-child(6),.sh-table td:nth-child(6),
-  .sh-table th:nth-child(8),.sh-table td:nth-child(8){display:none;}
-
-  /* Horizon cards */
-  .hz-dur{font-size:18px;}
-  .hz-row-lbl{width:72px;font-size:7px;}
-  .hz-row-val{font-size:8px;}
-
-  /* Risk KPIs */
-  .rk-val{font-size:18px;}
-  .sk-val{font-size:18px;}
-
-  /* De modal */
-  .de-modal{padding:24px 20px;}
-  .de-title{font-size:12px;}
-  .de-subtitle{font-size:9px;}
+  .rtable              { font-size: 10px; min-width: 600px; }
+  .rtable th, .rtable td { padding: 8px 10px; }
+  .sh-table            { font-size: 10px; min-width: 600px; }
+  .sh-table th, .sh-table td { padding: 8px 10px; }
+  .gmt-table           { font-size: 10px; min-width: 700px; }
+  .gmt-table th        { font-size: 7px; padding: 8px 8px; }
+  .gmt-table td        { padding: 7px 8px; font-size: 10px; }
 
   /* Panels */
-  .pb{padding:12px 14px;}
-  .ph{padding:10px 14px;}
+  .ph                  { flex-wrap: wrap; gap: 8px; }
+  .pt                  { font-size: 7px; letter-spacing: 2px; }
+  .pb                  { padding: 14px 14px; }
+  .btn-gold            { font-size: 8px; padding: 9px 14px; }
+  .btn-outline         { font-size: 8px; padding: 9px 14px; }
 
-  /* Buttons */
-  .btn-gold,.btn-outline{font-size:7px;padding:8px 14px;}
-  .dsb-refresh-btn{font-size:7px;padding:4px 8px;}
-  .broker-btn{font-size:6px;}
+  /* Horizon cards */
+  .horizon-grid        { grid-template-columns: 1fr; }
+  .horizon-card        { padding: 14px 16px; }
+
+  /* Swap/Risk grids */
+  .swap-kpis           { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .swap-grid           { grid-template-columns: 1fr; }
+  .risk-summary        { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+  /* Session bar */
+  .session-bar-grid    { grid-template-columns: 1fr 1fr; }
+
+  /* Sentiment */
+  .sent-tab-btn        { font-size: 9px; padding: 8px 10px; }
+  #retail-sentiment-grid { grid-template-columns: repeat(2, 1fr); }
+  #retail-alignment-grid { grid-template-columns: 1fr; }
+  #cot-grid            { grid-template-columns: repeat(2, 1fr); }
+  #gmt-score-grid      { grid-template-columns: repeat(2, 1fr); }
+  #seasonal-grid       { grid-template-columns: repeat(2, 1fr); }
+  #seasonal-month-selector { gap: 4px; }
+  .month-btn           { padding: 4px 7px; font-size: 6px; }
+
+  /* Mobile nav */
+  .mobile-nav          { height: 60px; }
+  .mob-nav-btn         { font-size: 6px; padding: 5px 2px; min-width: 0; }
+  .mob-nav-icon        { font-size: 15px; }
+  .mob-nav-label       { display: block; }
+
+  /* Weight sliders */
+  .weight-display      { grid-template-columns: 1fr; }
+  .source-grid         { grid-template-columns: 1fr; }
 }
 
-/* ════════════════════════════════════════
-   MOBILE NAV BAR (bottom, mobile only)
-   ════════════════════════════════════════ */
-.mobile-nav{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  background:rgba(10,12,20,0.97);
-  backdrop-filter:blur(20px);
-  border-top:1px solid var(--gold-border);
-  z-index:300;
-  padding:6px 4px env(safe-area-inset-bottom,6px);
-  gap:0;
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-}
-.mobile-nav::-webkit-scrollbar{display:none;}
-.mob-nav-btn{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  flex:0 0 auto;min-width:60px;
-  padding:6px 8px;
-  background:transparent;border:none;
-  color:var(--text-3);cursor:pointer;
-  transition:color .2s;
-  -webkit-tap-highlight-color:transparent;
-}
-.mob-nav-btn.active{color:var(--gold);}
-.mob-nav-btn:active{color:var(--text-1);}
-.mob-nav-icon{font-size:16px;line-height:1;}
-.mob-nav-label{font-family:'Syncopate',sans-serif;font-size:5.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
-.mob-nav-btn.active .mob-nav-label{color:var(--gold);}
-
-@media(max-width:900px){
-  .mobile-nav{display:flex;}
+/* ─────────────────────────────────────────────────────────────
+   IPHONE SE / SMALL PHONES (≤389px)
+   Maximum compression, essentials only
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 389px) {
+  .content             { padding: 10px 10px 72px; }
+  header               { height: 48px; padding: 0 10px; }
+  .logo-sq             { width: 28px; height: 28px; font-size: 9px; }
+  .logo-txt            { font-size: 8px; letter-spacing: 1px; }
+  .header-title        { display: none; }
+  .regime-tag          { display: none; }
+  #clock               { font-size: 9px; }
+  .sec-title           { font-size: 13px; }
+  .sec-desc            { font-size: 8px; }
+  .g8-grid             { grid-template-columns: 1fr; }
+  .sig-grid            { grid-template-columns: 1fr; }
+  .conv-summary-grid   { grid-template-columns: 1fr 1fr; }
+  .swap-kpis           { grid-template-columns: 1fr 1fr; }
+  .risk-summary        { grid-template-columns: 1fr 1fr; }
+  .horizon-grid        { grid-template-columns: 1fr; }
+  #retail-sentiment-grid { grid-template-columns: 1fr; }
+  #cot-grid            { grid-template-columns: 1fr; }
+  #gmt-score-grid      { grid-template-columns: repeat(2, 1fr); }
+  #seasonal-grid       { grid-template-columns: 1fr 1fr; }
+  .mobile-nav          { height: 56px; }
+  .mob-nav-btn         { font-size: 6px; padding: 4px 1px; }
+  .mob-nav-icon        { font-size: 13px; }
+  .btn-gold            { font-size: 7px; padding: 8px 10px; }
+  .btn-outline         { font-size: 7px; padding: 8px 10px; }
+  .gmt-table th        { font-size: 6px; padding: 6px 6px; }
+  .gmt-table td        { padding: 6px 6px; font-size: 9px; }
 }
 
-/* ── WEIGHT CALC DISPLAY ── */
-.weight-display{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-.wd-card{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--r);padding:12px 14px;text-align:center;}
-.wd-label{font-size:8px;font-weight:700;color:var(--text-3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
-.wd-pct{font-family:'Roboto Mono',monospace;font-size:20px;font-weight:600;}
-.wd-note{font-size:8px;color:var(--text-3);margin-top:3px;line-height:1.4;}
 
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--gold);color:var(--bg-0);font-family:'Syncopate',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;padding:10px 20px;border-radius:3px;z-index:9000;transform:translateY(60px);opacity:0;transition:all .3s;}
-.toast.show{transform:translateY(0);opacity:1;}
-
-/* ── FOOTER ── */
-footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;grid-column:1/-1;}
-.ft-brand{font-family:'Syncopate',sans-serif;font-size:8px;color:var(--text-3);letter-spacing:3px;}
-.ft-brand span{color:var(--gold);}
-.ft-disc{font-size:8px;color:var(--text-3);max-width:560px;text-align:center;line-height:1.6;}
-.ft-ver{font-family:'Roboto Mono',monospace;font-size:8px;color:var(--text-3);}
 </style>
 </head>
 <body>
@@ -1025,8 +1088,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
       </div>
       <div style="font-family:'Syncopate',sans-serif;font-size:8px;font-weight:700;color:var(--gold);letter-spacing:4px;margin-bottom:12px;">FUENTES DE DATOS · ESTADO</div>
       <div class="source-grid" style="margin-bottom:20px;">
-        <div class="source-card"><div class="sc-header"><div class="sc-name">TASAS DE INTERÉS CB</div><span class="sc-status-badge" id="src-status-rates" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">USD · EUR · GBP · JPY · AUD · NZD · CAD · CHF</div><div class="sc-last-update" id="src-update-rates">—</div></div>
-        <div class="source-card"><div class="sc-header"><div class="sc-name">CPI / INFLACIÓN G8</div><span class="sc-status-badge" id="src-status-cpi" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">Interanual % · Publicación mensual</div><div class="sc-last-update" id="src-update-cpi">—</div></div>
+        <div class="source-card"><div class="sc-header"><div class="sc-name">TASAS CB · BIS API</div><span class="sc-status-badge" id="src-status-rates" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">USD · EUR · GBP · JPY · AUD · NZD · CAD · CHF</div><div class="sc-last-update" id="src-update-rates">BIS · CB Policy Rate Dataset</div></div>
+        <div class="source-card"><div class="sc-header"><div class="sc-name">CPI USD · FRED API</div><span class="sc-status-badge" id="src-status-cpi" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">USD: FRED·CPIAUCSL · Resto G8: Claude</div><div class="sc-last-update" id="src-update-cpi">—</div></div>
         <div class="source-card"><div class="sc-header"><div class="sc-name">DESEMPLEO G8</div><span class="sc-status-badge" id="src-status-unemp" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">Tasa % · Publicación mensual</div><div class="sc-last-update" id="src-update-unemp">—</div></div>
         <div class="source-card"><div class="sc-header"><div class="sc-name">STANCE BANCO CENTRAL</div><span class="sc-status-badge" id="src-status-stance" style="background:var(--bg-3);color:var(--text-3);">PENDIENTE</span></div><div class="sc-currencies">Inferido de últimos comunicados oficiales</div><div class="sc-last-update" id="src-update-stance">—</div></div>
       </div>
@@ -1216,7 +1279,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--bg-3);padding:16px
       <div id="pmi-prev-container" style="background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;"></div>
 
       <!-- TABLE -->
-      <div style="overflow-x:auto;border-radius:var(--r);border:1px solid var(--bg-3);">
+      <div style="overflow-x:auto;border-radius:var(--r);border:1px solid var(--bg-3);-webkit-overflow-scrolling:touch;">
         <table class="gmt-table" id="gmt-table">
           <thead>
             <tr>
@@ -2525,9 +2588,9 @@ async function runDataEngine(manual = false) {
   if (dsbBtn) { dsbBtn.textContent = '⬡ CARGANDO...'; dsbBtn.classList.add('loading'); }
 
   clearLog();
-  appendLog('Motor de datos iniciado — Claude API con web search activado');
+  appendLog('Motor de datos iniciado — FRED + BIS APIs + Claude Sonnet');
     await new Promise(r => setTimeout(r, 2000)); // rate limit buffer
-  appendLog('Consultando datos G8 en tiempo real...');
+  appendLog('Paso 1/3 — Consultando FRED (USD) + BIS (G8 tasas CB) en paralelo...');
 
   if (!manual) showLoadingOverlay();
 
@@ -2542,7 +2605,7 @@ async function runDataEngine(manual = false) {
 
   try {
     updateOverlayProgress(15, 'Conectando con Claude API...');
-    appendLog('Enviando prompt a claude-haiku-4-5 via proxy seguro...');
+    appendLog('Paso 2/3 — Claude Sonnet completando datos no cubiertos por APIs...');
 
     const response = await fetch('/api/claude', {
       method: 'POST',
@@ -2556,7 +2619,7 @@ async function runDataEngine(manual = false) {
     });
 
     updateOverlayProgress(40, 'Buscando datos macro en tiempo real...');
-    appendLog('Request enviado. Esperando respuesta de Claude...');
+    appendLog('Paso 3/3 — Fusionando datos reales con inferencias Claude...');
 
     if (!response.ok) {
       const errText = await response.text();
@@ -2630,6 +2693,14 @@ async function runDataEngine(manual = false) {
         });
         if (typeof renderMacroTerminal === 'function') setTimeout(renderMacroTerminal, 150);
         appendLog('✓ Score Macro · 7 indicadores × 8 divisas sincronizados.');
+      // Log data sources
+      if (parsed.sources) {
+        appendLog('FUENTES ACTIVAS:');
+        appendLog('  · FRED: ' + (parsed.sources.fred || 'no disponible'));
+        appendLog('  · BIS: '  + (parsed.sources.bis  || 'no disponible'));
+      }
+      if (parsed.fred_errors?.length) appendLog('⚠ FRED errores: ' + parsed.fred_errors.join('; '));
+      if (parsed.bis_errors?.length)  appendLog('⚠ BIS errores: '  + parsed.bis_errors.join('; '));
       }
     } catch(gmtErr) {
       appendLog('GMT sync error: ' + gmtErr.message);
