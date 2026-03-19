@@ -50,17 +50,12 @@ exports.handler = async function(event, context) {
     try {
       // Step 1: Login
       const loginUrl = `https://www.myfxbook.com/api/login.json?email=${encodeURIComponent(EMAIL)}&password=${encodeURIComponent(PASSWORD)}`;
-      result.debug.login_url_preview = `login.json?email=${EMAIL.slice(0,4)}***&password=***`;
-
       const loginRes = await fetch(loginUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json, text/plain, */*' }
       });
 
       const loginText = await loginRes.text();
-      result.debug.login_status = loginRes.status;
-      result.debug.login_raw    = loginText.slice(0, 300);
-
-      let loginData;
+let loginData;
       try { loginData = JSON.parse(loginText); }
       catch(e) { throw new Error(`Login parse error: ${loginText.slice(0,100)}`); }
 
@@ -72,7 +67,6 @@ exports.handler = async function(event, context) {
       }
 
       const session = loginData.session;
-      result.debug.session_preview = session.slice(0,8) + '...';
 
       // Step 2: Get outlook — add small delay to avoid immediate session rejection
       await new Promise(r => setTimeout(r, 500));
@@ -83,10 +77,7 @@ exports.handler = async function(event, context) {
       });
 
       const outlookText = await outlookRes.text();
-      result.debug.outlook_status = outlookRes.status;
-      result.debug.outlook_raw    = outlookText.slice(0, 300);
-
-      let outlookData;
+let outlookData;
       try { outlookData = JSON.parse(outlookText); }
       catch(e) { throw new Error(`Outlook parse error: ${outlookText.slice(0,100)}`); }
 
@@ -95,9 +86,7 @@ exports.handler = async function(event, context) {
       }
 
       const symbols = outlookData.symbols || [];
-      result.debug.symbols_count = symbols.length;
-
-      const lookup = {};
+const lookup = {};
       symbols.forEach(s => { lookup[(s.name||'').toUpperCase().replace('/','')]=s; });
 
       SENTIMENT_PAIRS.forEach(pair => {
@@ -118,8 +107,6 @@ exports.handler = async function(event, context) {
     }
   } else {
     result.sources.myfxbook = 'variables no configuradas';
-    result.debug.email_len = EMAIL.length;
-    result.debug.pass_len  = PASSWORD.length;
   }
 
   // ── CFTC COT ────────────────────────────────────────────────
