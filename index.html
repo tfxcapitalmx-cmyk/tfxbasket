@@ -3145,19 +3145,10 @@ async function runSentimentEngine() {
     }
 
     // ── Log errors if any ──────────────────────────────────────
-    // Show full debug info
-    if (data.debug && Object.keys(data.debug).length) {
-      const debugLines = Object.entries(data.debug)
-        .map(([k,v]) => `${k}: ${v}`)
-        .join('<br>');
-      if (statusEl) statusEl.innerHTML += '<br><span style="color:var(--text-3);font-size:7px;">DEBUG: ' + debugLines + '</span>';
-      console.log('Sentiment debug:', data.debug);
-    }
+    // Log errors only to console
+    if (data.debug) console.log('Sentiment debug:', data.debug);
     if (data.errors && data.errors.length) {
-      data.errors.forEach(e => {
-        console.warn('Sentiment error:', e);
-        if (statusEl) statusEl.innerHTML += '<br>⚠ ' + e;
-      });
+      data.errors.forEach(e => console.warn('Sentiment error:', e));
     }
 
   } catch(e) {
