@@ -5,57 +5,108 @@
 //  Fuentes:
 //  ├─ Myfxbook API  → Sentimiento Retail (longPct / shortPct)
 //  └─ CFTC API      → COT Non-Commercial Net Positions (G7 FX)
-//
-//  Variables de entorno requeridas en Netlify:
-//    MYFXBOOK_EMAIL
-//    MYFXBOOK_PASSWORD
 // ═══════════════════════════════════════════════════════════════
 
 const MYFXBOOK_LOGIN_URL   = 'https://www.myfxbook.com/api/login.json';
 const MYFXBOOK_OUTLOOK_URL = 'https://www.myfxbook.com/api/get-community-outlook.json';
 const CFTC_BASE            = 'https://publicreporting.cftc.gov/resource/6dca-aqww.json';
 
-// Pares que mostramos en el panel de sentimiento retail
 const SENTIMENT_PAIRS = [
   'EURUSD','GBPUSD','USDJPY','AUDUSD',
   'NZDUSD','USDCAD','USDCHF','XAUUSD'
 ];
 
-// Códigos CFTC para futuros FX en CME (Non-Commercial = Institucionales)
 const CFTC_CODES = {
-  EUR: '099741',
-  GBP: '096742',
-  JPY: '097741',
-  AUD: '232741',
-  NZD: '112741',
-  CAD: '090741',
-  CHF: '092741',
+  EUR: '099741', GBP: '096742', JPY: '097741',
+  AUD: '232741', NZD: '112741', CAD: '090741', CHF: '092741',
 };
 
-// ── Myfxbook: Login → session ────────────────────────────────────
+// ── Myfxbook: Login with retry ───────────────────────────────────
 async function myfxbookLogin(email, password) {
-  const url = `${MYFXBOOK_LOGIN_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Myfxbook login HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(`Myfxbook: ${data.message}`);
-  return data.session;
+  // Some accounts need the password URL-encoded differently
+  // Try plain first, then encoded
+  const attempts = [
+    `${MYFXBOOK_LOGIN_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+    `${MYFXBOOK_LOGIN_URL}?email=${email}&password=${encodeURIComponent(password)}`,
+  ];
+
+  let lastError = null;
+  for (const url of attempts) {
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept':     'application/json',
+          'User-Agent': 'TFXCapital-Dashboard/1.0',
+        }
+      });
+
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
+      }
+
+      // Myfxbook returns XML or JSON depending on URL
+      const text = await res.text();
+
+      // Try JSON parse
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch(e) {
+        // Try to extract session from XML/text
+        const match = text.match(/session["\s:>]+([a-zA-Z0-9]+)/);
+        if (match) return match[1];
+        lastError = new Error(`Invalid response format: ${text.slice(0,100)}`);
+        continue;
+      }
+
+      // Check for error field (can be boolean or number)
+      if (data.error === true || data.error === 1) {
+        lastError = new Error(`Myfxbook: ${data.message || 'Login failed'}`);
+        continue;
+      }
+
+      if (data.session) return data.session;
+      lastError = new Error(`No session in response: ${JSON.stringify(data).slice(0,100)}`);
+
+    } catch(e) {
+      lastError = e;
+    }
+  }
+  throw lastError || new Error('Login failed after all attempts');
 }
 
 // ── Myfxbook: Community Outlook ──────────────────────────────────
 async function myfxbookOutlook(session) {
   const url = `${MYFXBOOK_OUTLOOK_URL}?session=${encodeURIComponent(session)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Myfxbook outlook HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(`Myfxbook outlook: ${data.message}`);
+  const res = await fetch(url, {
+    headers: {
+      'Accept':     'application/json',
+      'User-Agent': 'TFXCapital-Dashboard/1.0',
+    }
+  });
+  if (!res.ok) throw new Error(`Outlook HTTP ${res.status}`);
+
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch(e) {
+    throw new Error(`Outlook invalid JSON: ${text.slice(0,100)}`);
+  }
+
+  if (data.error === true || data.error === 1) {
+    throw new Error(`Outlook error: ${data.message}`);
+  }
+
   return data.symbols || [];
 }
 
-// ── CFTC: COT latest 2 weeks for one contract ────────────────────
+// ── CFTC: COT latest 2 weeks ─────────────────────────────────────
 async function fetchCOT(contractCode) {
   const url = `${CFTC_BASE}?cftc_contract_market_code=${contractCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=2`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
   if (!res.ok) throw new Error(`CFTC ${contractCode} HTTP ${res.status}`);
   const rows = await res.json();
   if (!rows || !rows.length) return null;
@@ -101,28 +152,34 @@ exports.handler = async function(event, context) {
   }
 
   const HEADERS = {
-    'Content-Type':                 'application/json',
-    'Access-Control-Allow-Origin':  '*',
+    'Content-Type':                'application/json',
+    'Access-Control-Allow-Origin': '*',
   };
 
   const MFX_EMAIL    = process.env.MYFXBOOK_EMAIL;
   const MFX_PASSWORD = process.env.MYFXBOOK_PASSWORD;
 
   const result = {
-    timestamp:  new Date().toISOString(),
-    sentiment:  {},   // par → { long, short, longPct, shortPct }
-    cot:        {},   // currency → { long, short, net, change, oi, report_date }
-    sources:    { myfxbook: 'pending', cftc: 'pending' },
-    errors:     [],
+    timestamp: new Date().toISOString(),
+    sentiment: {},
+    cot:       {},
+    sources:   { myfxbook: 'pending', cftc: 'pending' },
+    errors:    [],
+    debug:     {},
   };
 
   // ── STEP 1: Myfxbook Sentiment ─────────────────────────────────
   if (MFX_EMAIL && MFX_PASSWORD) {
     try {
-      const session = await myfxbookLogin(MFX_EMAIL, MFX_PASSWORD);
-      const symbols = await myfxbookOutlook(session);
+      result.debug.mfx_email_len = MFX_EMAIL.length;
+      result.debug.mfx_pass_len  = MFX_PASSWORD.length;
 
-      // Build lookup by symbol name (uppercase, no slash)
+      const session = await myfxbookLogin(MFX_EMAIL, MFX_PASSWORD);
+      result.debug.session_obtained = true;
+
+      const symbols = await myfxbookOutlook(session);
+      result.debug.symbols_count = symbols.length;
+
       const lookup = {};
       symbols.forEach(s => {
         const name = (s.name || '').toUpperCase().replace('/', '');
@@ -132,29 +189,26 @@ exports.handler = async function(event, context) {
       SENTIMENT_PAIRS.forEach(pair => {
         const s = lookup[pair];
         if (s) {
-          const longPct  = parseFloat(s.longPercentage  || 50);
-          const shortPct = parseFloat(s.shortPercentage || 50);
           result.sentiment[pair] = {
-            long:      parseInt(s.longPositions  || 0),
-            short:     parseInt(s.shortPositions || 0),
-            longPct:   longPct,
-            shortPct:  shortPct,
-            longVol:   parseFloat(s.longVolume   || 0),
-            shortVol:  parseFloat(s.shortVolume  || 0),
+            longPct:  parseFloat(s.longPercentage  || 50),
+            shortPct: parseFloat(s.shortPercentage || 50),
+            longPos:  parseInt(s.longPositions  || 0),
+            shortPos: parseInt(s.shortPositions || 0),
           };
         }
       });
 
-      result.sources.myfxbook = `active · ${symbols.length} pares · ${new Date().toISOString()}`;
+      result.sources.myfxbook = `active · ${symbols.length} pares`;
     } catch(e) {
       result.errors.push(`Myfxbook: ${e.message}`);
       result.sources.myfxbook = `error: ${e.message}`;
+      result.debug.mfx_error = e.message;
     }
   } else {
-    result.sources.myfxbook = 'no configurado — agrega MYFXBOOK_EMAIL y MYFXBOOK_PASSWORD en Netlify';
+    result.sources.myfxbook = 'variables de entorno no configuradas';
   }
 
-  // ── STEP 2: CFTC COT — All G7 FX in parallel ───────────────────
+  // ── STEP 2: CFTC COT ───────────────────────────────────────────
   try {
     const cotFetches = Object.entries(CFTC_CODES).map(async ([currency, code]) => {
       try {
@@ -167,11 +221,12 @@ exports.handler = async function(event, context) {
     await Promise.all(cotFetches);
 
     const cotCount = Object.keys(result.cot).length;
+    const firstDate = Object.values(result.cot)[0]?.report_date || '?';
     result.sources.cftc = cotCount > 0
-      ? `active · ${cotCount} divisas · reporte: ${Object.values(result.cot)[0]?.report_date || '?'}`
-      : 'error: sin datos';
+      ? `active · ${cotCount} divisas · reporte: ${firstDate}`
+      : 'sin datos';
   } catch(e) {
-    result.errors.push(`CFTC general: ${e.message}`);
+    result.errors.push(`CFTC: ${e.message}`);
     result.sources.cftc = `error: ${e.message}`;
   }
 
