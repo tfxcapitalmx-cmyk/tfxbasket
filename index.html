@@ -1078,7 +1078,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(6,8,16,0.96);backdrop-f
       <div style="font-family:'Syncopate',sans-serif;font-size:8px;font-weight:700;color:var(--gold);letter-spacing:4px;margin-bottom:12px;">DATOS CARGADOS · G8 ACTUAL</div>
       <div class="panel" style="margin-bottom:20px;">
         <div class="ph"><div class="pt">TABLA DE DATOS EN TIEMPO REAL</div><div style="font-family:'Roboto Mono',monospace;font-size:8px;color:var(--text-3);" id="de-data-timestamp">—</div></div>
-        <div style="overflow-x:auto;"><table class="rtable"><thead><tr><th>Divisa</th><th>Banco Central</th><th>Tasa CB %</th><th>CPI %</th><th>Desempleo %</th><th>GDP %</th><th>PMI Mfg</th><th>PMI Svc</th><th>Retail %</th><th>Stance</th><th>Confianza</th><th>Fuente</th></tr></thead><tbody id="de-data-tbody"><tr><td colspan="12" style="text-align:center;color:var(--text-3);padding:30px;">Ejecuta el motor de datos para ver los valores en tiempo real.</td></tr></tbody></table></div>
+        <div style="overflow-x:auto;"><table class="rtable"><thead><tr><th>Divisa</th><th>Banco Central</th><th>Tasa CB %</th><th>CPI YoY</th><th>CPI MoM</th><th>PMI Mfg</th><th>PMI Svc</th><th>NFP MoM%</th><th>M2 A%</th><th>Permits K</th><th>Stance</th><th>Fuente</th></tr></thead><tbody id="de-data-tbody"><tr><td colspan="12" style="text-align:center;color:var(--text-3);padding:30px;">Ejecuta el motor de datos para ver los valores en tiempo real.</td></tr></tbody></table></div>
       </div>
       <div class="panel">
         <div class="ph"><div class="pt">LOG · RESPUESTA CLAUDE API</div></div>
@@ -2507,36 +2507,44 @@ function buildDataTable(data, timestamp) {
   if (!tbody) return;
   if (tsEl) tsEl.textContent = 'Actualizado: ' + timestamp;
 
+  const fmt = (v, dec=2, suffix='%') => v != null && !isNaN(v) ? parseFloat(v).toFixed(dec) + suffix : '—';
+  const col  = (v, hi, lo) => {
+    if (v == null || isNaN(v)) return 'var(--text-2)';
+    return v > hi ? 'var(--red)' : v < lo ? 'var(--green)' : 'var(--amber)';
+  };
+
   tbody.innerHTML = G8.map(cur => {
     const d = data[cur.code];
-    if (!d) return `<tr><td colspan="12" style="color:var(--text-3);">${cur.code}: sin datos</td></tr>`;
+    if (!d) return `<tr><td colspan="14" style="color:var(--text-3);">${cur.code}: sin datos</td></tr>`;
+
     const stanceCl = d.stance === 'hawkish' ? 'sh' : d.stance === 'dovish' ? 'sd' : 'sn';
-    const confDots = Array.from({length:5}, (_,i) => `<div class="conf-dot ${i < (d.confidence_score||3) ? 'filled' : ''}"></div>`).join('');
-    const gdpCol   = d.gdp    != null ? d.gdp.toFixed(1)   + '%' : '—';
-    const pmiMCol  = d.pmi_m  != null ? d.pmi_m.toFixed(1)         : '—';
-    const pmiSCol  = d.pmi_s  != null ? d.pmi_s.toFixed(1)         : '—';
-    const retCol   = d.retail != null ? d.retail.toFixed(1) + '%' : '—';
-    const gdpColor = d.gdp != null ? (d.gdp > 0.3 ? 'var(--green)' : d.gdp < 0 ? 'var(--red)' : 'var(--amber)') : 'var(--text-2)';
-    const pmiMColor = d.pmi_m != null ? (d.pmi_m >= 50 ? 'var(--green)' : 'var(--red)') : 'var(--text-2)';
-    const pmiSColor = d.pmi_s != null ? (d.pmi_s >= 50 ? 'var(--green)' : 'var(--red)') : 'var(--text-2)';
-    const retColor = d.retail != null ? (d.retail > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-2)';
+    const stanceLabel = (d.stance || 'neutral').toUpperCase();
+
+    // Use new keys — fallback to old keys for compatibility
+    const cpiYoy  = d.cpi_yoy  ?? d.cpi    ?? null;
+    const cpiMom  = d.cpi_mom  ?? null;
+    const pmiM    = d.pmi_m    ?? null;
+    const pmiS    = d.pmi_s    ?? null;
+    const nfp     = d.nfp      ?? d.retail  ?? null;
+    const m2      = d.m2       ?? null;
+    const permits = d.permits  ?? null;
+
     return `<tr>
-      <td style="font-family:'Syncopate',sans-serif;font-size:11px;font-weight:700;color:var(--text-1);">${cur.flag} ${cur.code}</td>
-      <td style="font-size:10px;color:var(--text-2);">${cur.bank}</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;color:var(--gold);font-weight:600;">${d.rate}%</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;color:${d.cpi>2?'var(--red)':'var(--green)'};">${d.cpi}%</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;color:${d.unemp>5?'var(--red)':'var(--green)'};">${d.unemp}%</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:${gdpColor};">${gdpCol}</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:${pmiMColor};">${pmiMCol}</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:${pmiSColor};">${pmiSCol}</td>
-      <td style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:${retColor};">${retCol}</td>
-      <td><span class="stance-btn ${stanceCl}" style="cursor:default;">${d.stance.toUpperCase()}</span></td>
-      <td><div style="display:flex;gap:3px;">${confDots}</div></td>
-      <td style="font-size:8px;color:var(--text-2);line-height:1.5;">${d.rate_source||'Claude API'}</td>
+      <td style="font-family:'Syncopate',sans-serif;font-size:10px;font-weight:700;color:var(--text-1);white-space:nowrap;">${cur.flag} ${cur.code}</td>
+      <td style="font-size:9px;color:var(--text-2);">${cur.bank}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:var(--gold);font-weight:600;">${fmt(d.rate,2,'%')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${col(cpiYoy,3,1)};">${fmt(cpiYoy,1,'%')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${col(cpiMom,0.5,0)};">${fmt(cpiMom,2,'%')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${pmiM!=null?(pmiM>=50?'var(--green)':'var(--red)'):'var(--text-2)'};">${fmt(pmiM,1,'')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${pmiS!=null?(pmiS>=50?'var(--green)':'var(--red)'):'var(--text-2)'};">${fmt(pmiS,1,'')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${col(nfp,0.3,-0.1)};">${fmt(nfp,2,'%')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${col(m2,15,0)};">${fmt(m2,1,'%')}</td>
+      <td style="font-family:'Roboto Mono',monospace;font-size:11px;color:${permits!=null?col(permits,1800,800):'var(--text-2)'};">${permits!=null?Math.round(permits)+'K':'—'}</td>
+      <td><span class="stance-btn ${stanceCl}" style="cursor:default;font-size:8px;">${stanceLabel}</span></td>
+      <td style="font-size:7px;color:var(--text-2);line-height:1.5;max-width:80px;">${d.rate_source||'Claude'}</td>
     </tr>`;
   }).join('');
 
-  // Update de-last-update
   const lu = document.getElementById('de-last-update');
   if (lu) lu.textContent = 'Última actualización: ' + timestamp;
 }
