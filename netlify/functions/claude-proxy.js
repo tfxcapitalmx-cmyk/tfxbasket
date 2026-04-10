@@ -1,66 +1,82 @@
 // ═══════════════════════════════════════════════════════════════════
-//  TFX CAPITAL · MACRO BASKET ENGINE — DATA PROXY
+//  TFX CAPITAL · MACRO BASKET ENGINE — DATA PROXY v2.0
 //  Netlify Function: /api/claude
 //
-//  Fuentes de datos:
-//  ┌─ FRED API  → USD: CPI, Desempleo, GDP, Retail Sales, Fed Funds Rate
-//  ├─ BIS API   → G8 Tasas CB (confirmación / cross-check)
-//  └─ Claude    → Stance CB, PMI fallback, narrativa macro
+//  Fuentes:
+//  ┌─ FRED API   → USD: CPI YoY, CPI MoM, Core CPI MoM, PPI MoM,
+//  │               Core PPI MoM, NFP, GDP QoQ, Fed Funds Rate,
+//  │               IR MoM, M2, Building Permits, UMCSI
+//  ├─ OECD API   → EUR, GBP, JPY, CAD, AUD, NZD, CHF:
+//  │               CPI YoY, CPI MoM, Desempleo
+//  ├─ BIS API    → G8 Tasas CB (policy rate)
+//  └─ Claude     → PMI Mfg, NMI Services, PPI no-USD,
+//                  Core PPI no-USD, NFP no-USD, M2 no-USD,
+//                  Permits no-USD, UMCSI no-USD, GDP no-USD
 //
-//  Flujo:
-//  1. FRED + BIS se llaman EN PARALELO (Promise.all)
-//  2. Claude recibe los datos reales como contexto
-//  3. Claude solo infiere: stance, PMI, GDP no-USD, retail no-USD
-//  4. Se fusionan: datos reales sobrescriben inferencias de Claude
-//  5. Se devuelve JSON unificado al frontend
+//  Indicadores del sistema TFX Capital (13 total):
+//  LÍDERES:     pmi_m, pmi_s, permits, umcsi, m2
+//  COINCIDENTES: cpi_yoy, cpi_mom, ccpi_mom, ppi_mom, cppi_mom, nfp
+//  REZAGADOS:   rate, ir_mom
 // ═══════════════════════════════════════════════════════════════════
 
-const FRED_KEY = process.env.FRED_API_KEY;
+const FRED_KEY      = process.env.FRED_API_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
-const BIS_BASE  = 'https://stats.bis.org/api/v1/data';
+const FRED_BASE     = 'https://api.stlouisfed.org/fred/series/observations';
+const BIS_BASE      = 'https://stats.bis.org/api/v1/data';
+const OECD_BASE     = 'https://sdmx.oecd.org/public/rest/data';
 
-// ── FRED Series IDs ─────────────────────────────────────────────
+// ── FRED Series for USD (all 13 indicators) ────────────────────────
 const FRED_SERIES = {
-  FEDFUNDS: { field: 'rate',   label: 'Federal Funds Rate',     transform: null },
-  CPIAUCSL: { field: 'cpi',    label: 'CPI All Urban (Level)',   transform: 'yoy' },
-  UNRATE:   { field: 'unemp',  label: 'Unemployment Rate',       transform: null },
-  GDPC1:    { field: 'gdp',    label: 'Real GDP (Quarterly)',    transform: 'qoq' },
-  RSAFS:    { field: 'retail', label: 'Retail Sales (Level)',    transform: 'mom' },
+  // REZAGADOS
+  FEDFUNDS:   { field:'rate',      transform:'last',  label:'Fed Funds Rate'        },
+  // COINCIDENTES — inflación
+  CPIAUCSL:   { field:'cpi_level', transform:'raw13', label:'CPI Level (para YoY/MoM)' },
+  CPILFESL:   { field:'ccpi_level',transform:'raw2',  label:'Core CPI Level'        },
+  PPIACO:     { field:'ppi_level', transform:'raw2',  label:'PPI Level'             },
+  WPSFD4131:  { field:'cppi_level',transform:'raw2',  label:'Core PPI Level'        },
+  // COINCIDENTES — empleo
+  PAYEMS:     { field:'nfp_level', transform:'raw2',  label:'Nonfarm Payrolls'      },
+  // LÍDERES
+  M2SL:       { field:'m2_level',  transform:'raw13', label:'M2 Money Supply'       },
+  PERMIT:     { field:'permits',   transform:'last',  label:'Building Permits (K)'  },
+  UMCSENT:    { field:'umcsi',     transform:'last',  label:'Univ Michigan Sentiment'},
 };
 
-// ── BIS Policy Rate Series (CB_POLICY_RATE dataset) ─────────────
-// Format: BIS/CB_POLICY_RATE/Q:XX:D:N
+// ── BIS Policy Rates ───────────────────────────────────────────────
 const BIS_CURRENCIES = {
-  USD: 'US', EUR: 'XM', GBP: 'GB', JPY: 'JP',
-  AUD: 'AU', NZD: 'NZ', CAD: 'CA', CHF: 'CH',
+  USD:'US', EUR:'XM', GBP:'GB', JPY:'JP',
+  AUD:'AU', NZD:'NZ', CAD:'CA', CHF:'CH',
 };
 
-// ── Fetch single FRED series (latest 2 observations) ────────────
-async function fetchFRED(seriesId) {
-  const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&sort_order=desc&limit=13`;
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+// ── OECD dataset → CPI YoY, CPI MoM, Desempleo para G7 non-USD ───
+// Dataset: OECD.SDD.STES,DSD_STES@DF_KEI
+const OECD_COUNTRIES = {
+  EUR:'EA19', GBP:'GBR', JPY:'JPN',
+  AUD:'AUS',  CAD:'CAN', CHF:'CHE', NZD:'NZL',
+};
+
+// ── FRED fetch (last N observations) ───────────────────────────────
+async function fetchFRED(seriesId, n=14) {
+  const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&sort_order=desc&limit=${n}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`FRED ${seriesId}: HTTP ${res.status}`);
   const json = await res.json();
-  const obs = (json.observations || []).filter(o => o.value !== '.');
-  return obs;
+  return (json.observations || []).filter(o => o.value !== '.' && o.value !== null);
 }
 
-// ── Fetch BIS policy rate for one country ───────────────────────
-async function fetchBISRate(countryCode) {
-  // BIS SDMX REST API — policy rate dataset
-  const url = `${BIS_BASE}/CB_POLICY_RATE/M.${countryCode}.?startPeriod=2024-01&format=jsondata`;
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+// ── BIS policy rate ────────────────────────────────────────────────
+async function fetchBISRate(code) {
+  const url = `${BIS_BASE}/CB_POLICY_RATE/M.${code}.?startPeriod=2024-01&format=jsondata`;
+  const res = await fetch(url);
   if (!res.ok) return null;
   const json = await res.json();
   try {
     const series = json.data?.dataSets?.[0]?.series;
     if (!series) return null;
     const key = Object.keys(series)[0];
-    const obs = series[key]?.observations;
+    const obs  = series[key]?.observations;
     if (!obs) return null;
-    // Get latest non-null observation
-    const sorted = Object.entries(obs).sort((a,b) => parseInt(b[0]) - parseInt(a[0]));
+    const sorted = Object.entries(obs).sort((a,b) => parseInt(b[0])-parseInt(a[0]));
     for (const [, vals] of sorted) {
       if (vals[0] !== null) return parseFloat(vals[0]);
     }
@@ -68,252 +84,363 @@ async function fetchBISRate(countryCode) {
   } catch { return null; }
 }
 
-// ── Compute YoY % from level series ─────────────────────────────
-function computeYoY(obs) {
-  if (obs.length < 13) return null;
-  const latest = parseFloat(obs[0].value);
-  const yearAgo = parseFloat(obs[12].value);
-  if (isNaN(latest) || isNaN(yearAgo) || yearAgo === 0) return null;
-  return parseFloat(((latest - yearAgo) / yearAgo * 100).toFixed(2));
+// ── OECD fetch — CPI MoM, CPI YoY, Unemployment ───────────────────
+async function fetchOECD(oecdCode) {
+  try {
+    // CPI Monthly — CPALTT01 indicator, growth previous period (GP)
+    const cpiUrl = `${OECD_BASE}/OECD.SDD.STES,DSD_STES@DF_KEI/${oecdCode}.CPALTT01.GP.M?lastNObservations=13&format=jsondata`;
+    const cpiRes = await fetch(cpiUrl);
+
+    // Unemployment rate — UNR indicator
+    const unrUrl = `${OECD_BASE}/OECD.SDD.STES,DSD_STES@DF_KEI/${oecdCode}.UNR..M?lastNObservations=2&format=jsondata`;
+    const unrRes = await fetch(unrUrl);
+
+    const result = {};
+
+    if (cpiRes.ok) {
+      const cpiJson = await cpiRes.json();
+      const obs = extractOECDSeries(cpiJson);
+      if (obs.length >= 1) result.cpi_mom = parseFloat(obs[0].value.toFixed(2));
+      if (obs.length >= 13) {
+        // Compute YoY from 12 MoM values
+        const yoy = obs.slice(0,12).reduce((acc,o) => acc * (1 + o.value/100), 1);
+        result.cpi_yoy = parseFloat(((yoy-1)*100).toFixed(2));
+      }
+    }
+
+    if (unrRes.ok) {
+      const unrJson = await unrRes.json();
+      const obs = extractOECDSeries(unrJson);
+      if (obs.length >= 1) result.unemp = parseFloat(obs[0].value.toFixed(1));
+    }
+
+    return result;
+  } catch(e) {
+    return {};
+  }
 }
 
-// ── Compute MoM % from level series ─────────────────────────────
-function computeMoM(obs) {
-  if (obs.length < 2) return null;
-  const latest = parseFloat(obs[0].value);
-  const prev   = parseFloat(obs[1].value);
-  if (isNaN(latest) || isNaN(prev) || prev === 0) return null;
-  return parseFloat(((latest - prev) / prev * 100).toFixed(2));
+// ── Extract observations from OECD SDMX-JSON ──────────────────────
+function extractOECDSeries(json) {
+  try {
+    const ds  = json.data?.dataSets?.[0];
+    const str = json.data?.structures?.[0];
+    if (!ds || !str) return [];
+    const series = ds.series;
+    if (!series) return [];
+    const key = Object.keys(series)[0];
+    const obs  = series[key]?.observations;
+    if (!obs) return [];
+    const timeDim = str.dimensions?.observation?.find(d => d.id === 'TIME_PERIOD');
+    const timeValues = timeDim?.values || [];
+    return Object.entries(obs)
+      .map(([idx, vals]) => ({
+        period: timeValues[parseInt(idx)]?.id || idx,
+        value:  parseFloat(vals[0])
+      }))
+      .filter(o => !isNaN(o.value))
+      .sort((a,b) => b.period.localeCompare(a.period));
+  } catch { return []; }
 }
 
-// ── Compute QoQ % growth from quarterly GDP ──────────────────────
-function computeQoQ(obs) {
-  if (obs.length < 2) return null;
-  const latest = parseFloat(obs[0].value);
-  const prev   = parseFloat(obs[1].value);
-  if (isNaN(latest) || isNaN(prev) || prev === 0) return null;
-  return parseFloat(((latest - prev) / prev * 100).toFixed(2));
+// ── Math helpers ───────────────────────────────────────────────────
+function yoy(obs)  {
+  const vals = obs.filter(o=>!isNaN(parseFloat(o.value)));
+  if (vals.length < 13) return null;
+  const l = parseFloat(vals[0].value), y = parseFloat(vals[12].value);
+  return y === 0 ? null : parseFloat(((l-y)/y*100).toFixed(2));
+}
+function mom(obs)  {
+  const vals = obs.filter(o=>!isNaN(parseFloat(o.value)));
+  if (vals.length < 2) return null;
+  const l = parseFloat(vals[0].value), p = parseFloat(vals[1].value);
+  return p === 0 ? null : parseFloat(((l-p)/p*100).toFixed(2));
+}
+function momAbs(obs) {
+  // MoM in absolute BPS (for IR MoM)
+  const vals = obs.filter(o=>!isNaN(parseFloat(o.value)));
+  if (vals.length < 2) return null;
+  return parseFloat((parseFloat(vals[0].value) - parseFloat(vals[1].value)).toFixed(2));
+}
+function annualized(momPct, periods=12) {
+  return parseFloat(((Math.pow(1 + momPct/100, periods) - 1) * 100).toFixed(2));
 }
 
-// ── Main Handler ─────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════════════
 exports.handler = async function(event, context) {
 
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin':  '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-      body: ''
-    };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode:200, headers:{
+      'Access-Control-Allow-Origin':'*',
+      'Access-Control-Allow-Methods':'POST, OPTIONS',
+      'Access-Control-Allow-Headers':'Content-Type',
+    }, body:'' };
   }
 
   const HEADERS = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*'
+    'Content-Type':'application/json',
+    'Access-Control-Allow-Origin':'*',
   };
 
-  // ── STEP 1: Fetch FRED data for USD (parallel requests) ────────
-  const fredResults = {};
-  const fredErrors  = [];
-  let fredAvailable = false;
+  const result = {
+    timestamp: new Date().toISOString(),
+    data: {}, sources: {}, errors: []
+  };
+
+  // ════════════════════════════════════════════════════════════════
+  // STEP 1: FRED — USD all 13 indicators
+  // ════════════════════════════════════════════════════════════════
+  const usd = {};
+  const fredErrors = [];
 
   if (FRED_KEY) {
     try {
-      const fredFetches = Object.entries(FRED_SERIES).map(async ([sid, meta]) => {
-        try {
-          const obs = await fetchFRED(sid);
-          if (!obs.length) return;
-          let value;
-          if (meta.transform === 'yoy')  value = computeYoY(obs);
-          else if (meta.transform === 'mom') value = computeMoM(obs);
-          else if (meta.transform === 'qoq') value = computeQoQ(obs);
-          else value = parseFloat(obs[0].value);
-          if (value !== null) {
-            fredResults[meta.field] = value;
-            fredResults[`${meta.field}_date`] = obs[0].date;
-            fredResults[`${meta.field}_source`] = `FRED · ${sid}`;
-          }
-        } catch(e) {
-          fredErrors.push(`${sid}: ${e.message}`);
+      const [
+        fedfunds, cpi_raw, ccpi_raw, ppi_raw, cppi_raw,
+        nfp_raw, m2_raw, permits_raw, umcsi_raw
+      ] = await Promise.all([
+        fetchFRED('FEDFUNDS', 3),
+        fetchFRED('CPIAUCSL', 14),
+        fetchFRED('CPILFESL', 3),
+        fetchFRED('PPIACO',   3),
+        fetchFRED('WPSFD4131',3),
+        fetchFRED('PAYEMS',   3),
+        fetchFRED('M2SL',     14),
+        fetchFRED('PERMIT',   2),
+        fetchFRED('UMCSENT',  2),
+      ]);
+
+      // Rate
+      if (fedfunds.length) {
+        usd.rate     = parseFloat(parseFloat(fedfunds[0].value).toFixed(2));
+        // IR MoM in BPS annualized
+        if (fedfunds.length >= 2) {
+          const irMom = parseFloat(fedfunds[0].value) - parseFloat(fedfunds[1].value);
+          usd.ir_mom = parseFloat((irMom * 100).toFixed(1)); // in BPS
         }
-      });
-      await Promise.all(fredFetches);
-      fredAvailable = Object.keys(fredResults).length > 0;
+        usd.rate_source = 'FRED · FEDFUNDS';
+      }
+
+      // CPI — YoY + MoM
+      if (cpi_raw.length >= 13) {
+        usd.cpi_yoy = yoy(cpi_raw);
+        usd.cpi_mom = mom(cpi_raw);
+        usd.cpi_source = 'FRED · CPIAUCSL';
+      }
+
+      // Core CPI MoM
+      if (ccpi_raw.length >= 2) {
+        usd.ccpi_mom = mom(ccpi_raw);
+        usd.ccpi_source = 'FRED · CPILFESL';
+      }
+
+      // PPI MoM
+      if (ppi_raw.length >= 2) {
+        usd.ppi_mom = mom(ppi_raw);
+        usd.ppi_source = 'FRED · PPIACO';
+      }
+
+      // Core PPI MoM
+      if (cppi_raw.length >= 2) {
+        usd.cppi_mom = mom(cppi_raw);
+        usd.cppi_source = 'FRED · WPSFD4131';
+      }
+
+      // NFP MoM %
+      if (nfp_raw.length >= 2) {
+        usd.nfp = mom(nfp_raw);
+        usd.nfp_source = 'FRED · PAYEMS';
+      }
+
+      // M2 Annualized %
+      if (m2_raw.length >= 13) {
+        const m2_mom = mom(m2_raw);
+        if (m2_mom !== null) usd.m2 = annualized(m2_mom);
+        usd.m2_source = 'FRED · M2SL';
+      }
+
+      // Building Permits (in thousands)
+      if (permits_raw.length) {
+        usd.permits = parseFloat(parseFloat(permits_raw[0].value).toFixed(0));
+        usd.permits_source = 'FRED · PERMIT';
+      }
+
+      // UMCSI
+      if (umcsi_raw.length) {
+        usd.umcsi = parseFloat(parseFloat(umcsi_raw[0].value).toFixed(1));
+        usd.umcsi_source = 'FRED · UMCSENT';
+      }
+
+      result.sources.fred = `active · ${Object.keys(usd).filter(k=>!k.includes('_source')&&!k.includes('_date')).join(', ')}`;
     } catch(e) {
-      fredErrors.push(`FRED general: ${e.message}`);
+      fredErrors.push(e.message);
+      result.sources.fred = `error: ${e.message}`;
     }
+  } else {
+    result.sources.fred = 'FRED_API_KEY no configurada';
   }
 
-  // ── STEP 2: Fetch BIS rates for all G8 (parallel) ──────────────
-  const bisResults = {};
-  const bisErrors  = [];
-  let bisAvailable = false;
-
+  // ════════════════════════════════════════════════════════════════
+  // STEP 2: BIS — G8 policy rates
+  // ════════════════════════════════════════════════════════════════
+  const bisRates = {};
   try {
-    const bisFetches = Object.entries(BIS_CURRENCIES).map(async ([currency, code]) => {
-      try {
-        const rate = await fetchBISRate(code);
-        if (rate !== null) bisResults[currency] = rate;
-      } catch(e) {
-        bisErrors.push(`BIS ${currency}: ${e.message}`);
-      }
+    const bisFetches = Object.entries(BIS_CURRENCIES).map(async ([cur, code]) => {
+      const rate = await fetchBISRate(code);
+      if (rate !== null) bisRates[cur] = rate;
     });
     await Promise.all(bisFetches);
-    bisAvailable = Object.keys(bisResults).length > 0;
+    result.sources.bis = Object.keys(bisRates).length > 0
+      ? `active · ${Object.keys(bisRates).join(', ')}`
+      : 'sin datos';
   } catch(e) {
-    bisErrors.push(`BIS general: ${e.message}`);
+    result.sources.bis = `error: ${e.message}`;
   }
 
-  // ── STEP 3: Build context for Claude ───────────────────────────
-  // Give Claude the real data we already have so it only needs to fill gaps
-  const realDataContext = {
-    USD: {
-      rate:   fredResults.rate   ?? bisResults.USD ?? null,
-      cpi:    fredResults.cpi    ?? null,
-      unemp:  fredResults.unemp  ?? null,
-      gdp:    fredResults.gdp    ?? null,
-      retail: fredResults.retail ?? null,
-    }
-  };
+  // Apply BIS to USD if FRED didn't get it
+  if (bisRates.USD && !usd.rate) {
+    usd.rate = bisRates.USD;
+    usd.rate_source = 'BIS · CB Policy Rate';
+  }
 
-  // Add BIS rates for non-USD currencies
-  Object.entries(bisResults).forEach(([cur, rate]) => {
-    if (cur !== 'USD') {
-      if (!realDataContext[cur]) realDataContext[cur] = {};
-      realDataContext[cur].rate = rate;
-    }
+  // ════════════════════════════════════════════════════════════════
+  // STEP 3: OECD — CPI, Desempleo para no-USD
+  // ════════════════════════════════════════════════════════════════
+  const oecdData = {};
+  const oecdErrors = [];
+  try {
+    const oecdFetches = Object.entries(OECD_COUNTRIES).map(async ([cur, code]) => {
+      const d = await fetchOECD(code);
+      if (Object.keys(d).length > 0) oecdData[cur] = d;
+    });
+    await Promise.all(oecdFetches);
+    result.sources.oecd = Object.keys(oecdData).length > 0
+      ? `active · ${Object.keys(oecdData).join(', ')}`
+      : 'sin datos';
+  } catch(e) {
+    result.sources.oecd = `error: ${e.message}`;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // STEP 4: Claude — estima indicadores faltantes para G8
+  // ════════════════════════════════════════════════════════════════
+
+  // Build context: what we already have
+  const realData = { USD: usd };
+  Object.keys(OECD_COUNTRIES).forEach(cur => {
+    realData[cur] = {
+      rate: bisRates[cur] ?? null,
+      ...(oecdData[cur] || {}),
+    };
   });
 
-  const realDataStr = JSON.stringify(realDataContext, null, 2);
-  const fredStatus  = fredAvailable
-    ? `FRED OK — datos USD reales: ${Object.keys(fredResults).filter(k=>!k.includes('_')).join(', ')}`
-    : `FRED no disponible (${fredErrors.join('; ')}) — estima todos los datos USD`;
-  const bisStatus = bisAvailable
-    ? `BIS OK — tasas CB reales para: ${Object.keys(bisResults).join(', ')}`
-    : `BIS no disponible (${bisErrors.join('; ')}) — estima tasas CB`;
+  const claudePrompt = `You are a macro data assistant for a professional FX trading desk. Today is ${new Date().toISOString().slice(0,7)} (current month).
 
-  // ── STEP 4: Call Claude to fill gaps ───────────────────────────
-  if (!ANTHROPIC_KEY) {
-    return {
-      statusCode: 500,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' })
-    };
-  }
+REAL DATA ALREADY FETCHED (use these EXACT values — do not override):
+${JSON.stringify(realData, null, 2)}
 
-  const claudePrompt = `You are a macro data assistant. The current date is March 2026.
+TASK: Return a complete G8 macro dataset with ALL 13 indicators per currency.
+For fields already provided above, copy them EXACTLY.
+For missing fields, estimate using your best knowledge of the most recent data available.
 
-REAL DATA ALREADY FETCHED (use these exact values, do not override them):
-${realDataStr}
+CURRENCIES: USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF
 
-Data source status:
-- ${fredStatus}
-- ${bisStatus}
+REQUIRED FIELDS per currency (use null if genuinely unknown):
+- pmi_m: Manufacturing PMI (ISM/S&P Global, absolute level)
+- pmi_s: Services/NMI PMI (ISM/S&P Global, absolute level)
+- permits: Building Permits in thousands (USD only, null for others)
+- umcsi: University of Michigan Consumer Sentiment (USD only, null for others)
+- m2: M2 Money Supply annualized % growth
+- cpi_yoy: CPI year-over-year %
+- cpi_mom: CPI month-over-month %
+- ccpi_mom: Core CPI month-over-month %
+- ppi_mom: PPI month-over-month %
+- cppi_mom: Core PPI month-over-month %
+- nfp: NFP / employment change month-over-month %
+- rate: Central bank policy rate %
+- ir_mom: Rate change this month in BPS (positive=hike, negative=cut, 0=hold)
+- stance: "hawkish" | "neutral" | "dovish"
+- stance_reason: one sentence explanation
 
-TASK: Return a complete G8 macro dataset as a single raw JSON object.
-For fields already provided above, use those EXACT values.
-For missing fields, use your best knowledge of March 2026 data.
+Return ONLY valid JSON, no markdown fences, no explanation:
+{"timestamp":"${new Date().toISOString()}","data":{"USD":{...},"EUR":{...},"GBP":{...},"JPY":{...},"AUD":{...},"NZD":{...},"CAD":{...},"CHF":{...}},"notes":"..."}`;
 
-Required fields per currency (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF):
-- rate: central bank policy rate %
-- cpi: CPI year-over-year %
-- unemp: unemployment rate %
-- gdp: latest quarterly GDP growth %
-- pmi_m: Manufacturing PMI
-- pmi_s: Services PMI
-- retail: Retail Sales month-over-month %
-- stance: "hawkish", "neutral", or "dovish"
-- rate_source: data source name
-- cpi_source: data source name
-- unemp_source: data source name
-- stance_reasoning: one sentence
-
-Return ONLY this JSON structure, no markdown, no text before or after:
-{"timestamp":"2026-03-16T00:00:00Z","data":{...},"sources":{"fred":"${fredAvailable ? 'active' : 'unavailable'}","bis":"${bisAvailable ? 'active' : 'unavailable'}"},"notes":"..."}`;
-
-  let claudeData = null;
+  let claudeResult = null;
   try {
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type':    'application/json',
-        'x-api-key':       ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01'
+        'Content-Type':      'application/json',
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-6',
-        max_tokens: 1800,
-        messages:   [{ role: 'user', content: claudePrompt }]
-      })
+        max_tokens: 2500,
+        messages:   [{ role:'user', content: claudePrompt }],
+      }),
     });
-
     const claudeJson = await claudeRes.json();
     let text = claudeJson?.content?.[0]?.text || '';
-    text = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+    text = text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
     const s = text.indexOf('{'), e = text.lastIndexOf('}');
-    if (s !== -1 && e !== -1) text = text.substring(s, e + 1);
-    claudeData = JSON.parse(text);
+    if (s !== -1 && e !== -1) text = text.substring(s, e+1);
+    claudeResult = JSON.parse(text);
+    result.sources.claude = 'active · estimaciones G8';
   } catch(e) {
-    // Claude failed — use hardcoded fallback + real data overlay
-    claudeData = {
-      timestamp: new Date().toISOString(),
-      data: {
-        USD: { rate:4.33, cpi:2.6,  unemp:4.2, gdp:0.7,  pmi_m:52.7, pmi_s:53.5, retail:-0.2, stance:'neutral', rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'Fed on hold' },
-        EUR: { rate:2.50, cpi:2.3,  unemp:6.2, gdp:0.2,  pmi_m:47.6, pmi_s:51.3, retail:0.1,  stance:'dovish',  rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'ECB cutting' },
-        GBP: { rate:4.50, cpi:2.8,  unemp:4.4, gdp:0.1,  pmi_m:46.9, pmi_s:51.0, retail:0.4,  stance:'neutral', rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'BoE cautious' },
-        JPY: { rate:0.50, cpi:3.1,  unemp:2.4, gdp:0.4,  pmi_m:49.0, pmi_s:53.7, retail:3.5,  stance:'hawkish', rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'BoJ normalizing' },
-        AUD: { rate:4.10, cpi:3.2,  unemp:4.1, gdp:0.5,  pmi_m:50.4, pmi_s:51.2, retail:0.3,  stance:'neutral', rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'RBA on hold' },
-        NZD: { rate:3.75, cpi:2.2,  unemp:5.1, gdp:0.3,  pmi_m:52.0, pmi_s:49.5, retail:-0.1, stance:'dovish',  rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'RBNZ cutting' },
-        CAD: { rate:3.00, cpi:1.8,  unemp:6.7, gdp:0.1,  pmi_m:48.5, pmi_s:46.5, retail:-0.2, stance:'dovish',  rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'BoC easing' },
-        CHF: { rate:0.25, cpi:0.4,  unemp:2.9, gdp:0.2,  pmi_m:49.6, pmi_s:54.2, retail:0.5,  stance:'neutral', rate_source:'Fallback', cpi_source:'Fallback', unemp_source:'Fallback', stance_reasoning:'SNB near zero' },
-      },
-      sources: { fred: 'unavailable', bis: 'unavailable' },
-      notes: 'Fallback data — Claude inference only'
-    };
+    result.errors.push(`Claude: ${e.message}`);
+    result.sources.claude = `error: ${e.message}`;
   }
 
-  // ── STEP 5: Overlay real data on top of Claude estimates ───────
-  // Real data from FRED/BIS ALWAYS wins over Claude's estimates
-  if (claudeData?.data) {
+  // ════════════════════════════════════════════════════════════════
+  // STEP 5: Merge — real data ALWAYS overwrites Claude estimates
+  // Priority: FRED > BIS > OECD > Claude
+  // ════════════════════════════════════════════════════════════════
+  const currencies = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];
 
-    // USD — overlay all FRED fields
-    if (!claudeData.data.USD) claudeData.data.USD = {};
-    const usd = claudeData.data.USD;
-    if (fredResults.rate   != null) { usd.rate   = fredResults.rate;   usd.rate_source  = 'FRED · FEDFUNDS'; }
-    if (fredResults.cpi    != null) { usd.cpi    = fredResults.cpi;    usd.cpi_source   = 'FRED · CPIAUCSL (YoY)'; }
-    if (fredResults.unemp  != null) { usd.unemp  = fredResults.unemp;  usd.unemp_source = 'FRED · UNRATE'; }
-    if (fredResults.gdp    != null) { usd.gdp    = fredResults.gdp;    }
-    if (fredResults.retail != null) { usd.retail = fredResults.retail; }
+  currencies.forEach(cur => {
+    // Start with Claude estimates as base
+    const base = claudeResult?.data?.[cur] || {};
+    // Overlay OECD (non-USD)
+    const oecd = oecdData[cur] || {};
+    // Overlay BIS rate
+    const bisRate = bisRates[cur];
+    // Overlay FRED (USD only)
+    const fred = cur === 'USD' ? usd : {};
 
-    // All currencies — overlay BIS rates
-    Object.entries(bisResults).forEach(([cur, rate]) => {
-      if (!claudeData.data[cur]) claudeData.data[cur] = {};
-      claudeData.data[cur].rate = rate;
-      claudeData.data[cur].rate_source = `BIS · CB Policy Rate`;
-    });
-
-    // Update sources metadata
-    claudeData.sources = {
-      fred: fredAvailable ? `active · ${Object.keys(fredResults).filter(k=>!k.includes('_')).join(', ')}` : 'unavailable',
-      bis:  bisAvailable  ? `active · ${Object.keys(bisResults).join(', ')}` : 'unavailable',
+    result.data[cur] = {
+      ...base,
+      ...oecd,
+      ...fred,
     };
 
-    if (fredErrors.length)  claudeData.fred_errors = fredErrors;
-    if (bisErrors.length)   claudeData.bis_errors  = bisErrors;
-  }
+    // BIS rate always wins for all currencies
+    if (bisRate != null) {
+      result.data[cur].rate = bisRate;
+      result.data[cur].rate_source = 'BIS · CB Policy Rate';
+    }
+
+    // FRED wins for USD
+    if (cur === 'USD') {
+      Object.keys(usd).forEach(k => {
+        result.data[cur][k] = usd[k];
+      });
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  // STEP 6: Return in the format the frontend expects
+  // ════════════════════════════════════════════════════════════════
+  if (fredErrors.length)  result.fred_errors  = fredErrors;
+  if (oecdErrors.length)  result.oecd_errors  = oecdErrors;
 
   return {
     statusCode: 200,
     headers: HEADERS,
     body: JSON.stringify({
-      content: [{ type: 'text', text: JSON.stringify(claudeData) }]
-    })
+      content: [{ type:'text', text: JSON.stringify(result) }]
+    }),
   };
 };
