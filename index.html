@@ -2580,14 +2580,14 @@ async function runDataEngine(manual = false) {
   if (dsbBtn) { dsbBtn.textContent = '⬡ CARGANDO...'; dsbBtn.classList.add('loading'); }
 
   clearLog();
-  appendLog('Motor de datos iniciado — FRED + BIS APIs + Claude Sonnet');
-    await new Promise(r => setTimeout(r, 2000)); // rate limit buffer
-  appendLog('Paso 1/3 — Consultando FRED (USD) + BIS (G8 tasas CB) en paralelo...');
+  appendLog('Motor de datos iniciado — FRED + BIS + OECD + Claude Sonnet');
+    await new Promise(r => setTimeout(r, 1500)); // rate limit buffer
+  appendLog('Paso 1/4 — FRED (USD 13 indicadores) + BIS (G8 tasas) + OECD (G7 CPI/Desempleo)...');
 
   if (!manual) showLoadingOverlay();
 
   // Show loading state in source badges
-  ['rates','cpi','unemp','stance'].forEach(k => setSourceStatus(k, 'loading', 'Consultando...'));
+  ['rates','cpi','unemp','stance','pmi','permits'].forEach(k => setSourceStatus(k, 'loading', 'Consultando...'));
 
   // Animate pills
   const codes = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'];
@@ -2597,7 +2597,7 @@ async function runDataEngine(manual = false) {
 
   try {
     updateOverlayProgress(15, 'Conectando con Claude API...');
-    appendLog('Paso 2/3 — Claude Sonnet completando datos no cubiertos por APIs...');
+    appendLog('Paso 2/4 — Claude Sonnet estimando: PMI G8, PPI no-USD, NFP no-USD, M2 no-USD...');
 
     const response = await fetch('/api/claude', {
       method: 'POST',
@@ -2611,7 +2611,7 @@ async function runDataEngine(manual = false) {
     });
 
     updateOverlayProgress(40, 'Buscando datos macro en tiempo real...');
-    appendLog('Paso 3/3 — Fusionando datos reales con inferencias Claude...');
+    appendLog('Paso 3/4 — Fusionando: FRED > BIS > OECD > Claude (datos reales sobrescriben estimaciones)...');
 
     if (!response.ok) {
       const errText = await response.text();
@@ -2674,14 +2674,30 @@ async function runDataEngine(manual = false) {
     try {
       if (typeof gmtActual !== 'undefined' && parsed && parsed.data) {
         Object.entries(parsed.data).forEach(([code, d]) => {
-          if (!gmtActual[code]) return;
-          if (d.rate   !== undefined) { gmtActual[code].rate   = d.rate;   gmtExpect[code].rate   = d.rate; }
-          if (d.cpi    !== undefined) { gmtActual[code].cpi    = d.cpi;    gmtExpect[code].cpi    = parseFloat((d.cpi   * 0.97).toFixed(2)); }
-          if (d.unemp  !== undefined) { gmtActual[code].unemp  = d.unemp;  gmtExpect[code].unemp  = parseFloat((d.unemp * 1.01).toFixed(2)); }
-          if (d.gdp    !== undefined) { gmtActual[code].gdp    = d.gdp;    gmtExpect[code].gdp    = parseFloat((d.gdp   * 0.90).toFixed(2)); }
-          if (d.pmi_m  !== undefined) { gmtActual[code].pmi_m  = d.pmi_m;  gmtExpect[code].pmi_m  = parseFloat((d.pmi_m * 0.99).toFixed(1)); }
-          if (d.pmi_s  !== undefined) { gmtActual[code].pmi_s  = d.pmi_s;  gmtExpect[code].pmi_s  = parseFloat((d.pmi_s * 0.99).toFixed(1)); }
-          if (d.retail !== undefined) { gmtActual[code].retail = d.retail;  gmtExpect[code].retail = parseFloat((d.retail * 0.80).toFixed(2)); }
+          if (!gmtActual[code]) gmtActual[code] = {};
+          // ── 13 indicadores TFX Capital ──────────────────────────
+          // LÍDERES
+          if (d.pmi_m   != null) { gmtActual[code].pmi_m    = d.pmi_m;   gmtActual[code].prev_pmi_m  = d.pmi_m;  }
+          if (d.pmi_s   != null) { gmtActual[code].pmi_s    = d.pmi_s;   gmtActual[code].prev_pmi_s  = d.pmi_s;  }
+          if (d.permits != null) { gmtActual[code].permits  = d.permits; }
+          if (d.umcsi   != null) { gmtActual[code].umcsi    = d.umcsi;   }
+          if (d.m2      != null) { gmtActual[code].m2       = d.m2;      }
+          // COINCIDENTES
+          if (d.cpi_yoy  != null) { gmtActual[code].cpi_yoy  = d.cpi_yoy;  }
+          if (d.cpi_mom  != null) { gmtActual[code].cpi_mom  = d.cpi_mom;  }
+          if (d.ccpi_mom != null) { gmtActual[code].ccpi_mom = d.ccpi_mom; }
+          if (d.ppi_mom  != null) { gmtActual[code].ppi_mom  = d.ppi_mom;  }
+          if (d.cppi_mom != null) { gmtActual[code].cppi_mom = d.cppi_mom; }
+          if (d.nfp      != null) { gmtActual[code].nfp      = d.nfp;      }
+          // REZAGADOS
+          if (d.rate     != null) { gmtActual[code].rate     = d.rate;     }
+          if (d.ir_mom   != null) { gmtActual[code].ir_mom   = d.ir_mom;   }
+          // Meta
+          if (d.stance         ) { gmtActual[code].stance        = d.stance;        }
+          if (d.stance_reason  ) { gmtActual[code].stance_reason = d.stance_reason; }
+          // Legacy keys (mantener compatibilidad con basket signals)
+          if (d.cpi_yoy != null) { gmtActual[code].cpi = d.cpi_yoy; }
+          if (d.rate    != null) { gmtActual[code].rate = d.rate;    }
         });
         if (typeof renderMacroTerminal === 'function') setTimeout(renderMacroTerminal, 150);
         appendLog('✓ Score Macro · 7 indicadores × 8 divisas sincronizados.');
@@ -3258,29 +3274,66 @@ function setSeasonMonth(m) { activeSeasonMonth=m; renderSeasonality(); }
 
 const GMT_CURRENCIES = ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'];
 
+// ══════════════════════════════════════════════════════════
+//  INDICADORES MACRO — Sistema TFX Capital
+//  3 categorías: Líderes (6-12m) · Coincidentes · Rezagados
+// ══════════════════════════════════════════════════════════
 const GMT_INDICATORS = [
-  { key:'gdp',       label:'GDP Crecimiento',        unit:'%', fmt:'pct', scoreFn:'scoreGDP'    },
-  { key:'pmi_m',     label:'PMI Manufacturero',      unit:'',  fmt:'num', scoreFn:'scorePMI'    },
-  { key:'pmi_s',     label:'PMI Servicios',           unit:'',  fmt:'num', scoreFn:'scorePMI'    },
-  { key:'retail',    label:'Ventas Minoristas MoM',   unit:'%', fmt:'pct', scoreFn:'scoreRetail' },
-  { key:'cpi',       label:'Inflación CPI YoY',       unit:'%', fmt:'pct', scoreFn:'scoreCPI'    },
-  { key:'unemp',     label:'Tasa de Desempleo',       unit:'%', fmt:'pct', scoreFn:'scoreUnemp'  },
-  { key:'rate',      label:'Tasa de Interés CB',      unit:'%', fmt:'pct', scoreFn:'scoreRate'   },
+  // ── LÍDERES ─────────────────────────────────────────────
+  { key:'pmi_m',    label:'PMI Manufacturero',    unit:'',  fmt:'num', type:'leading',    scoreFn:'scorePMI_abs'    },
+  { key:'pmi_s',    label:'NMI Servicios',         unit:'',  fmt:'num', type:'leading',    scoreFn:'scoreNMI_abs'    },
+  { key:'permits',  label:'Building Permits (K)',  unit:'K', fmt:'num', type:'leading',    scoreFn:'scorePermits'    },
+  { key:'umcsi',    label:'UMCSI Sentimiento',     unit:'',  fmt:'num', type:'leading',    scoreFn:'scoreUMCSI'      },
+  { key:'m2',       label:'M2 Anualizado %',       unit:'%', fmt:'pct', type:'leading',    scoreFn:'scoreM2'         },
+  // ── COINCIDENTES ────────────────────────────────────────
+  { key:'cpi_yoy',  label:'CPI YoY',               unit:'%', fmt:'pct', type:'coincident', scoreFn:'scoreCPI_YoY'    },
+  { key:'cpi_mom',  label:'CPI MoM',               unit:'%', fmt:'pct', type:'coincident', scoreFn:'scoreCPI_MoM'    },
+  { key:'ccpi_mom', label:'Core CPI MoM',          unit:'%', fmt:'pct', type:'coincident', scoreFn:'scoreCoreCPI_MoM'},
+  { key:'ppi_mom',  label:'PPI MoM',               unit:'%', fmt:'pct', type:'coincident', scoreFn:'scorePPI_MoM'    },
+  { key:'cppi_mom', label:'Core PPI MoM',          unit:'%', fmt:'pct', type:'coincident', scoreFn:'scoreCorePPI_MoM'},
+  { key:'nfp',      label:'NFP MoM %',             unit:'%', fmt:'pct', type:'coincident', scoreFn:'scoreNFP'        },
+  // ── REZAGADOS ───────────────────────────────────────────
+  { key:'rate',     label:'Tasa CB %',             unit:'%', fmt:'pct', type:'lagging',    scoreFn:'scoreRate'       },
+  { key:'ir_mom',   label:'IR MoM BPS',            unit:'',  fmt:'num', type:'lagging',    scoreFn:'scoreIR_MoM'     },
 ];
 
-// Keys that are display-only (not scored independently, used by PMI scoring)
+// Type labels for display
+const GMT_TYPE_LABELS = {
+  leading:    '📈 LÍDERES',
+  coincident: '📊 COINCIDENTES',
+  lagging:    '📉 REZAGADOS',
+};
+
 const GMT_PREV_KEYS = ['prev_pmi_m', 'prev_pmi_s'];
 
 // Default values based on latest known data (March 2026)
 const GMT_DEFAULTS = {
-  AUD:{ gdp:0.3,  pmi_m:49.4, pmi_s:50.1, prev_pmi_m:49.0, prev_pmi_s:49.8, retail:0.1,  cpi:3.6, unemp:3.9, rate:3.35 },
-  CAD:{ gdp:0.1,  pmi_m:48.5, pmi_s:46.5, prev_pmi_m:48.2, prev_pmi_s:46.0, retail:-0.4, cpi:2.0, unemp:6.9, rate:3.25 },
-  CHF:{ gdp:0.2,  pmi_m:49.6, pmi_s:54.2, prev_pmi_m:48.9, prev_pmi_s:53.8, retail:1.1,  cpi:0.6, unemp:2.7, rate:1.00 },
-  EUR:{ gdp:0.1,  pmi_m:45.2, pmi_s:47.6, prev_pmi_m:45.0, prev_pmi_s:47.3, retail:-0.5, cpi:2.4, unemp:6.3, rate:3.00 },
-  GBP:{ gdp:0.1,  pmi_m:46.9, pmi_s:49.1, prev_pmi_m:47.2, prev_pmi_s:49.3, retail:0.3,  cpi:2.8, unemp:5.0, rate:4.75 },
-  JPY:{ gdp:0.1,  pmi_m:49.2, pmi_s:50.8, prev_pmi_m:48.8, prev_pmi_s:50.5, retail:1.2,  cpi:2.5, unemp:2.4, rate:0.75 },
-  NZD:{ gdp:0.7,  pmi_m:51.5, pmi_s:48.0, prev_pmi_m:51.0, prev_pmi_s:47.5, retail:0.5,  cpi:2.2, unemp:4.8, rate:4.25 },
-  USD:{ gdp:0.7,  pmi_m:48.3, pmi_s:50.2, prev_pmi_m:48.0, prev_pmi_s:50.0, retail:-0.8, cpi:2.6, unemp:4.2, rate:4.33 },
+  //       LÍDERES                                                    COINCIDENTES                                    REZAGADOS
+  //       pmi_m  prev_m  pmi_s  prev_s  permits umcsi   m2    | cpi_yoy cpi_mom ccpi_mom ppi_mom cppi_mom nfp  | rate  ir_mom
+  AUD: { pmi_m:50.4, prev_pmi_m:49.4, pmi_s:51.2, prev_pmi_s:50.1, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:3.2, cpi_mom:0.3,  ccpi_mom:0.3, ppi_mom:0.3,  cppi_mom:0.3,  nfp:0.1,
+          rate:4.10, ir_mom:0 },
+  CAD: { pmi_m:48.5, prev_pmi_m:48.2, pmi_s:46.5, prev_pmi_s:46.0, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:1.8, cpi_mom:0.1,  ccpi_mom:0.1, ppi_mom:0.1,  cppi_mom:0.1,  nfp:0.0,
+          rate:3.00, ir_mom:0 },
+  CHF: { pmi_m:49.6, prev_pmi_m:48.9, pmi_s:54.2, prev_pmi_s:53.8, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:0.4, cpi_mom:0.1,  ccpi_mom:0.1, ppi_mom:0.1,  cppi_mom:0.1,  nfp:null,
+          rate:0.25, ir_mom:0 },
+  EUR: { pmi_m:47.6, prev_pmi_m:45.2, pmi_s:51.3, prev_pmi_s:47.6, permits:null,  umcsi:null, m2:5.0,
+          cpi_yoy:2.3, cpi_mom:0.2,  ccpi_mom:0.2, ppi_mom:0.2,  cppi_mom:0.2,  nfp:null,
+          rate:2.50, ir_mom:0 },
+  GBP: { pmi_m:46.9, prev_pmi_m:47.2, pmi_s:51.0, prev_pmi_s:49.3, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:2.8, cpi_mom:0.4,  ccpi_mom:0.4, ppi_mom:0.4,  cppi_mom:0.4,  nfp:0.1,
+          rate:4.50, ir_mom:0 },
+  JPY: { pmi_m:49.0, prev_pmi_m:49.2, pmi_s:53.7, prev_pmi_s:50.8, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:3.1, cpi_mom:0.5,  ccpi_mom:0.5, ppi_mom:0.5,  cppi_mom:0.5,  nfp:null,
+          rate:0.50, ir_mom:0 },
+  NZD: { pmi_m:52.0, prev_pmi_m:51.5, pmi_s:49.5, prev_pmi_s:48.0, permits:null,  umcsi:null, m2:null,
+          cpi_yoy:2.2, cpi_mom:0.2,  ccpi_mom:0.2, ppi_mom:0.2,  cppi_mom:0.2,  nfp:null,
+          rate:3.75, ir_mom:0 },
+  USD: { pmi_m:52.7, prev_pmi_m:48.3, pmi_s:53.5, prev_pmi_s:50.2, permits:1450, umcsi:79.0, m2:6.0,
+          cpi_yoy:2.8, cpi_mom:0.2,  ccpi_mom:0.3, ppi_mom:0.3,  cppi_mom:0.3,  nfp:0.1,
+          rate:4.25, ir_mom:0 },
 };
 
 // Expectations (consensus forecasts)
@@ -3308,135 +3361,348 @@ const gmtExpect = JSON.parse(JSON.stringify(GMT_EXPECTATIONS));
 // ══════════════════════════════════════════════════════════════
 
 // Retorna { cls:'gmt-beat|gmt-miss|gmt-inline', score, bps, label }
-function scoreGDP(val) {
-  const v = parseFloat(val);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
-  if (v >= 5.0)                    return { cls:'gmt-beat',   score:4,  bps:4,  label:'Sobrecalentamiento' };
-  if (v >= 4.0 && v < 5.0)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Expansión acelerada' };
-  if (v >= 3.0 && v < 4.0)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Crecimiento sólido' };
-  if (v >= 2.0 && v < 3.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Crecimiento moderado' };
-  if (v >= 1.0 && v < 2.0)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Crecimiento débil' };
-  if (v >= 0.0 && v < 1.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Estancamiento' };
-  if (v >= -1.0 && v < 0.0)       return { cls:'gmt-miss',   score:-2, bps:-2, label:'Recesión leve' };
-  return                                  { cls:'gmt-miss',   score:-3, bps:-3, label:'Recesión severa' };
+// ══════════════════════════════════════════════════════════════════
+//  SISTEMA DE SCORING OBJETIVO TFX CAPITAL — Tablas exactas del Excel
+//  Fuente: BAJAFX Macroeconomics / AE_EE_UU__2026_Q1.xlsx
+//
+//  🔴 ROJO   = Inflacionario  = LONG divisa
+//  🟠 NARANJA = Posible inflación = sesgo LONG  
+//  🔵 AZUL   = Deflacionario  = SHORT divisa
+//  🟢 VERDE  = Neutral
+//
+//  Retorna: { score, cls:'red|orange|blue|green', label }
+// ══════════════════════════════════════════════════════════════════
+
+function colorFromScore(score) {
+  if (score >= 8)       return 'gmt-beat';      // Rojo intenso
+  if (score >= 4)       return 'gmt-beat-soft'; // Naranja
+  if (score === 0)      return 'gmt-inline';    // Verde neutral
+  if (score <= -8)      return 'gmt-miss';      // Azul intenso
+  if (score < 0)        return 'gmt-miss-soft'; // Azul suave
+  return 'gmt-inline';
 }
 
-function scoreCPI(val) {
+// ── PMI Manufacturing — tabla absoluta (ISM) ─────────────────────
+function scorePMI_abs(val) {
   const v = parseFloat(val);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
-  if (v > 5.0)                     return { cls:'gmt-beat',   score:3,  bps:3,  label:'Muy Inflacionaria' };
-  if (v >= 3.1 && v <= 5.0)       return { cls:'gmt-beat',   score:2,  bps:2,  label:'Alta' };
-  if (v >= 2.1 && v <= 3.0)       return { cls:'gmt-beat',   score:1,  bps:1,  label:'Moderadamente Alta' };
-  if (v >= 1.0 && v <= 2.0)       return { cls:'gmt-inline', score:0,  bps:0,  label:'Ideal / Objetivo' };
-  if (v >= 0.1 && v < 1.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Inflación Baja' };
-  return                                  { cls:'gmt-miss',   score:-2, bps:-2, label:'Deflación' };
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  // Extremos deflacionarios — SHORT fuerte por pánico del BC
+  if (v <= 38)       return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte · Pánico deflación' };
+  if (v <= 39)       return { score:+6,  cls:'gmt-beat-soft', label:'SHORT fuerte' };
+  if (v <= 41)       return { score:+4,  cls:'gmt-beat-soft', label:'SHORT moderado' };
+  if (v <= 42)       return { score:+2,  cls:'gmt-beat-soft', label:'SHORT leve' };
+  // Contracción normal — Deflacionario (azul)
+  if (v <= 43)       return { score:-8,  cls:'gmt-miss',      label:'Contracción severa' };
+  if (v <= 44)       return { score:-6,  cls:'gmt-miss',      label:'Contracción fuerte' };
+  if (v <= 45)       return { score:-6,  cls:'gmt-miss',      label:'Contracción' };
+  if (v <= 46)       return { score:-4,  cls:'gmt-miss-soft', label:'Contracción leve' };
+  if (v <= 47)       return { score:-3,  cls:'gmt-miss-soft', label:'Desaceleración' };
+  if (v <= 48)       return { score:-2,  cls:'gmt-miss-soft', label:'Leve contracción' };
+  if (v <= 49)       return { score:-1,  cls:'gmt-miss-soft', label:'Casi neutral' };
+  // Expansión — Inflacionario (rojo)
+  if (v <= 50)       return { score:+1,  cls:'gmt-inline',    label:'Neutral' };
+  if (v <= 51)       return { score:+2,  cls:'gmt-beat-soft', label:'Expansión leve' };
+  if (v <= 52)       return { score:+3,  cls:'gmt-beat-soft', label:'Expansión' };
+  if (v <= 53)       return { score:+4,  cls:'gmt-beat-soft', label:'Expansión moderada' };
+  if (v <= 54)       return { score:+5,  cls:'gmt-beat-soft', label:'Expansión sólida' };
+  if (v <= 55)       return { score:+6,  cls:'gmt-beat',      label:'Expansión fuerte' };
+  if (v <= 56)       return { score:+6,  cls:'gmt-beat',      label:'Expansión fuerte' };
+  if (v <= 57)       return { score:+8,  cls:'gmt-beat',      label:'Expansión muy fuerte' };
+  if (v <= 58)       return { score:+9,  cls:'gmt-beat',      label:'Sobrecalentamiento' };
+  if (v <= 59)       return { score:+10, cls:'gmt-beat',      label:'Sobrecalentamiento extremo' };
+  // Extremos altos — SHORT fuerte (mercado anticipa techo)
+  if (v <= 60)       return { score:-2,  cls:'gmt-miss-soft', label:'Techo PMI · Posible giro' };
+  if (v <= 61)       return { score:-4,  cls:'gmt-miss-soft', label:'Extremo superior' };
+  if (v <= 62)       return { score:-6,  cls:'gmt-miss',      label:'Extremo superior · SHORT' };
+  return               { score:-8,  cls:'gmt-miss',      label:'Extremo máximo · SHORT fuerte' };
 }
 
-function scoreUnemp(val) {
+// ── NMI Services — misma tabla que PMI ──────────────────────────
+function scoreNMI_abs(val) { return scorePMI_abs(val); }
+
+// ── Building Permits (miles) ─────────────────────────────────────
+function scorePermits(val) {
   const v = parseFloat(val);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
-  // Lower unemployment = better (hawkish)
-  if (v < 2.0)                     return { cls:'gmt-beat',   score:5,  bps:5,  label:'Ultra bajo' };
-  if (v >= 2.0 && v < 2.5)        return { cls:'gmt-beat',   score:4,  bps:4,  label:'Excepcionalmente baja' };
-  if (v >= 2.5 && v < 3.0)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Desempleo muy ajustado' };
-  if (v >= 3.0 && v < 3.5)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Desempleo bajo' };
-  if (v >= 3.5 && v < 4.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Mercado laboral saludable' };
-  if (v >= 4.0 && v < 4.5)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Equilibrio' };
-  if (v >= 4.5 && v < 5.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Ligeramente por encima' };
-  if (v >= 5.0 && v < 5.5)        return { cls:'gmt-miss',   score:-2, bps:-2, label:'Mercado laboral flojo' };
-  if (v >= 5.5 && v < 6.0)        return { cls:'gmt-miss',   score:-3, bps:-3, label:'Desempleo creciente' };
-  if (v >= 6.0 && v < 6.5)        return { cls:'gmt-miss',   score:-4, bps:-4, label:'Desempleo elevado' };
-  return                                  { cls:'gmt-miss',   score:-5, bps:-5, label:'Crisis laboral' };
+  if (isNaN(v) || v === null) return { score:0, cls:'', label:'Sin datos' };
+  if (v <= 400)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte · Colapso' };
+  if (v <= 500)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v <= 600)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v <= 700)  return { score:+7,  cls:'gmt-beat',      label:'SHORT moderado' };
+  if (v <= 800)  return { score:-8,  cls:'gmt-miss',      label:'Enfriamiento' };
+  if (v <= 900)  return { score:-5,  cls:'gmt-miss-soft', label:'Enfriamiento leve' };
+  if (v <= 1000) return { score:-3,  cls:'gmt-miss-soft', label:'Leve debilidad' };
+  if (v <= 1100) return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v <= 1200) return { score:+2,  cls:'gmt-beat-soft', label:'Expansión leve' };
+  if (v <= 1300) return { score:+3,  cls:'gmt-beat-soft', label:'Expansión' };
+  if (v <= 1400) return { score:+4,  cls:'gmt-beat-soft', label:'Expansión moderada' };
+  if (v <= 1500) return { score:+5,  cls:'gmt-beat-soft', label:'Expansión sólida' };
+  if (v <= 1600) return { score:+8,  cls:'gmt-beat',      label:'Calentamiento' };
+  if (v <= 1700) return { score:+9,  cls:'gmt-beat',      label:'Calentamiento fuerte' };
+  if (v <= 1800) return { score:+10, cls:'gmt-beat',      label:'Sobrecalentamiento' };
+  // Extremos altos — SHORT fuerte (BC reaccionará)
+  if (v <= 1900) return { score:-7,  cls:'gmt-miss',      label:'SHORT fuerte · Techo' };
+  if (v <= 2000) return { score:-9,  cls:'gmt-miss',      label:'SHORT muy fuerte' };
+  return           { score:-10, cls:'gmt-miss',      label:'SHORT extremo' };
 }
 
-function scoreRetail(val) {
-  // Retail Sales MoM %
+// ── UMCSI Consumer Sentiment (55–93) ────────────────────────────
+function scoreUMCSI(val) {
   const v = parseFloat(val);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
-  if (v > 2.0)                     return { cls:'gmt-beat',   score:5,  bps:5,  label:'Boom de consumo' };
-  if (v >= 1.5 && v <= 2.0)       return { cls:'gmt-beat',   score:4,  bps:4,  label:'Expansión elevada' };
-  if (v >= 1.0 && v < 1.5)        return { cls:'gmt-beat',   score:3,  bps:3,  label:'Fuerte consumo' };
-  if (v >= 0.5 && v < 1.0)        return { cls:'gmt-beat',   score:2,  bps:2,  label:'Expansión moderada' };
-  if (v >= 0.1 && v < 0.5)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Expansión débil' };
-  if (v === 0.0)                   return { cls:'gmt-inline', score:0,  bps:0,  label:'Estancamiento' };
-  if (v >= -0.4 && v < 0.0)       return { cls:'gmt-miss',   score:-1, bps:-1, label:'Corrección menor' };
-  if (v >= -0.9 && v < -0.4)      return { cls:'gmt-miss',   score:-2, bps:-2, label:'Retroceso leve' };
-  if (v >= -1.4 && v < -0.9)      return { cls:'gmt-miss',   score:-3, bps:-3, label:'Caída moderada' };
-  if (v >= -1.9 && v < -1.4)      return { cls:'gmt-miss',   score:-4, bps:-4, label:'Contracción fuerte' };
-  return                                  { cls:'gmt-miss',   score:-5, bps:-5, label:'Colapso del consumo' };
+  if (isNaN(v) || v === null) return { score:0, cls:'', label:'Sin datos' };
+  if (v <= 55)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte · Pánico' };
+  if (v <= 56)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v <= 57)  return { score:+9,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v <= 58)  return { score:+9,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v <= 59)  return { score:+8,  cls:'gmt-beat',      label:'Pesimismo extremo' };
+  if (v <= 60)  return { score:+7,  cls:'gmt-beat',      label:'Pesimismo alto' };
+  if (v <= 61)  return { score:+6,  cls:'gmt-beat-soft', label:'Pesimismo' };
+  if (v <= 62)  return { score:+5,  cls:'gmt-beat-soft', label:'Pesimismo moderado' };
+  if (v <= 63)  return { score:-10, cls:'gmt-miss',      label:'SHORT fuerte · Extremo' };
+  if (v <= 64)  return { score:-9,  cls:'gmt-miss',      label:'Muy negativo' };
+  if (v <= 65)  return { score:-8,  cls:'gmt-miss',      label:'Negativo fuerte' };
+  if (v <= 66)  return { score:-7,  cls:'gmt-miss',      label:'Negativo' };
+  if (v <= 67)  return { score:-6,  cls:'gmt-miss',      label:'Negativo moderado' };
+  if (v <= 68)  return { score:-5,  cls:'gmt-miss-soft', label:'Débil' };
+  if (v <= 69)  return { score:-4,  cls:'gmt-miss-soft', label:'Leve debilidad' };
+  if (v <= 70)  return { score:-3,  cls:'gmt-miss-soft', label:'Bajo neutral' };
+  if (v <= 71)  return { score:-2,  cls:'gmt-miss-soft', label:'Casi neutral' };
+  if (v <= 72)  return { score:-1,  cls:'gmt-miss-soft', label:'Leve negativo' };
+  if (v <= 73)  return { score:-1,  cls:'gmt-miss-soft', label:'Leve negativo' };
+  if (v <= 74)  return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v <= 75)  return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v <= 76)  return { score:+1,  cls:'gmt-beat-soft', label:'Leve positivo' };
+  if (v <= 77)  return { score:+1,  cls:'gmt-beat-soft', label:'Leve positivo' };
+  if (v <= 78)  return { score:+2,  cls:'gmt-beat-soft', label:'Positivo' };
+  if (v <= 79)  return { score:+2,  cls:'gmt-beat-soft', label:'Positivo' };
+  if (v <= 80)  return { score:+3,  cls:'gmt-beat-soft', label:'Confianza moderada' };
+  if (v <= 81)  return { score:+3,  cls:'gmt-beat-soft', label:'Confianza moderada' };
+  if (v <= 82)  return { score:+4,  cls:'gmt-beat-soft', label:'Confianza' };
+  if (v <= 83)  return { score:+4,  cls:'gmt-beat-soft', label:'Confianza' };
+  if (v <= 84)  return { score:+5,  cls:'gmt-beat-soft', label:'Confianza sólida' };
+  if (v <= 85)  return { score:+5,  cls:'gmt-beat-soft', label:'Confianza sólida' };
+  if (v <= 86)  return { score:+6,  cls:'gmt-beat',      label:'Alta confianza' };
+  if (v <= 87)  return { score:+6,  cls:'gmt-beat',      label:'Alta confianza' };
+  if (v <= 88)  return { score:+7,  cls:'gmt-beat',      label:'Muy alta confianza' };
+  if (v <= 89)  return { score:+7,  cls:'gmt-beat',      label:'Muy alta confianza' };
+  if (v <= 90)  return { score:+8,  cls:'gmt-beat',      label:'Optimismo fuerte' };
+  if (v <= 91)  return { score:+8,  cls:'gmt-beat',      label:'Optimismo fuerte' };
+  if (v <= 92)  return { score:+9,  cls:'gmt-beat',      label:'Optimismo alto' };
+  if (v <= 93)  return { score:+9,  cls:'gmt-beat',      label:'Optimismo alto' };
+  return          { score:+10, cls:'gmt-beat',      label:'Optimismo extremo' };
 }
 
+// ── M2 Annualized % ──────────────────────────────────────────────
+function scoreM2(val) {
+  const v = parseFloat(val);
+  if (isNaN(v) || v === null) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 50)   return { score:+4,  cls:'gmt-beat-soft', label:'Expansión monetaria alta' };
+  if (v >= 40)   return { score:+6,  cls:'gmt-beat',      label:'Expansión monetaria fuerte' };
+  if (v >= 30)   return { score:+10, cls:'gmt-beat',      label:'Expansión monetaria extrema' };
+  if (v >= 20)   return { score:+8,  cls:'gmt-beat',      label:'Expansión monetaria alta' };
+  if (v >= 15)   return { score:+6,  cls:'gmt-beat-soft', label:'Expansión moderada' };
+  if (v >= 10)   return { score:+4,  cls:'gmt-beat-soft', label:'Expansión leve' };
+  if (v >= 5)    return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= 0)    return { score:-4,  cls:'gmt-miss-soft', label:'Sin crecimiento' };
+  if (v >= -5)   return { score:-8,  cls:'gmt-miss',      label:'Contracción monetaria' };
+  if (v >= -10)  return { score:-10, cls:'gmt-miss',      label:'Contracción fuerte' };
+  // Extremos negativos — SHORT fuerte (BC reaccionará)
+  if (v >= -15)  return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte · Contracción extrema' };
+  if (v >= -20)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -30)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -40)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── CPI YoY % ────────────────────────────────────────────────────
+function scoreCPI_YoY(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v > 6.0)   return { score:+10, cls:'gmt-beat',      label:'Sobrecalentamiento inflacionario' };
+  if (v >= 4.0)  return { score:+8,  cls:'gmt-beat',      label:'Presión inflacionaria alta' };
+  if (v >= 2.0)  return { score:+6,  cls:'gmt-beat-soft', label:'Meta FED · Estabilidad' };
+  if (v >= 0.5)  return { score:-4,  cls:'gmt-miss-soft', label:'Desaceleración inflacionaria' };
+  return           { score:-8,  cls:'gmt-miss',      label:'Riesgo de deflación' };
+}
+
+// ── CPI MoM % ────────────────────────────────────────────────────
+function scoreCPI_MoM(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 1.4)  return { score:+3,  cls:'gmt-beat-soft', label:'Inflación muy alta' };
+  if (v >= 1.2)  return { score:+6,  cls:'gmt-beat',      label:'Inflación alta' };
+  if (v >= 1.0)  return { score:+10, cls:'gmt-beat',      label:'Inflación extrema' };
+  if (v >= 0.8)  return { score:+8,  cls:'gmt-beat',      label:'Inflación fuerte' };
+  if (v >= 0.6)  return { score:+6,  cls:'gmt-beat-soft', label:'Inflación moderada' };
+  if (v >= 0.4)  return { score:+4,  cls:'gmt-beat-soft', label:'Inflación leve' };
+  if (v >= 0.3)  return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= 0.0)  return { score:0,   cls:'gmt-inline',    label:'Neutral bajo' };
+  if (v >= -0.1) return { score:-6,  cls:'gmt-miss',      label:'Deflación leve' };
+  if (v >= -0.2) return { score:-8,  cls:'gmt-miss',      label:'Deflación' };
+  if (v >= -0.3) return { score:-10, cls:'gmt-miss',      label:'Deflación fuerte' };
+  // Extremos negativos — SHORT fuerte
+  if (v >= -0.4) return { score:+6,  cls:'gmt-beat',      label:'SHORT fuerte · Deflación extrema' };
+  if (v >= -0.5) return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -0.6) return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── Core CPI MoM % ───────────────────────────────────────────────
+function scoreCoreCPI_MoM(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 1.40) return { score:+3,  cls:'gmt-beat-soft', label:'Core muy alto' };
+  if (v >= 1.20) return { score:+6,  cls:'gmt-beat',      label:'Core alto' };
+  if (v >= 1.00) return { score:+10, cls:'gmt-beat',      label:'Core extremo' };
+  if (v >= 0.80) return { score:+8,  cls:'gmt-beat',      label:'Core fuerte' };
+  if (v >= 0.60) return { score:+6,  cls:'gmt-beat-soft', label:'Core moderado' };
+  if (v >= 0.40) return { score:+4,  cls:'gmt-beat-soft', label:'Core leve' };
+  if (v >= 0.20) return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= 0.00) return { score:-4,  cls:'gmt-miss-soft', label:'Sin crecimiento' };
+  if (v >= -0.05)return { score:-8,  cls:'gmt-miss',      label:'Core negativo' };
+  if (v >= -0.10)return { score:-9,  cls:'gmt-miss',      label:'Deflación subyacente' };
+  if (v >= -0.15)return { score:-10, cls:'gmt-miss',      label:'Deflación subyacente fuerte' };
+  // Extremos — SHORT fuerte
+  if (v >= -0.20)return { score:+7,  cls:'gmt-beat',      label:'SHORT fuerte · Deflación extrema' };
+  if (v >= -0.25)return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -0.30)return { score:+9,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── PPI MoM % ────────────────────────────────────────────────────
+function scorePPI_MoM(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 2.00) return { score:+3,  cls:'gmt-beat-soft', label:'PPI muy alto' };
+  if (v >= 1.75) return { score:+6,  cls:'gmt-beat',      label:'PPI alto' };
+  if (v >= 1.50) return { score:+10, cls:'gmt-beat',      label:'PPI extremo' };
+  if (v >= 1.00) return { score:+8,  cls:'gmt-beat',      label:'PPI fuerte' };
+  if (v >= 0.75) return { score:+4,  cls:'gmt-beat-soft', label:'PPI moderado' };
+  if (v >= 0.50) return { score:+2,  cls:'gmt-beat-soft', label:'PPI leve' };
+  if (v >= 0.25) return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= 0.00) return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= -0.25)return { score:-2,  cls:'gmt-miss-soft', label:'PPI negativo' };
+  if (v >= -0.50)return { score:-4,  cls:'gmt-miss-soft', label:'Deflación productores' };
+  if (v >= -0.75)return { score:-8,  cls:'gmt-miss',      label:'Deflación fuerte' };
+  // Extremos — SHORT fuerte
+  if (v >= -1.00)return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte · PPI extremo' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── Core PPI MoM % ───────────────────────────────────────────────
+function scoreCorePPI_MoM(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 2.00) return { score:+3,  cls:'gmt-beat-soft', label:'Core PPI muy alto' };
+  if (v >= 1.75) return { score:+6,  cls:'gmt-beat',      label:'Core PPI alto' };
+  if (v >= 1.50) return { score:+10, cls:'gmt-beat',      label:'Core PPI extremo' };
+  if (v >= 1.00) return { score:+10, cls:'gmt-beat',      label:'Core PPI fuerte' };
+  if (v >= 0.75) return { score:+8,  cls:'gmt-beat',      label:'Core PPI moderado alto' };
+  if (v >= 0.50) return { score:+6,  cls:'gmt-beat-soft', label:'Core PPI moderado' };
+  if (v >= 0.25) return { score:0,   cls:'gmt-inline',    label:'Neutral' };
+  if (v >= 0.00) return { score:-6,  cls:'gmt-miss',      label:'Sin crecimiento' };
+  if (v >= -0.25)return { score:-8,  cls:'gmt-miss',      label:'Core PPI negativo' };
+  if (v >= -0.50)return { score:-10, cls:'gmt-miss',      label:'Deflación core productores' };
+  // Extremos — SHORT fuerte
+  if (v >= -0.75)return { score:+6,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -1.00)return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── NFP MoM % ────────────────────────────────────────────────────
+function scoreNFP(val) {
+  const v = parseFloat(val);
+  if (isNaN(v) || v === null) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 0.5)  return { score:+2,  cls:'gmt-beat-soft', label:'Empleo muy fuerte' };
+  if (v >= 0.4)  return { score:+4,  cls:'gmt-beat-soft', label:'Empleo fuerte' };
+  if (v >= 0.3)  return { score:+7,  cls:'gmt-beat',      label:'Empleo sólido' };
+  if (v >= 0.2)  return { score:+5,  cls:'gmt-beat-soft', label:'Empleo moderado' };
+  if (v >= 0.1)  return { score:+3,  cls:'gmt-beat-soft', label:'Empleo leve' };
+  if (v >= 0.0)  return { score:-6,  cls:'gmt-miss',      label:'Estancamiento laboral' };
+  if (v >= -0.1) return { score:-8,  cls:'gmt-miss',      label:'Pérdida empleo leve' };
+  if (v >= -0.2) return { score:-10, cls:'gmt-miss',      label:'Pérdida empleo fuerte' };
+  // Extremos — SHORT fuerte
+  if (v >= -0.3) return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte · Colapso empleo' };
+  if (v >= -0.4) return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -0.5) return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+}
+
+// ── Tasa CB % ────────────────────────────────────────────────────
 function scoreRate(val) {
-  // Interest Rate level (CB policy rate)
   const v = parseFloat(val);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos' };
-  if (v > 5.0)                     return { cls:'gmt-beat',   score:3,  bps:3,  label:'Ultra Hawkish' };
-  if (v >= 4.0 && v <= 5.0)       return { cls:'gmt-beat',   score:2,  bps:2,  label:'Muy Alta' };
-  if (v >= 3.0 && v < 4.0)        return { cls:'gmt-beat',   score:1,  bps:1,  label:'Alta' };
-  if (v >= 2.0 && v < 3.0)        return { cls:'gmt-inline', score:0,  bps:0,  label:'Neutra' };
-  if (v >= 1.0 && v < 2.0)        return { cls:'gmt-miss',   score:-1, bps:-1, label:'Baja' };
-  if (v >= 0.0 && v < 1.0)        return { cls:'gmt-miss',   score:-2, bps:-2, label:'Muy Baja' };
-  return                                  { cls:'gmt-miss',   score:-3, bps:-3, label:'Negativa' };
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v > 5.0)   return { score:+3,  cls:'gmt-beat-soft', label:'Ultra restrictivo' };
+  if (v >= 2.0)  return { score:0,   cls:'gmt-inline',    label:'Política neutral' };
+  if (v >= 0.5)  return { score:-4,  cls:'gmt-miss-soft', label:'Política expansiva' };
+  return           { score:-8,  cls:'gmt-miss',      label:'Contracción monetaria extrema' };
 }
 
-function scorePMI(pmi, prevPMI) {
-  // 6-scenario PMI model based on level + direction + momentum
-  const v    = parseFloat(pmi);
-  const prev = parseFloat(prevPMI);
-  if (isNaN(v)) return { cls:'', score:0, bps:0, label:'Sin datos', scenario:0 };
-
-  const hasPrev   = !isNaN(prev);
-  const rising    = hasPrev ? v > prev : null;
-  const aboveFifty = v >= 50;
-
-  // Scenario 6: PMI toca techo > 50 y cae por primera vez → Extreme SHORT BIAS
-  if (hasPrev && prev >= 50 && v < prev && v >= 50) {
-    return { cls:'gmt-beat', score:8, bps:'+8 to +10', label:'Extreme SHORT BIAS · Techo PMI', scenario:6 };
-  }
-  // Scenario 5: PMI toca piso < 50 y sube por primera vez → Extreme LONG BIAS
-  if (hasPrev && prev < 50 && v > prev && v < 50) {
-    return { cls:'gmt-miss', score:-8, bps:'-8 to -10', label:'Extreme LONG BIAS · Piso PMI', scenario:5 };
-  }
-  // Scenario 1: PMI > 50 y creciendo rápido (> 1pt) → High SHORT BIAS
-  if (aboveFifty && hasPrev && v - prev > 1.0) {
-    return { cls:'gmt-beat', score:6, bps:'+5 to +8', label:'High SHORT BIAS · PMI > 50 acelerando', scenario:1 };
-  }
-  // Scenario 2: PMI > 50 y creciendo despacio (0 a 1pt) → Low SHORT BIAS
-  if (aboveFifty && (!hasPrev || v >= prev)) {
-    return { cls:'gmt-beat', score:3, bps:'0 to +5', label:'Low SHORT BIAS · PMI > 50 estable', scenario:2 };
-  }
-  // Scenario 3: PMI < 50 y cayendo rápido → High LONG BIAS
-  if (!aboveFifty && hasPrev && prev - v > 1.0) {
-    return { cls:'gmt-miss', score:-6, bps:'-5 to -8', label:'High LONG BIAS · PMI < 50 cayendo', scenario:3 };
-  }
-  // Scenario 4: PMI < 50 y cayendo despacio → Low LONG BIAS
-  return { cls:'gmt-miss', score:-3, bps:'0 to -5', label:'Low LONG BIAS · PMI < 50', scenario:4 };
+// ── IR MoM Annualized BPS ────────────────────────────────────────
+function scoreIR_MoM(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { score:0, cls:'', label:'Sin datos' };
+  if (v >= 20)   return { score:+10, cls:'gmt-beat',      label:'Subida agresiva' };
+  if (v >= 15)   return { score:+9,  cls:'gmt-beat',      label:'Subida fuerte' };
+  if (v >= 10)   return { score:+6,  cls:'gmt-beat-soft', label:'Subida moderada' };
+  if (v >= 5)    return { score:+3,  cls:'gmt-beat-soft', label:'Subida leve' };
+  if (v >= 0)    return { score:0,   cls:'gmt-inline',    label:'Sin cambio' };
+  if (v >= -5)   return { score:0,   cls:'gmt-inline',    label:'Sin cambio' };
+  if (v >= -10)  return { score:-3,  cls:'gmt-miss-soft', label:'Recorte leve' };
+  if (v >= -15)  return { score:-5,  cls:'gmt-miss-soft', label:'Recorte moderado' };
+  if (v >= -20)  return { score:-7,  cls:'gmt-miss',      label:'Recorte fuerte' };
+  // Extremos negativos — SHORT fuerte (BC en pánico)
+  if (v >= -30)  return { score:+8,  cls:'gmt-beat',      label:'SHORT fuerte · Recorte emergencia' };
+  if (v >= -40)  return { score:+9,  cls:'gmt-beat',      label:'SHORT fuerte' };
+  if (v >= -50)  return { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
+  return           { score:+10, cls:'gmt-beat',      label:'SHORT fuerte extremo' };
 }
 
-// Master scoring dispatcher
-function getIndicatorScore(key, actualData) {
-  const val = actualData[key];
-  if (val == null) return { cls:'', score:0, bps:0, label:'Sin datos' };
+// ── Master dispatcher ────────────────────────────────────────────
+function getIndicatorScore(key, data) {
+  const val = data[key];
+  if (val == null) return { score:0, cls:'', label:'Sin datos' };
   switch(key) {
-    case 'gdp':    return scoreGDP(val);
-    case 'cpi':    return scoreCPI(val);
-    case 'unemp':  return scoreUnemp(val);
-    case 'retail': return scoreRetail(val);
-    case 'rate':   return scoreRate(val);
-    case 'pmi_m':  return scorePMI(val, actualData.prev_pmi_m);
-    case 'pmi_s':  return scorePMI(val, actualData.prev_pmi_s);
-    default:       return { cls:'gmt-inline', score:0, bps:0, label:'—' };
+    case 'pmi_m':    return scorePMI_abs(val);
+    case 'pmi_s':    return scoreNMI_abs(val);
+    case 'permits':  return scorePermits(val);
+    case 'umcsi':    return scoreUMCSI(val);
+    case 'm2':       return scoreM2(val);
+    case 'cpi_yoy':  return scoreCPI_YoY(val);
+    case 'cpi_mom':  return scoreCPI_MoM(val);
+    case 'ccpi_mom': return scoreCoreCPI_MoM(val);
+    case 'ppi_mom':  return scorePPI_MoM(val);
+    case 'cppi_mom': return scoreCorePPI_MoM(val);
+    case 'nfp':      return scoreNFP(val);
+    case 'rate':     return scoreRate(val);
+    case 'ir_mom':   return scoreIR_MoM(val);
+    // Legacy keys
+    case 'cpi':      return scoreCPI_YoY(val);
+    case 'unemp':    return { score:0, cls:'gmt-inline', label:'Desempleo' };
+    case 'gdp':      return { score:0, cls:'gmt-inline', label:'GDP' };
+    case 'retail':   return { score:0, cls:'gmt-inline', label:'Retail' };
+    default:         return { score:0, cls:'gmt-inline', label:'—' };
   }
 }
 
-// Legacy compatibility wrapper (used by old gmtClass calls)
+// ── Legacy gmtClass wrapper ──────────────────────────────────────
 function gmtClass(actual, expect, key) {
-  const data = {};
-  data[key] = actual;
-  // For PMI we need prev — use expect as a fallback prev value
-  if (key === 'pmi_m') data.prev_pmi_m = expect;
-  if (key === 'pmi_s') data.prev_pmi_s = expect;
-  return getIndicatorScore(key, data).cls || 'gmt-inline';
+  const res = getIndicatorScore(key, { [key]: actual, prev_pmi_m: expect, prev_pmi_s: expect });
+  return res.cls || 'gmt-inline';
+}
+
+// ── Score by indicator type ──────────────────────────────────────
+function getScoreByType(cur) {
+  const d = gmtActual[cur] || {};
+  const scores = { leading:0, coincident:0, lagging:0, total:0, counts:{leading:0,coincident:0,lagging:0} };
+  GMT_INDICATORS.forEach(ind => {
+    if (d[ind.key] == null) return;
+    const res = getIndicatorScore(ind.key, d);
+    if (res.cls === '') return;
+    scores[ind.type]  += res.score;
+    scores.total      += res.score;
+    scores.counts[ind.type]++;
+  });
+  return scores;
 }
 
 function gmtFormat(val, fmt) {
