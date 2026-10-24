@@ -522,7 +522,8 @@ function phasePlot(H,u){
 let gx=Object.assign({k:'pmi',r:'10',v:'line',t:'lvl',c:'none',cmp:'',st:'all',ro:'all',h:0,hk:''},store.get('gx',{})),gxC;
 const CHS=S.charts,LEADK=Object.keys(CHS).filter(k=>CHS[k].role==='Líder');
 const PCTK={wti:1,claims:1,permits:1,retail:1,spx:1,m2:0};
-const PRJ=S.proj||{},ROLES=['Líder','Coincidente','Rezagado'];
+// Projections are hidden until their rules are defined with the owner (docs/decisions.md); S.proj is kept but unused.
+const PRJ={},ROLES=['Líder','Coincidente','Rezagado'];
 const GXK=ROLES.flatMap(r=>Object.keys(CHS).filter(k=>CHS[k].role===r));
 const RABR={'Líder':'líder','Coincidente':'coinc.','Rezagado':'rezag.'};
 const PLAB={hot:'al alza',flat:'sin cambio',cold:'a la baja'};
@@ -578,7 +579,7 @@ function renderCharts(){
     :fact('Estado proyectado','<span class="is flat">—</span>','Muestra insuficiente');
   $('gxKpis').innerHTML=fact('Último dato',fv(lastV),labels.at(-1))
     +fact('Estado actual',`<span class="is ${stCls(C0.state)}">${C0.slab||C0.state||'—'}</span>`,`Puntaje TFX ${C0.pts>0?'+':''}${C0.pts??'—'} · ${CHS[gx.k].role.toLowerCase()}`)
-    +projCard
+    // proyección oculta (ver PRJ)
     +fact('Percentil histórico',rank.toFixed(0),`Desde ${labels[0].slice(0,4)}`)
     +fact('Cambio 12m',yo.v.length?(yo.v.at(-1)>0?'+':'')+yo.v.at(-1).toFixed(2)+(PCTK[gx.k]?'%':''):'—',labels.at(-1));
   $('gxProj').innerHTML=PP?(()=>{
@@ -1876,7 +1877,8 @@ function freshSources(){
   return {resumen:mac,cuantitativo:mac,
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
-    ciclo:man,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man,graficos:man};
+    graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
+    ciclo:man,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man};
 }
 function freshBadges(){
   for(const [id,f] of Object.entries(freshSources())){

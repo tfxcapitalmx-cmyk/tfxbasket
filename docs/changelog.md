@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-24 — Gráficos automático
+- 25 series mensuales de Gráficos se actualizan con el proceso diario del puntaje (`data/charts.json`); el estado actual sale del puntaje; la proyección queda oculta.
+- Corregido el orden de fechas del ISM manufactura (1950-05).
+- Los procesos automáticos también se ejecutan al cambiar su propio código, para probarlo en cuanto se publica.
+
 ## 2026-10-24 — Carry simplificado e indicador de antigüedad
 - Carry muestra solo los 28 pares (7 mayores y 21 menores) con tasas, diferencial y dirección del swap positivo. Se eliminaron próximas reuniones (`data/cb-calendar.json`), precios del BCE y carry en USD/día.
 - Cada módulo muestra en su encabezado si sus datos son automáticos (fuente y fecha; rojo si el proceso lleva días sin datos nuevos) o manuales (fecha de carga; resaltado tras 7 días).

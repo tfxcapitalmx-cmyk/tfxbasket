@@ -477,3 +477,4 @@ nav.menu a:focus-visible,.chip:focus-visible,.tab:focus-visible,.rp-form input:f
 .fresh.man{color:var(--muted);border-color:var(--line)}
 .fresh.manold{color:var(--accent);background:var(--accent-soft)}
 @media (max-width:560px){.fresh{white-space:normal}}
+.gxbar .row[hidden],#gxProj[hidden]{display:none}

@@ -2,8 +2,10 @@
 // Run with `FRED_API_KEY=… node scripts/macro/update.mjs` (Node 20+). Exit code 1 = keep the previous file.
 import { readFile, writeFile } from 'node:fs/promises';
 import { SERIES, buildMacro, rollHistory, validateMacro, validateManual, fromApi } from './core.mjs';
+import { CHART_SERIES, computeCharts, mergeCharts, validateCharts } from './charts.mjs';
 
 const OUT = new URL('../../data/macro.json', import.meta.url);
+const CHARTS = new URL('../../data/charts.json', import.meta.url);
 const MANUAL = new URL('../../data/manual.json', import.meta.url);
 const KEY = process.env.FRED_API_KEY;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -34,7 +36,7 @@ async function main() {
 
   const prev = JSON.parse(await readFile(OUT, 'utf8'));
   const obs = {};
-  for (const id of SERIES) { obs[id] = await fred(id); console.log(`${id}: último ${obs[id][obs[id].length - 1][0]}`); }
+  for (const id of [...SERIES, ...CHART_SERIES]) { obs[id] = await fred(id); console.log(`${id}: último ${obs[id][obs[id].length - 1][0]}`); }
 
   const today = new Date().toISOString().slice(0, 10);
   const next = buildMacro(obs, man, today);
@@ -42,9 +44,19 @@ async function main() {
   if (problems.length) { console.error('Validación fallida; se conserva el archivo anterior:\n- ' + problems.join('\n- ')); process.exit(1); }
   next.hist = rollHistory(prev.hist, prev, today);
 
+  // Gráficos: same observations, merged onto the stored history; its state comes from the scorecard rows.
+  const prevCharts = JSON.parse(await readFile(CHARTS, 'utf8'));
+  const charts = mergeCharts(prevCharts.charts, computeCharts(obs, man), next.rows);
+  const chartErr = validateCharts(charts, prevCharts.charts);
+  if (chartErr.length) { console.error('Gráficos: validación fallida; se conservan los archivos anteriores:\n- ' + chartErr.join('\n- ')); process.exit(1); }
+
   // Only the content counts as a change, not the date of the check.
   const strip = m => JSON.stringify({ ...m, asof: null, asof_iso: null });
-  if (strip(prev) === strip(next)) { console.log('Sin datos nuevos.'); return; }
+  if (JSON.stringify(prevCharts.charts) !== JSON.stringify(charts)) {
+    await writeFile(CHARTS, JSON.stringify({ asof_iso: today, charts }));
+    console.log('Gráficos actualizados.');
+  }
+  if (strip(prev) === strip(next)) { console.log('Sin datos nuevos en el puntaje.'); return; }
   await writeFile(OUT, JSON.stringify(next));
   console.log(`Actualizado: compuesto ${prev.composite.toFixed(2)} → ${next.composite.toFixed(2)}`);
 

@@ -50,6 +50,18 @@ Reproducción verificada (2026-10-24): con los datos recortados al 16-oct, los 1
 2. Cambiar `periodo` y `valor` del dato publicado (ISM el 1.er y 3.er día hábil del mes; LEI a mediados de mes).
 3. "Commit changes". En 1–2 minutos el proceso recalcula y publica; si el dato es inválido, falla sin publicar y llega un correo.
 
+## Gráficos (series mensuales)
+
+| | |
+|---|---|
+| Alimenta | Módulo Gráficos (`data/charts.json` → `D.snap.charts`); lo genera el mismo proceso que el puntaje (`scripts/macro/charts.mjs`) |
+| Fuentes | Las series FRED del puntaje + T10Y2Y, GDPC1, RSAFS, SP500, FEDFUNDS. ISM: `data/manual.json` mes a mes. UMich: FRED + lectura preliminar manual |
+| Método | Se conserva el historial guardado y se recalculan los últimos 36 meses en cada ejecución (para recoger revisiones); los meses nuevos se agregan. Diarias → promedio mensual; S&P 500 → último cierre del mes; Fed funds → promedio oficial, con la tasa vigente en el último mes publicado |
+| Estado actual | Sale de la fila equivalente del puntaje (16 series). Las 9 sin regla (CPI general, Core PPI a/a, curva, Fed funds, PIB, ventas minoristas nominales y reales, S&P 500 y su a/a) muestran "Sin regla definida" |
+| Proyección | Oculta hasta definir sus reglas con el propietario (`PRJ={}` en `app.js`; `D.snap.proj` se conserva sin usar) |
+
+Reproducción verificada (2026-10-24): al 16-oct las 25 series coinciden con el historial anterior salvo revisiones de FRED, y los 16 estados con regla son idénticos.
+
 ## Carry (dirección del swap)
 
 | | |

@@ -1,4 +1,4 @@
-# Refreshes data/macro.json (Resumen + Cuantitativo) from FRED and data/manual.json.
+# Refreshes data/macro.json (Resumen + Cuantitativo) and data/charts.json (Gráficos) from FRED and data/manual.json.
 name: Puntaje macro (FRED)
 
 on:
@@ -7,7 +7,7 @@ on:
     - cron: '30 22 * * 1-5'  # cierre: bonos, breakevens y Fed funds del día
   push:
     branches: [main]
-    paths: ['data/manual.json']  # recalcula en cuanto se edita la captura manual
+    paths: ['data/manual.json', 'scripts/macro/**']  # al editar la captura manual o el código del proceso
   workflow_dispatch:
 
 permissions:
@@ -32,10 +32,10 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       - name: Publicar si hay datos nuevos
         run: |
-          if git diff --quiet -- data/macro.json; then echo "Sin cambios"; exit 0; fi
+          if git diff --quiet -- data/macro.json data/charts.json; then echo "Sin cambios"; exit 0; fi
           git config user.name "tfx-data-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/macro.json
+          git add data/macro.json data/charts.json
           git commit -m "datos: puntaje macro $(node -p "require('./data/macro.json').asof_iso")"
           git pull --rebase
           git push
