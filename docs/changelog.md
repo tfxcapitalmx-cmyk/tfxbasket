@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-24 — COT automático y lectura swing
+- Nuevo pipeline `scripts/cot/` + `.github/workflows/cot.yml`: descarga el COT de la API de la CFTC cada semana, valida y publica `data/cot.json`. Verificado valor por valor contra los datos anteriores.
+- `data/cot.json` ya incluye el informe del 2026-10-20 (la terminal estaba en el 13-oct). Se quitó el bloque `pos` de `snapshot.json`.
+- Nuevo dato: neto de Asset Managers (dinero real) para cada divisa.
+- Posicionamiento: sello con próximo informe y aviso de dato desactualizado; nueva sección "Lectura swing del par" con KPIs, posicionamiento del par frente al precio, índice COT (26/52/156 semanas), flujo semanal, dinero rápido frente a dinero real, mapa de saturación y retornos del par tras extremos (4/8/13 semanas).
+- En pares XXXUSD el posicionamiento del par es el del contrato base (los futuros de divisas de CME ya cotizan contra el dólar); en cruces, la diferencia entre ambos contratos.
+
 ## 2026-10-24 — Etapa 1: estructura del repositorio
 - Importada la terminal publicada (datos al 16-oct-2026) y dividida en `index.html`, `assets/app.css`, `assets/app.js`, `data/snapshot.json`, `data/markets.json`.
 - SheetJS 0.18.5 deja de ir embebido (1.3 MB) y se descarga de cdnjs solo al subir un Excel.

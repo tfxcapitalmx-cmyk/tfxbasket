@@ -1,0 +1,39 @@
+# Refreshes data/cot.json after each CFTC release. Scheduled runs only fire from the default branch.
+name: COT CFTC
+
+on:
+  schedule:
+    - cron: '45 19 * * 5'  # viernes 15:45 Nueva York (horario de verano)
+    - cron: '45 20 * * 5'  # viernes 15:45 Nueva York (horario estándar)
+    - cron: '0 14 * * 6'   # sábado: reintento
+    - cron: '0 21 * * 1,2' # lunes y martes: publicaciones retrasadas por festivos
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-cot
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Descargar y validar
+        run: node scripts/cot/update.mjs
+        env:
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+      - name: Publicar si hay informe nuevo
+        run: |
+          if git diff --quiet -- data/cot.json; then echo "Sin cambios"; exit 0; fi
+          git config user.name "tfx-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cot.json
+          git commit -m "datos: COT CFTC $(node -p "require('./data/cot.json').asof")"
+          git push

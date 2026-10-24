@@ -471,3 +471,7 @@ nav.menu a:focus-visible,.chip:focus-visible,.tab:focus-visible,.rp-form input:f
 .rp-form label{min-width:0}
 .rp-form select,.rp-form .gsel{width:100%;min-width:0}
 .mk-tp .scroll{max-width:100%}
+/* Posicionamiento · lectura swing */
+.po-sw .fact .v .poex{font-size:12px;padding:4px 9px}
+#poFw td,#poFw th{padding:8px 9px;white-space:nowrap;font-size:12.5px}
+#poFw tr.sel td{background:var(--accent-soft)}

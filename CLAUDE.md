@@ -16,7 +16,13 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 ## Estructura
 - `index.html` — marcado y arranque: descarga `data/*.json` y luego ejecuta `assets/app.js`.
 - `assets/app.css`, `assets/app.js` — estilos y lógica (JS sin framework, Chart.js 4.4.1 desde cdnjs).
-- `data/snapshot.json` — objeto `D` (`snap` + `series`); `data/markets.json` — velas codificadas `MKT_ENC`.
+- `data/snapshot.json` — objeto `D` (`snap` + `series`), manual; `data/markets.json` — velas codificadas `MKT_ENC`, manual.
+- `data/cot.json` — automático (se inyecta como `D.snap.pos`). Lo generan `scripts/cot/` y `.github/workflows/cot.yml`; patrón en `docs/data-pipeline.md`.
+- Scripts de datos en JavaScript (Node 20 en Actions). `core.mjs` es puro y se prueba importándolo en el navegador contra el servidor local.
+
+## Fuentes manuales del propietario
+- Libro A.E.: `C:\Users\Gus-a\OneDrive\Documentos\Proyectos\TFX Capital\Excel Trading\United States Macro\Endogenous\AE EE.UU. 2026 Q4.xlsx` (hojas: DATA, Sources, US Endo' Historical, US Indicators, Cycles, GDP, CPI All, Core CPI, PPI All, Core PPI, NFP, IR, PMI, NMI, M2, Permits, UMCSI, T10%, Govt, CBBS). Sin conexiones externas.
+- Los modelos (ARIMA, GARCH, Monte Carlo, regresiones del nowcast) se hicieron en chats anteriores y no existe su código: hay que reconstruirlos en el repo.
 - `docs/` — arquitectura, fuentes, roadmap, decisiones y changelog. Actualizar `docs/changelog.md` en cada cambio relevante.
 
 ## Verificar un cambio

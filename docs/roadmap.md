@@ -5,7 +5,7 @@
 - [x] Separar el HTML de 8 MB en `index.html`, `assets/` y `data/` sin cambiar el render (verificado módulo por módulo).
 - [x] SheetJS bajo demanda (−1.3 MB).
 - [ ] Conectar Netlify al repo con Deploy Previews (requiere aprobación del propietario).
-- [ ] Localizar o reconstruir el generador de `snapshot.json` (ARIMA, regresiones, puntajes).
+- [ ] Reconstruir el generador de `snapshot.json`: no existe fuera de los chats anteriores. La fuente manual es el libro A.E. (ver CLAUDE.md); los modelos ARIMA/GARCH/Monte Carlo/regresiones deben reescribirse como scripts del repo.
 - [ ] Corregir fecha fuera de orden en `snap.charts.pmi` (1950-05).
 - [ ] Esquema estándar de observación (valor, previo, revisado, vintage, published_at, fetched_at, estado).
 - [ ] Cargar `markets.json` solo cuando se abre un módulo de precios.
@@ -13,7 +13,7 @@
 Aceptación: el sitio publicado desde el repo se ve igual que hoy.
 
 ## Etapa 2 — Automated Macro Data
-1. COT (CFTC) — patrón de referencia.
+1. [x] COT (CFTC) — patrón de referencia (`docs/data-pipeline.md`). Falta activarlo: fusionar a `main` y conectar Netlify.
 2. Series FRED del bloque Cuantitativo.
 3. Tasas de bancos centrales oficiales.
 4. Indicador visual de antigüedad por panel y alertas por fallo persistente.

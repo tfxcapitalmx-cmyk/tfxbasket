@@ -189,6 +189,51 @@ mq.addEventListener('change',sync);sync();})();
       <div class="panel po-don"><h3 id="poT2"></h3><div class="chart"><canvas id="poD2"></canvas></div><div class="po-legs" id="poL2"></div></div>
     </div>
     <div class="kpis" id="poKpis"></div>
+    <div class="panel po-sw">
+      <div class="sh-row"><h3 id="poSwT">Lectura swing del par</h3><div class="filters" id="poIxW"></div></div>
+      <div class="kpis" id="poSwK"></div>
+    </div>
+    <div class="po-duo">
+      <div class="panel">
+        <h3>Posicionamiento del par frente al precio</h3>
+        <p class="po-cap" id="poRelT"></p>
+        <div class="chart" style="height:280px"><canvas id="poRel"></canvas></div>
+        <p class="cap" id="poRelCap"></p>
+      </div>
+      <div class="panel">
+        <h3>Índice COT del par</h3>
+        <p class="po-cap" id="poIxT"></p>
+        <div class="chart" style="height:280px"><canvas id="poIx"></canvas></div>
+        <p class="cap">Dónde está el posicionamiento del par hoy dentro de su propio rango de la ventana elegida: 100 es el máximo y 0 el mínimo de ese periodo. Por encima de 80 el par está saturado de compradores especulativos; por debajo de 20, de vendedores.</p>
+      </div>
+    </div>
+    <div class="po-duo">
+      <div class="panel">
+        <h3>Flujo semanal</h3>
+        <p class="po-cap" id="poFlT"></p>
+        <div class="chart" style="height:260px"><canvas id="poFl"></canvas></div>
+        <p class="cap">Barras: cambio del posicionamiento del par en cada informe, en puntos de interés abierto. Línea: suma de las últimas cuatro semanas. Muestra si el dinero rápido está entrando o saliendo del par ahora, que es lo que mueve un swing de semanas, más que el nivel acumulado.</p>
+      </div>
+      <div class="panel">
+        <h3>Dinero rápido frente a dinero real</h3>
+        <p class="po-cap" id="poAmT"></p>
+        <div class="chart" style="height:260px"><canvas id="poAm"></canvas></div>
+        <p class="cap">Leveraged Funds (hedge funds y CTAs, horizonte corto) frente a Asset Managers (fondos de inversión y pensiones, horizonte largo), ambos como neto sobre interés abierto. Cuando el dinero real sostiene una dirección y el rápido se le suma, la tendencia tiene respaldo; cuando el rápido va solo contra el real, sus giros suelen ser bruscos.</p>
+      </div>
+    </div>
+    <div class="po-duo">
+      <div class="panel">
+        <h3>Mapa de saturación</h3>
+        <div class="chart" style="height:300px"><canvas id="poCr"></canvas></div>
+        <p class="cap">Cada divisa según su índice COT de tres años (eje horizontal) y el cambio de su neto en las últimas cuatro semanas (eje vertical). Arriba a la derecha: saturada y todavía comprando. Abajo a la derecha: saturada y empezando a vender, la zona donde los cierres forzados aceleran el precio. Lo simétrico vale a la izquierda para las posiciones cortas.</p>
+      </div>
+      <div class="panel">
+        <h3>Qué hizo el par después de los extremos</h3>
+        <p class="po-cap" id="poFwT"></p>
+        <div class="scroll"><table id="poFw"></table></div>
+        <p class="cap" id="poFwCap"></p>
+      </div>
+    </div>
     <div class="panel">
       <div class="sh-row"><h3>Reparto largo / corto semana a semana</h3><div class="filters" id="poNb"></div></div>
       <div class="po-duo">
@@ -361,7 +406,8 @@ mq.addEventListener('change',sync);sync();})();
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
 (function(){
   const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' â†’ HTTP '+r.status);return r.json();});
-  Promise.all([get('data/snapshot.json'),get('data/markets.json')]).then(([snap,mkt])=>{
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json')]).then(([snap,mkt,cot])=>{
+    snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     window.D=snap;window.MKT_ENC=mkt;
     const s=document.createElement('script');s.src='assets/app.js';document.body.appendChild(s);
   }).catch(err=>{

@@ -6,6 +6,7 @@ Sitio estático en Netlify, sin backend.
 ```
 index.html ──fetch──> data/snapshot.json  (D: snap + series, ~4.1 MB)
            ──fetch──> data/markets.json   (MKT_ENC: velas OHLC delta base-36, ~2.6 MB)
+           ──fetch──> data/cot.json       (COT CFTC, automático cada semana → D.snap.pos)
            ──luego──> assets/app.js       (render de los 12 módulos, Chart.js)
 ```
 
@@ -22,7 +23,7 @@ index.html ──fetch──> data/snapshot.json  (D: snap + series, ~4.1 MB)
 | catalizador | `snap.calendar`, `snap.evt` |
 | modelos | `snap.nowcast`, `snap.proj` |
 | distribucion | `MKT_ENC` (+ subida manual) |
-| posicion | `snap.pos` (CFTC TFF) |
+| posicion | `data/cot.json` (CFTC TFF, automático) + `MKT_ENC` para precio y retornos |
 | carry | `snap.carry` |
 | vol | `snap.vol` |
 | estacional | `snap.seas` |

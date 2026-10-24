@@ -11,7 +11,7 @@ Estado al 2026-10-24. "Automatizable" = API oficial con uso comercial razonable;
 | ISM manufactura / servicios y componentes | Libro A.E. TFX | — | Copyright ISM; requiere licencia para redistribuir | No sin licencia |
 | UMich sentimiento y expectativa de inflación | FRED / Libro | — | Copyright Univ. de Michigan | No sin licencia |
 | LEI Conference Board | Manual | — | Propietario, de pago | No sin licencia |
-| COT Leveraged Funds | CFTC (manual) | CFTC Socrata API (TFF) | Dominio público | Sí — primer candidato |
+| COT Leveraged Funds, Asset Managers, no reportables | **CFTC Socrata API (TFF), automático** | — | Dominio público | **Hecho** (2026-10-24) |
 | Tasas de bancos centrales | BCE, BoJ, BoC, "TFX", CB.watch | APIs/feeds oficiales de cada banco | Oficiales: sí; CB.watch: no | Sí (oficiales) |
 | Calendario y consenso | Manual (consenso en 9 de 48 eventos) | Calendarios oficiales; consenso de proveedor con licencia | El consenso no es gratuito | Parcial |
 | Velas FX, índices, metales, VIX | Broker / Investing.com (manual) | Proveedor con licencia comercial | Sin derecho de redistribución | Requiere contratar |
