@@ -62,6 +62,18 @@ Reproducción verificada (2026-10-24): con los datos recortados al 16-oct, los 1
 
 Reproducción verificada (2026-10-24): al 16-oct las 25 series coinciden con el historial anterior salvo revisiones de FRED, y los 16 estados con regla son idénticos.
 
+## Ciclo económico
+
+| | |
+|---|---|
+| Alimenta | Módulo Ciclo, la frase de ciclo en Resumen y las fases OCDE de Gráficos (`D.snap.cycle`, `D.snap.cycproj`, dentro de `data/macro.json`); `scripts/macro/cycle.mjs` |
+| Fuentes | OECD CLI de FRED (desde 1955). LEI 6m (con su lectura previa) y CEI 6m de The Conference Board: `data/manual.json` |
+| Regla de fases | CLI ≥ 100 y subiendo = expansión; ≥ 100 y bajando = desaceleración; < 100 y bajando = contracción; < 100 y subiendo = recuperación |
+| Proyección | Frecuencias históricas: meses en la misma fase con al menos la racha actual → fase a 3, 6 y 12 meses; variante con impulso a la baja (segunda diferencia < 0). Tiempo restante = cuartiles de lo que duraron las fases iguales que alcanzaron la racha actual |
+| Oculto | Sentimiento, Dólar y Régimen (`D.snap.regime_mkt`, modelo de cuadrantes sin reglas documentadas); también se quitó su mención en Resumen |
+
+Reproducción verificada (2026-10-24): con el historial guardado, fase, racha, frecuencias, duraciones, transiciones, proyección a 3/6/12 meses y tiempo restante coinciden exactamente.
+
 ## Carry (dirección del swap)
 
 | | |

@@ -12,8 +12,9 @@ export const SIDE = { 'Inflación': 'Coincidente', 'Empleo': 'Coincidente', 'Act
 // so a newer manual reading (preliminary) wins over FRED.
 export const MANUAL = {
   pmi: { min: 20, max: 80 }, nmi: { min: 20, max: 80 }, lei_6m: { min: -20, max: 20 },
-  umcsi: { min: 20, max: 120 }, mich: { min: -5, max: 20 },
+  umcsi: { min: 20, max: 120 }, mich: { min: -5, max: 20 }, cei_6m: { min: -20, max: 20 },
 };
+const OPTIONAL = ['umcsi', 'mich', 'cei_6m'];
 
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const mlab = iso => `${MES[+iso.slice(5, 7) - 1]}-${iso.slice(0, 4)}`;
@@ -62,7 +63,8 @@ export function validateManual(man) {
   const err = [];
   for (const [k, lim] of Object.entries(MANUAL)) {
     const m = man[k];
-    if (!m) { if (k !== 'umcsi' && k !== 'mich') err.push(`manual.${k}: falta`); continue; }
+    if (!m) { if (!OPTIONAL.includes(k)) err.push(`manual.${k}: falta`); continue; }
+    if (m.previo != null && (typeof m.previo !== 'number' || m.previo < lim.min || m.previo > lim.max)) err.push(`manual.${k}.previo fuera de rango`);
     if (!/^\d{4}-\d{2}$/.test(m.periodo || '')) err.push(`manual.${k}.periodo debe ser AAAA-MM`);
     if (typeof m.valor !== 'number' || !Number.isFinite(m.valor) || m.valor < lim.min || m.valor > lim.max) err.push(`manual.${k}.valor fuera de rango (${lim.min} a ${lim.max})`);
   }

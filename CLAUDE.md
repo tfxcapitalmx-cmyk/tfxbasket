@@ -18,7 +18,8 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `assets/app.css`, `assets/app.js` — estilos y lógica (JS sin framework, Chart.js 4.4.1 desde cdnjs).
 - `data/snapshot.json` — objeto `D` (`snap` + `series`), manual; `data/markets.json` — velas codificadas `MKT_ENC`, manual.
 - `data/macro.json` — automático (FRED + `data/manual.json`), se superpone a `D.snap` (rows, blocks, composite, hist…). Lo generan `scripts/macro/` y `.github/workflows/macro.yml`.
-- `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI, UMich preliminar, `tasas` para decisiones recientes).
+- `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI con su previo, CEI, UMich preliminar, `tasas` para decisiones recientes).
+- `data/macro.json` también lleva `cycle` y `cycproj` (Ciclo), calculados por `scripts/macro/cycle.mjs`. `D.snap.regime_mkt` queda oculto.
 - `data/charts.json` — automático, lo genera el proceso del puntaje (`scripts/macro/charts.mjs`) → `D.snap.charts`. Proyección oculta: `PRJ={}` en `app.js`.
 - `data/carry.json` — automático (BIS + FRED) → `D.snap.carry`, solo pares y dirección del swap; `scripts/carry/`, `.github/workflows/carry.yml`.
 - Los valores de `data/snapshot.json` para `pos`, el puntaje y `carry` quedan sobrescritos por los archivos automáticos.

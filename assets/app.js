@@ -63,11 +63,11 @@ function renderSummary(){
     card('Fed',[row('Fed funds',`${S.ff.toFixed(2)}% · ${sg(ffchg*100,0)} pb`,stF(Math.sign(ffchg))),row('Tasa real',rr.val,stF(rr.pts>0?-1:rr.pts<0?1:0)),row('UST 2Y',`${S.d2.toFixed(2)}% · ${sg(d2ff*100,0)} pb`,stF(d2ff>0.25?1:d2ff<-0.25?-1:0)),row('UST 10Y',`${S.d10.toFixed(2)}%`,stF(Math.sign(y10.pts)))]);
   const ic=ideaCond(),b=S.breadth,dir=sb.lead<sb.coin-0.05?'la presión se modera':sb.lead>sb.coin+0.05?'la presión aumenta':'la presión se mantiene';
   const bias=c>=0.4?'USD alcista condicional':c<=-0.4?'USD bajista condicional':'Sin sesgo direccional';
-  const cp=S.cycproj,des=cp.acc<0?cp.h['3'].dist2.DES:cp.h['3'].dist.DES,rm=S.regime_mkt;
+  const cp=S.cycproj,des=(cp.acc<0?cp.h['3'].dist2.DES:cp.h['3'].dist.DES)||0;
   const t=(k,v,n,cls='')=>`<div class="st"><span class="k">${k}</span><b class="${cls}">${v}</b><span class="n">${n}</span></div>`;
   $('idea').innerHTML=`<span class="tag">Sesgo TFX</span><div class="sesgo">`+
     t('Régimen proyectado',projLab(sb.lead),`Líderes ${sg(sb.lead)} · catalizadores ${sg(sb.coin)}: ${dir}. Ciclo: ${Math.round(des*100)}% de pasar a desaceleración en 3 meses.`)+
-    t('Sentimiento',fedSent(c),`Proyectado: ${fedSent(sb.lead).toLowerCase()}. Régimen de mercado: ${rm.cur.toLowerCase()} → ${rm.proj.toLowerCase()}.`)+
+    t('Sentimiento',fedSent(c),`Proyectado: ${fedSent(sb.lead).toLowerCase()}.`)+
     t('Condiciones para ideas',ic.lab,`${b.hot} de ${b.hot+b.cold} indicadores con señal calientan (${Math.round(ic.br*100)}%); ${b.flat} neutrales.`,ic.cls)+
     t('Sesgo operativo',bias,c>=0.4?'Evitar ideas contra el régimen. Confirmar con el catalizador.':c<=-0.4?'Evitar ideas contra el régimen.':'Operar solo catalizadores con sorpresa clara.',c>=0.4?'up':c<=-0.4?'dn':'')+`</div>`;
 }
@@ -212,17 +212,18 @@ function renderCycle(){
   $('clock').innerHTML=s;
   const last=pts.at(-1);
   const f=(k,v,nn)=>`<div class="fact"><span class="k">${k}</span><span class="v">${v}</span><span class="n">${nn}</span></div>`;
-  $('cycleFacts').innerHTML=f('OECD CLI · '+last.d,cy.vals.at(-1).toFixed(2),`Sube ${last.y.toFixed(3)} pts/mes. El impulso se modera.`)+
-    f('Fase actual',`${cy.run} meses`,`Duración promedio de la expansión: ${cy.avgdur.EXP.toFixed(1)} meses.`)+
-    f('LEI Conference Board · 6m',`${sg(cy.lei_6m,1)}%`,`Previo ${sg(cy.lei_6m_prev,1)}%. Sin señal de recesión.`)+
-    f('Índice coincidente · 6m',`${sg(cy.cei_6m,1)}%`,'La actividad actual sigue creciendo.');
+  const cp=S.cycproj,per=p=>p?' · '+refLab(p):'';
+  $('cycleFacts').innerHTML=f('OECD CLI · '+last.d,cy.vals.at(-1).toFixed(2),`${last.y>=0?'Sube':'Baja'} ${Math.abs(last.y).toFixed(3)} pts/mes. ${cp.acc<0?'El impulso se modera.':'El impulso se acelera.'}`)+
+    f('Fase actual',`${cy.run} meses`,`Duración promedio de la ${PHN[cy.phase].toLowerCase()}: ${cy.avgdur[cy.phase].toFixed(1)} meses.`)+
+    f('LEI Conference Board · 6m',`${sg(cy.lei_6m,1)}%`,cy.lei_6m_prev!=null?`Previo ${sg(cy.lei_6m_prev,1)}%${per(cy.lei_periodo)}.`:`Dato${per(cy.lei_periodo)}.`)+
+    (cy.cei_6m!=null?f('Índice coincidente · 6m',`${sg(cy.cei_6m,1)}%`,`La actividad actual ${cy.cei_6m>=0?'crece':'se contrae'}${per(cy.cei_periodo)}.`):'');
   const cols={EXP:'var(--hot)',DES:'var(--accent)',CON:'var(--cool)',REC:'var(--muted)'};
   $('phases').innerHTML=['EXP','DES','CON','REC'].map(p=>`<div class="ph ${p===cy.phase?'cur':''}"><span>${PHN[p]}${p===cy.phase?' · actual':''}</span><div class="b"><i style="width:${(cy.freq[p]*100/0.35).toFixed(0)}%;background:${cols[p]}"></i></div><span class="t">${pct(cy.freq[p])} · ${cy.avgdur[p].toFixed(1)}m</span></div>`).join('');
-  const cp=S.cycproj,[pp,ppv]=projPhase(),rm=S.regime_mkt,Q=rm.quad[rm.proj];
-  const risk=Q.spx.mean<0?'Risk-off':'Risk-on',usd=S.composite>=0.4?'Long USD':S.composite<=-0.4?'Short USD':(Q.dxy.mean>=0?'Long USD':'Short USD');
+  // Sentimiento, Dólar y Régimen (S.regime_mkt) stay hidden until the market-regime rules are defined (docs/decisions.md).
+  const [pp,ppv]=projPhase();
   const it=(k,v,n)=>`<div><span class="k">${k}</span><b>${v}</b><i>${n}</i></div>`;
-  $('cycProj').innerHTML=it('Proyección',PHN[pp],`${Math.round(ppv*100)}% · 3 meses`)+it('Tiempo',`~${cp.rem_med.toFixed(0)} meses`,`rango ${cp.rem_q[0].toFixed(0)}–${cp.rem_q[1].toFixed(0)}`)+
-    it('Sentimiento',risk,`S&P ${sg(Q.spx.mean)}%/mes`)+it('Dólar',usd,`DXY ${sg(Q.dxy.mean)}%/mes`)+it('Régimen',rm.proj,`actual: ${rm.cur.toLowerCase()}`);
+  $('cycProj').innerHTML=it('Proyección',PHN[pp],`${Math.round(ppv*100)}% · 3 meses`)
+    +(cp.rem_med!=null?it('Tiempo',`~${cp.rem_med.toFixed(0)} meses`,`rango ${cp.rem_q[0].toFixed(0)}–${cp.rem_q[1].toFixed(0)}`):'');
 }
 
 // ---------- Catalizador ----------
@@ -1878,7 +1879,7 @@ function freshSources(){
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
-    ciclo:man,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man};
+    ciclo:mac,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man};
 }
 function freshBadges(){
   for(const [id,f] of Object.entries(freshSources())){

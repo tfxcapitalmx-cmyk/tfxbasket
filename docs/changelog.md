@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-24 — Ciclo automático
+- Fases, reloj, frecuencias y proyección del ciclo se recalculan cada día desde el OECD CLI (FRED) con el proceso del puntaje.
+- `data/manual.json` incorpora `lei_6m.previo` y `cei_6m` (índice coincidente).
+- Ocultos Sentimiento, Dólar y Régimen de mercado (Ciclo y Resumen) hasta definir sus reglas.
+
 ## 2026-10-24 — Gráficos automático
 - 25 series mensuales de Gráficos se actualizan con el proceso diario del puntaje (`data/charts.json`); el estado actual sale del puntaje; la proyección queda oculta.
 - Corregido el orden de fechas del ISM manufactura (1950-05).

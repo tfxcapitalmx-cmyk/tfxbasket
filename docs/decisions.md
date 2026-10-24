@@ -9,6 +9,9 @@ La terminal era un único HTML con datos embebidos. Se separó en archivos está
 ## 2026-10-24 — Scripts de datos en JavaScript (Node), no Python
 La PC del propietario no tiene Python ni Node; los scripts corren en GitHub Actions. JavaScript permite probar el cálculo (`core.mjs`) en el navegador antes de publicar y usa el mismo lenguaje que la terminal. Para los modelos estadísticos pesados (ARIMA/GARCH) se reevaluará Python en Actions cuando se reconstruyan.
 
+## 2026-10-24 — Ciclo: proyección automática, régimen de mercado oculto
+La proyección del ciclo solo usa la regla de fases OCDE (objetiva) y frecuencias históricas; se reprodujo exactamente, así que se automatiza. El régimen de mercado (Reflación, Estanflación…) y sus lecturas de S&P/DXY dependen de umbrales de crecimiento e inflación no documentados y de precios con licencia: se ocultan hasta definirlos. Los textos fijos del módulo ("Sin señal de recesión", "sigue creciendo") se sustituyeron por frases que dependen del dato.
+
 ## 2026-10-24 — Gráficos: proyección oculta hasta definir reglas
 El "Estado proyectado" se calculó en chats anteriores con bandas por indicador que solo están documentadas para las 16 series del puntaje. Por decisión del propietario se automatizan las series y el estado actual, y la proyección queda oculta. Las 9 series sin bandas muestran "Sin regla definida". Fed funds mensual pasa a ser el promedio oficial (FEDFUNDS) en los meses cerrados: corrige algunos valores antiguos (p. ej. sep-2024 5.21 → 5.13).
 

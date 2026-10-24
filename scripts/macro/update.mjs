@@ -3,6 +3,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { SERIES, buildMacro, rollHistory, validateMacro, validateManual, fromApi } from './core.mjs';
 import { CHART_SERIES, computeCharts, mergeCharts, validateCharts } from './charts.mjs';
+import { buildCycle, validateCycle } from './cycle.mjs';
 
 const OUT = new URL('../../data/macro.json', import.meta.url);
 const CHARTS = new URL('../../data/charts.json', import.meta.url);
@@ -43,6 +44,12 @@ async function main() {
   const problems = validateMacro(next);
   if (problems.length) { console.error('Validación fallida; se conserva el archivo anterior:\n- ' + problems.join('\n- ')); process.exit(1); }
   next.hist = rollHistory(prev.hist, prev, today);
+
+  // Ciclo: OECD CLI phases → D.snap.cycle and D.snap.cycproj.
+  const cyc = buildCycle(obs.USALOLITOAASTSAM, man);
+  const cycErr = validateCycle(cyc);
+  if (cycErr.length) { console.error('Ciclo: validación fallida; se conserva el archivo anterior:\n- ' + cycErr.join('\n- ')); process.exit(1); }
+  Object.assign(next, cyc);
 
   // Gráficos: same observations, merged onto the stored history; its state comes from the scorecard rows.
   const prevCharts = JSON.parse(await readFile(CHARTS, 'utf8'));
