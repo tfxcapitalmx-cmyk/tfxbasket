@@ -1,22 +1,19 @@
+# Static site, no build step. Data files are refreshed by commits, so they must revalidate on every visit.
 [build]
   publish = "."
-  functions = "netlify/functions"
 
-[functions]
-  node_bundler = "esbuild"
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-[functions."claude-proxy"]
-  timeout = 30
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-[functions."sentiment-proxy"]
-  timeout = 26
-
-[[redirects]]
-  from = "/api/claude"
-  to   = "/.netlify/functions/claude-proxy"
-  status = 200
-
-[[redirects]]
-  from = "/api/sentiment"
-  to   = "/.netlify/functions/sentiment-proxy"
-  status = 200
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
