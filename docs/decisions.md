@@ -9,7 +9,10 @@ La terminal era un único HTML con datos embebidos. Se separó en archivos está
 ## 2026-10-24 — Scripts de datos en JavaScript (Node), no Python
 La PC del propietario no tiene Python ni Node; los scripts corren en GitHub Actions. JavaScript permite probar el cálculo (`core.mjs`) en el navegador antes de publicar y usa el mismo lenguaje que la terminal. Para los modelos estadísticos pesados (ARIMA/GARCH) se reevaluará Python en Actions cuando se reconstruyan.
 
-## 2026-10-24 — Puntaje macro: supuestos pendientes de confirmar por el propietario
+## 2026-10-24 — Carry: BIS en lugar de una API por banco
+El BIS publica las tasas oficiales de los ocho bancos en un solo dataset gratuito y redistribuible. Una API por banco (BoC Valet, SNB, RBA, RBNZ, BoE, BoJ) daría el dato el mismo día, pero son siete integraciones con formatos distintos que mantener. El retraso de 2–7 días se cubre con el override manual en `data/manual.json`. Los precios del BCE reemplazan a los del bróker: son oficiales y diarios; la diferencia (≤ 0.3 %) no afecta al carry por lote.
+
+## 2026-10-24 — Puntaje macro: reglas reconstruidas (confirmadas por el propietario el 2026-10-24)
 Reglas que no estaban escritas en la terminal ni en el libro A.E. y se reconstruyeron con los umbrales conocidos:
 - **Permisos de construcción → PIB implícito** = (permisos − 900) / 200, sin redondeo. Reproduce los umbrales publicados (estable 1,100–1,299k; calienta ≥ 1,300k) y extiende: +2 desde 1,500k, −1 entre 900 y 1,099k, −2 bajo 900k.
 - **UST 2Y/10Y cambio 6m**: ≤ −0.50 −2 · −0.50/−0.25 −1 · ±0.25 0 · +0.25/+0.50 +1 · ≥ +0.50 +2 (umbrales publicados: estable ±0.25, calienta ≥ +0.25).

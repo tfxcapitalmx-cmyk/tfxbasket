@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-24 — Carry automático
+- Nuevo pipeline `scripts/carry/` + `.github/workflows/carry.yml`: tasas del BIS y FRED, precios del BCE, próxima reunión desde `data/cb-calendar.json` → `data/carry.json`. Sustituye a CB.watch y a los precios del bróker.
+- `data/manual.json` admite `tasas` para reflejar una decisión antes que el BIS.
+- Corregidos 3 textos con caracteres mal codificados introducidos en la Etapa 1 (mensaje de error de carga y aviso del lector de Excel).
+
 ## 2026-10-24 — Puntaje macro automático (FRED)
 - Nuevo pipeline `scripts/macro/` + `.github/workflows/macro.yml`: 16 series de FRED + `data/manual.json` (ISM, LEI, UMich preliminar) → `data/macro.json`, dos veces por día hábil y al editar la captura manual.
 - Resumen y Cuantitativo leen `data/macro.json`. Verificado: al 16-oct reproduce exactamente los 19 puntajes y el compuesto +0.93.

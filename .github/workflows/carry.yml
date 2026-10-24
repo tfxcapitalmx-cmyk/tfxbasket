@@ -1,0 +1,40 @@
+# Refreshes data/carry.json (policy rates, next meetings, carry per pair).
+name: Carry (tasas y precios)
+
+on:
+  schedule:
+    - cron: '0 16 * * 1-5'  # tras los tipos de referencia del BCE (14:15 CET)
+  push:
+    branches: [main]
+    paths: ['data/cb-calendar.json', 'data/manual.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-carry
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Descargar, calcular y validar
+        run: node scripts/carry/update.mjs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      - name: Publicar si hay cambios
+        run: |
+          if git diff --quiet -- data/carry.json; then echo "Sin cambios"; exit 0; fi
+          git config user.name "tfx-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/carry.json
+          git commit -m "datos: carry $(node -p "require('./data/carry.json').asof")"
+          git pull --rebase
+          git push

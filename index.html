@@ -405,17 +405,18 @@ mq.addEventListener('change',sync);sync();})();
 <script>
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
 (function(){
-  const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' â†’ HTTP '+r.status);return r.json();});
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json')]).then(([snap,mkt,cot,macro])=>{
+  const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json')]).then(([snap,mkt,cot,macro,carry])=>{
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     Object.assign(snap.snap,macro);   // scorecard fields, refreshed daily by .github/workflows/macro.yml
+    snap.snap.carry=carry;   // policy rates and carry, refreshed daily by .github/workflows/carry.yml
     window.D=snap;window.MKT_ENC=mkt;
     const s=document.createElement('script');s.src='assets/app.js';document.body.appendChild(s);
   }).catch(err=>{
     console.error(err);
     const m=document.createElement('div');m.className='panel';m.setAttribute('role','alert');
     m.style.cssText='margin:24px auto;max-width:720px';
-    m.textContent='No se pudieron cargar los datos de la terminal. Recarga la pÃ¡gina; si persiste, avisa al administrador. ('+err.message+')';
+    m.textContent='No se pudieron cargar los datos de la terminal. Recarga la página; si persiste, avisa al administrador. ('+err.message+')';
     document.querySelector('main').prepend(m);
   });
 })();

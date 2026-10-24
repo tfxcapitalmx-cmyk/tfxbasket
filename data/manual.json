@@ -4,5 +4,7 @@
   "nmi": { "periodo": "2026-09", "valor": 54.9, "fuente": "ISM Services PMI" },
   "lei_6m": { "periodo": "2026-08", "valor": -0.1, "fuente": "The Conference Board LEI, variación 6 meses (%)" },
   "umcsi": { "periodo": "2026-10", "valor": 46.3, "preliminar": true, "fuente": "Universidad de Michigan" },
-  "mich": { "periodo": "2026-10", "valor": 4.7, "preliminar": true, "fuente": "Universidad de Michigan, expectativa 1 año (%)" }
+  "mich": { "periodo": "2026-10", "valor": 4.7, "preliminar": true, "fuente": "Universidad de Michigan, expectativa 1 año (%)" },
+  "_tasas": "Opcional. El BIS publica las tasas de política con unos días de retraso. Para reflejar una decisión el mismo día, agrega la moneda con la nueva tasa y la fecha en que entra en vigor, por ejemplo \"EUR\": { \"tasa\": 2.75, \"desde\": \"2026-10-30\" }. Solo se usa si es más reciente que el último cambio del BIS, así que no hace falta borrarla después. USD se toma siempre de FRED.",
+  "tasas": {}
 }

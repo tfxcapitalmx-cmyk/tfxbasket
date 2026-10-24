@@ -1762,7 +1762,7 @@ const MK=(function(){
     if(!file)return;
     up=Object.assign({},up,{pending:null,msg:'Leyendo '+file.name+'…',warn:false});renderDatos();
     const rd=new FileReader(),isX=/\.xlsx?$/i.test(file.name);
-    if(isX&&!ensureXLSX()){loadXLSX().then(ok=>{if(ok)handleFile(file);else{up=Object.assign({},up,{msg:'No cargÃ³ el lector de Excel. Guarda el archivo como CSV y sÃºbelo de nuevo.',warn:true});renderDatos();}});return;}
+    if(isX&&!ensureXLSX()){loadXLSX().then(ok=>{if(ok)handleFile(file);else{up=Object.assign({},up,{msg:'No cargó el lector de Excel. Guarda el archivo como CSV y súbelo de nuevo.',warn:true});renderDatos();}});return;}
     rd.onerror=()=>{up=Object.assign({},up,{msg:'No se pudo leer el archivo. Vuelve a intentarlo.',warn:true});renderDatos();};
     rd.onload=()=>{
       let rows=null;

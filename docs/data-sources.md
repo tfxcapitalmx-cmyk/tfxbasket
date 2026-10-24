@@ -13,7 +13,9 @@ Estado al 2026-10-24. "Automatizable" = API oficial con uso comercial razonable;
 | UMich sentimiento y expectativa de inflación | FRED / Libro | — | Copyright Univ. de Michigan | No sin licencia |
 | LEI Conference Board | Manual | — | Propietario, de pago | No sin licencia |
 | COT Leveraged Funds, Asset Managers, no reportables | **CFTC Socrata API (TFF), automático** | — | Dominio público | **Hecho** (2026-10-24) |
-| Tasas de bancos centrales | BCE, BoJ, BoC, "TFX", CB.watch | APIs/feeds oficiales de cada banco | Oficiales: sí; CB.watch: no | Sí (oficiales) |
+| Tasas de bancos centrales | **BIS WS_CBPOL + FRED (Fed), automático** | — | Oficiales (reemplaza a CB.watch) | **Hecho** (2026-10-24) |
+| Próximas reuniones de bancos centrales | Manual (`data/cb-calendar.json`) | API de calendario con licencia (Etapa 4) | Fechas públicas | Parcial |
+| Precios FX para carry | **BCE tipos de referencia, automático** | — | Reutilización permitida con atribución | **Hecho** (2026-10-24) |
 | Calendario y consenso | Manual (consenso en 9 de 48 eventos) | Calendarios oficiales; consenso de proveedor con licencia | El consenso no es gratuito | Parcial |
 | Velas FX, índices, metales, VIX | Broker / Investing.com (manual) | Proveedor con licencia comercial | Sin derecho de redistribución | Requiere contratar |
 | S&P 500 | Investing.com export | Proveedor con licencia | Igual que arriba | Requiere contratar |

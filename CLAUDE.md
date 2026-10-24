@@ -18,7 +18,11 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `assets/app.css`, `assets/app.js` — estilos y lógica (JS sin framework, Chart.js 4.4.1 desde cdnjs).
 - `data/snapshot.json` — objeto `D` (`snap` + `series`), manual; `data/markets.json` — velas codificadas `MKT_ENC`, manual.
 - `data/macro.json` — automático (FRED + `data/manual.json`), se superpone a `D.snap` (rows, blocks, composite, hist…). Lo generan `scripts/macro/` y `.github/workflows/macro.yml`.
-- `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI, UMich preliminar).
+- `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI, UMich preliminar, `tasas` para decisiones recientes).
+- `data/carry.json` — automático (BIS + FRED + BCE) → `D.snap.carry`; `scripts/carry/`, `.github/workflows/carry.yml`.
+- `data/cb-calendar.json` — fechas de reuniones de bancos centrales, las mantiene el propietario.
+- Los valores de `data/snapshot.json` para `pos`, el puntaje y `carry` quedan sobrescritos por los archivos automáticos.
+- Ojo con PowerShell 5.1: lee los `.ps1` sin BOM como ANSI; no poner texto no ASCII en scripts `.ps1` que escriban archivos del sitio.
 - `.cache/` (ignorado por git) — CSV de FRED para pruebas locales sin clave.
 - `data/cot.json` — automático (se inyecta como `D.snap.pos`). Lo generan `scripts/cot/` y `.github/workflows/cot.yml`; patrón en `docs/data-pipeline.md`.
 - Scripts de datos en JavaScript (Node 20 en Actions). `core.mjs` es puro y se prueba importándolo en el navegador contra el servidor local.

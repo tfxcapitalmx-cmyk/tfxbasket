@@ -14,8 +14,8 @@ Aceptación: el sitio publicado desde el repo se ve igual que hoy.
 
 ## Etapa 2 — Automated Macro Data
 1. [x] COT (CFTC) — patrón de referencia (`docs/data-pipeline.md`). Falta activarlo: fusionar a `main` y conectar Netlify.
-2. [x] Series FRED del puntaje (Resumen + Cuantitativo). Pendiente: confirmar supuestos de `docs/decisions.md`; tarjetas informativas (componentes ISM, ADP, PIB) y módulo Gráficos siguen manuales.
-3. Tasas de bancos centrales oficiales.
+2. [x] Series FRED del puntaje (Resumen + Cuantitativo). Supuestos confirmados. Tarjetas informativas (componentes ISM, ADP, PIB) y módulo Gráficos siguen manuales.
+3. [x] Tasas de bancos centrales oficiales (Carry). Próximas reuniones: calendario manual.
 4. Indicador visual de antigüedad por panel y alertas por fallo persistente.
 
 Aceptación: 7 días sin intervención manual en las fuentes automatizadas.
