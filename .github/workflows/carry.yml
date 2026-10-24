@@ -1,12 +1,12 @@
-# Refreshes data/carry.json (policy rates, next meetings, carry per pair).
-name: Carry (tasas y precios)
+# Refreshes data/carry.json (policy rates and swap direction per pair).
+name: Carry (dirección del swap)
 
 on:
   schedule:
-    - cron: '0 16 * * 1-5'  # tras los tipos de referencia del BCE (14:15 CET)
+    - cron: '0 16 * * 1-5'
   push:
     branches: [main]
-    paths: ['data/cb-calendar.json', 'data/manual.json']
+    paths: ['data/manual.json']
   workflow_dispatch:
 
 permissions:
@@ -35,6 +35,6 @@ jobs:
           git config user.name "tfx-data-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/carry.json
-          git commit -m "datos: carry $(node -p "require('./data/carry.json').asof")"
+          git commit -m "datos: carry $(node -p "require('./data/carry.json').datos")"
           git pull --rebase
           git push

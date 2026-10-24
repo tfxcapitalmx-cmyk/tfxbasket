@@ -13,10 +13,10 @@
 Aceptación: el sitio publicado desde el repo se ve igual que hoy.
 
 ## Etapa 2 — Automated Macro Data
-1. [x] COT (CFTC) — patrón de referencia (`docs/data-pipeline.md`). Falta activarlo: fusionar a `main` y conectar Netlify.
+1. [x] COT (CFTC) — patrón de referencia (`docs/data-pipeline.md`). Activo en `main` y en tfxterminal.netlify.app; falta conectar el sitio de producción en Netlify.
 2. [x] Series FRED del puntaje (Resumen + Cuantitativo). Supuestos confirmados. Tarjetas informativas (componentes ISM, ADP, PIB) y módulo Gráficos siguen manuales.
-3. [x] Tasas de bancos centrales oficiales (Carry). Próximas reuniones: calendario manual.
-4. Indicador visual de antigüedad por panel y alertas por fallo persistente.
+3. [x] Tasas de bancos centrales oficiales (Carry: dirección del swap de 28 pares).
+4. [x] Indicador de antigüedad en cada panel (automático/manual, fecha, aviso si está atrasado). Los fallos de los procesos automáticos llegan por correo de GitHub.
 
 Aceptación: 7 días sin intervención manual en las fuentes automatizadas.
 

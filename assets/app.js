@@ -41,7 +41,6 @@ function ideaCond(){
   return {lab:'Selectiva',cls:'fl',br};
 }
 function renderSummary(){
-  $('stamp').textContent='Datos al '+S.asof;
   const c=S.composite,pos=((c+2)/4*100).toFixed(1),sb=S.sub;
   $('regime').innerHTML=`<span class="k">Régimen de política monetaria</span>
     <div class="big">${regime(c)}</div><span class="num">Puntaje compuesto ${sg(c)} de ±2</span>
@@ -1180,49 +1179,19 @@ function renderVol(){
 }
 // ---------- Carry ----------
 let vlC;
-let cy=Object.assign({f:'tfx',s:'dif',g7:'all'},store.get('cy',{}));
 function renderCarry(){
-  const C=S.carry;if(!C){$('cyPairs').innerHTML='';return;}
-  const sv=()=>store.set('cy',cy);
+  const C=S.carry;if(!C||!C.pairs){$('cyPairs').innerHTML='';return;}
   const f2=x=>x.toFixed(2);
-  const dt=s=>s?s.split('-').reverse().join('-'):'—';
-  const hi=C.rank[0],lo=C.rank[C.rank.length-1];
-  const top=C.pairs[0];
-  $('cyKpis').innerHTML=
-     fact('Tasa más alta',`${hi.ccy} ${f2(hi.tasa)}%`,`${sg(hi.vsfed)} pp frente a la Fed`)
-    +fact('Tasa más baja',`${lo.ccy} ${f2(lo.tasa)}%`,`${sg(lo.vsfed)} pp frente a la Fed`)
-    +fact('Mayor diferencial',top.p,`${sg(top.diff)} pp · swap positivo a la ${top.dir}`)
-    +fact('Fed',`${f2(C.fed)}%`,`Referencia · tasa efectiva`);
-
-  chipset($('fCyG7'),[{id:'all',label:'Todas'},{id:'g7',label:'Solo G7'}],cy.g7,id=>{cy.g7=id;sv();renderCarry();},'chip sm');
-  const banks=C.cb.filter(b=>cy.g7==='all'||b.g7);
-  const mx=Math.max(...C.cb.map(b=>b.tasa))||1;
-  $('cyBanks').innerHTML=`<thead><tr><th>Moneda</th><th>Banco central</th><th class="num">Tasa</th><th>Nivel</th><th class="num">vs Fed</th><th class="num">Cambio</th><th class="num">Próxima</th><th class="num">Fuente</th></tr></thead><tbody>`+
-    banks.map(b=>`<tr${b.ccy==='USD'?' class="here"':''}><td><b>${b.ccy}</b>${b.g7?'<span class="cytag g7">G7</span>':'<span class="cytag">G10</span>'}<span class="sub">${b.pais}</span></td>
-      <td>${b.banco}</td><td class="num"><span class="cyr">${f2(b.tasa)}%</span><span class="sub">${b.lab}</span></td>
-      <td><span class="cybar" style="width:${(b.tasa/mx*90).toFixed(0)}px;background:${b.ccy==='USD'?'var(--accent)':'var(--muted)'}"></span></td>
-      <td class="num ${b.vsfed>0?'hot':b.vsfed<0?'cold':''}">${b.ccy==='USD'?'—':sg(b.vsfed)+' pp'}</td>
-      <td class="num">${dt(b.desde)}</td><td class="num">${dt(b.prox)}</td><td class="num"><span class="sub">${b.src}</span></td></tr>`).join('')+'</tbody>';
-  $('cyG7').textContent=C.g7note;
-
-  chipset($('fCy'),[{id:'tfx',label:'Libro DoR TFX'},{id:'all',label:'Todos los cruces'},{id:'buy',label:'Swap + al comprar'},{id:'sell',label:'Swap + al vender'}],cy.f,id=>{cy.f=id;sv();renderCarry();});
-  chipset($('fCySort'),[{id:'dif',label:'Por diferencial'},{id:'usd',label:'Por USD al día'}],cy.s,id=>{cy.s=id;sv();renderCarry();},'chip sm');
-  let L=C.pairs.filter(x=>cy.f==='all'?true:cy.f==='tfx'?x.tfx:cy.f==='buy'?x.diff>0:x.diff<0);
-  L=L.slice().sort((a,b)=>cy.s==='usd'?b.day-a.day:Math.abs(b.diff)-Math.abs(a.diff));
-  const md=Math.max(...L.map(x=>Math.abs(x.diff)))||1;
-  $('cyPairs').innerHTML=`<thead><tr><th>Par</th><th class="num">Tasa base</th><th class="num">Tasa cotizada</th><th class="num">Diferencial</th><th>Magnitud</th><th>Swap positivo</th><th class="num">USD/día por lote</th><th class="num">Precio</th></tr></thead><tbody>`+
-    (L.length?L.map(x=>{const d=x.diff>0?'buy':x.diff<0?'sell':'none';
-      return `<tr${x.tfx?' class="own"':''}><td><b>${x.p}</b><span class="sub">${x.base} / ${x.quote}</span></td>
-        <td class="num">${f2(x.rb)}%</td><td class="num">${f2(x.rq)}%</td>
-        <td class="num ${x.diff>0?'gain':x.diff<0?'loss':''}"><b>${sg(x.diff)} pp</b></td>
-        <td><span class="cybar" style="width:${(Math.abs(x.diff)/md*84).toFixed(0)}px;background:${x.diff>0?'var(--gain)':'var(--loss)'}"></span></td>
-        <td><span class="cydir ${d}">${x.diff>0?'Comprar':x.diff<0?'Vender':'Ninguna'}</span></td>
-        <td class="num">${x.diff===0?'—':'$'+x.day.toFixed(2)}</td><td class="num">${x.px}</td></tr>`;}).join('')
-     :'<tr><td colspan="8">Sin pares con este filtro.</td></tr>')+'</tbody>';
-  $('cyNote').innerHTML=`<b>Cómo leerla.</b> Si la tasa de la moneda base supera a la de la cotizada, el swap es positivo al <b>comprar</b>; si manda la cotizada, es positivo al <b>vender</b>. `
-    +`El importe es el carry <b>bruto</b> de un lote estándar: 100,000 unidades de la base × diferencial ÷ 360, convertido a dólares con precios del ${C.pxdate}. `
-    +`<b>No es el swap de tu bróker.</b> INFINOX, FxPro y FTMO aplican margen sobre el diferencial, así que el cobro real es peor en los dos sentidos y un diferencial pequeño puede pagar negativo tanto en largo como en corto: confirma la tabla de swaps del símbolo antes de dimensionar. `
-    +`Los miércoles se cobra triple por el valor del fin de semana. El carry es un filtro entre ideas, nunca el motivo de la entrada: si el precio va en tu contra, la pérdida supera cualquier interés acumulado en un swing de 1 a 14 días.`;
+  const grp=g=>C.pairs.filter(x=>x.grupo===g).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+  const row=x=>{const d=x.diff>0?'buy':x.diff<0?'sell':'none';
+    return `<tr><td><b>${x.p}</b><span class="sub">${x.base} / ${x.quote}</span></td>
+      <td class="num">${f2(x.rb)}%</td><td class="num">${f2(x.rq)}%</td>
+      <td class="num ${x.diff>0?'gain':x.diff<0?'loss':''}"><b>${sg(x.diff)} pp</b></td>
+      <td><span class="cydir ${d}">${x.diff>0?'Comprar':x.diff<0?'Vender':'Ninguna'}</span></td></tr>`;};
+  const sec=(lab,L)=>`<tr class="grp"><td colspan="5">${lab}</td></tr>`+L.map(row).join('');
+  $('cyPairs').innerHTML=`<thead><tr><th>Par</th><th class="num">Tasa base</th><th class="num">Tasa cotizada</th><th class="num">Diferencial</th><th>Swap positivo</th></tr></thead><tbody>`
+    +sec('Mayores · contra el dólar',grp('Mayor'))+sec('Menores · cruces',grp('Menor'))+'</tbody>';
+  $('cyNote').innerHTML=`<b>Cómo leerla.</b> Si la tasa de política de la moneda base supera a la de la cotizada, el swap es positivo al <b>comprar</b>; si manda la cotizada, al <b>vender</b>. Es el diferencial bruto entre bancos centrales: tu bróker aplica margen, y un diferencial pequeño puede cobrar negativo en ambos sentidos. Confirma la tabla de swaps del símbolo antes de dimensionar.`;
 }
 // ---------- Mesa de Volatilidad ----------
 /* ============================================================
@@ -1893,7 +1862,35 @@ function wireNav(){
   totop.onclick=()=>window.scrollTo({top:0});
   document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();p.style.setProperty('--mx',(e.clientX-r.left)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
 }
+// ---------- Antigüedad de los datos ----------
+// Every panel says whether its data updates itself or is loaded by hand, and how old it is.
+const FMES={ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+function freshDate(s){
+  let m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');if(m)return Date.UTC(+m[1],+m[2]-1,+m[3]);
+  m=/^(\d{1,2})-([a-z]{3})-(\d{4})$/.exec(s||'');return m&&FMES[m[2]]!=null?Date.UTC(+m[3],FMES[m[2]],+m[1]):null;
+}
+const freshLab=t=>{const d=new Date(t);return `${String(d.getUTCDate()).padStart(2,'0')}-${Object.keys(FMES)[d.getUTCMonth()]}-${d.getUTCFullYear()}`;};
+// max = days after which the panel is flagged (weekends, holidays and each source's publication lag included).
+function freshSources(){
+  const mac={auto:true,src:'FRED',date:S.asof_iso,max:5},man={auto:false,date:S.asof_manual,max:7};
+  return {resumen:mac,cuantitativo:mac,
+    posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
+    carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
+    ciclo:man,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man,graficos:man};
+}
+function freshBadges(){
+  for(const [id,f] of Object.entries(freshSources())){
+    const sh=document.querySelector(`#${id} > .sh`);if(!sh)continue;
+    let b=sh.querySelector('.fresh');if(!b){b=document.createElement('span');sh.appendChild(b);}
+    const t=freshDate(f.date),age=t==null?null:Math.floor((Date.now()-t)/864e5),old=age==null||age>f.max;
+    const when=t==null?'sin fecha':`${f.lab||'datos al'} ${freshLab(t)}`;
+    b.className='fresh '+(f.auto?(old?'old':'ok'):(old?'manold':'man'));
+    b.innerHTML=`<i></i>${f.auto?(old?'Sin actualizar':'Automático · '+f.src):'Manual'} · ${when}${old&&age!=null?` · hace ${age} días`:''}`;
+    b.title=f.auto?(old?`La actualización automática desde ${f.src} no trae datos nuevos desde hace ${age} días. Se muestra el último dato válido.`:`Se actualiza solo desde ${f.src}.`)
+      :`Estos datos se cargan a mano.${old?` Tienen más de ${f.max} días.`:''}`;
+  }
+}
 function renderAll(){show(view||(location.hash||'').slice(1)||store.get('view','resumen'),false);}
-renderAll();wireNav();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
+renderAll();wireNav();freshBadges();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderAll);
 new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});

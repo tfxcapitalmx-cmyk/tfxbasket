@@ -10,7 +10,7 @@ La terminal era un único HTML con datos embebidos. Se separó en archivos está
 La PC del propietario no tiene Python ni Node; los scripts corren en GitHub Actions. JavaScript permite probar el cálculo (`core.mjs`) en el navegador antes de publicar y usa el mismo lenguaje que la terminal. Para los modelos estadísticos pesados (ARIMA/GARCH) se reevaluará Python en Actions cuando se reconstruyan.
 
 ## 2026-10-24 — Carry: BIS en lugar de una API por banco
-El BIS publica las tasas oficiales de los ocho bancos en un solo dataset gratuito y redistribuible. Una API por banco (BoC Valet, SNB, RBA, RBNZ, BoE, BoJ) daría el dato el mismo día, pero son siete integraciones con formatos distintos que mantener. El retraso de 2–7 días se cubre con el override manual en `data/manual.json`. Los precios del BCE reemplazan a los del bróker: son oficiales y diarios; la diferencia (≤ 0.3 %) no afecta al carry por lote.
+El BIS publica las tasas oficiales de los ocho bancos en un solo dataset gratuito y redistribuible. Una API por banco (BoC Valet, SNB, RBA, RBNZ, BoE, BoJ) daría el dato el mismo día, pero son siete integraciones con formatos distintos que mantener. El retraso de 2–7 días se cubre con el override manual en `data/manual.json`. El mismo día el propietario pidió reducir Carry a la tabla de pares con la dirección del swap: se quitaron próximas reuniones (no hay fuente gratuita), precios y carry en USD.
 
 ## 2026-10-24 — Puntaje macro: reglas reconstruidas (confirmadas por el propietario el 2026-10-24)
 Reglas que no estaban escritas en la terminal ni en el libro A.E. y se reconstruyeron con los umbrales conocidos:

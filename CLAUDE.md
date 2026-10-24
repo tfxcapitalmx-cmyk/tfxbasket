@@ -19,8 +19,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `data/snapshot.json` — objeto `D` (`snap` + `series`), manual; `data/markets.json` — velas codificadas `MKT_ENC`, manual.
 - `data/macro.json` — automático (FRED + `data/manual.json`), se superpone a `D.snap` (rows, blocks, composite, hist…). Lo generan `scripts/macro/` y `.github/workflows/macro.yml`.
 - `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI, UMich preliminar, `tasas` para decisiones recientes).
-- `data/carry.json` — automático (BIS + FRED + BCE) → `D.snap.carry`; `scripts/carry/`, `.github/workflows/carry.yml`.
-- `data/cb-calendar.json` — fechas de reuniones de bancos centrales, las mantiene el propietario.
+- `data/carry.json` — automático (BIS + FRED) → `D.snap.carry`, solo pares y dirección del swap; `scripts/carry/`, `.github/workflows/carry.yml`.
 - Los valores de `data/snapshot.json` para `pos`, el puntaje y `carry` quedan sobrescritos por los archivos automáticos.
 - Ojo con PowerShell 5.1: lee los `.ps1` sin BOM como ANSI; no poner texto no ASCII en scripts `.ps1` que escriban archivos del sitio.
 - `.cache/` (ignorado por git) — CSV de FRED para pruebas locales sin clave.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-24 — Carry simplificado e indicador de antigüedad
+- Carry muestra solo los 28 pares (7 mayores y 21 menores) con tasas, diferencial y dirección del swap positivo. Se eliminaron próximas reuniones (`data/cb-calendar.json`), precios del BCE y carry en USD/día.
+- Cada módulo muestra en su encabezado si sus datos son automáticos (fuente y fecha; rojo si el proceso lleva días sin datos nuevos) o manuales (fecha de carga; resaltado tras 7 días).
+
 ## 2026-10-24 — Carry automático
 - Nuevo pipeline `scripts/carry/` + `.github/workflows/carry.yml`: tasas del BIS y FRED, precios del BCE, próxima reunión desde `data/cb-calendar.json` → `data/carry.json`. Sustituye a CB.watch y a los precios del bróker.
 - `data/manual.json` admite `tasas` para reflejar una decisión antes que el BIS.

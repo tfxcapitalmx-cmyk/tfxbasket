@@ -50,19 +50,17 @@ Reproducción verificada (2026-10-24): con los datos recortados al 16-oct, los 1
 2. Cambiar `periodo` y `valor` del dato publicado (ISM el 1.er y 3.er día hábil del mes; LEI a mediados de mes).
 3. "Commit changes". En 1–2 minutos el proceso recalcula y publica; si el dato es inválido, falla sin publicar y llega un correo.
 
-## Carry (tasas de política y precios)
+## Carry (dirección del swap)
 
 | | |
 |---|---|
-| Alimenta | Módulo Carry (`data/carry.json` → `D.snap.carry`) |
+| Alimenta | Módulo Carry: los 28 pares mayores y menores con la dirección del swap (`data/carry.json` → `D.snap.carry`) |
 | Tasas | BIS `WS_CBPOL` (oficial, gratis, los 7 bancos no estadounidenses en una consulta). Fed: FRED DFF (efectiva) y DFEDTARL/DFEDTARU (rango) |
 | Override | `data/manual.json` → `tasas`: una tasa con fecha de vigor más reciente que el último cambio del BIS lo sustituye (el BIS publica con 2–7 días de retraso) |
-| Próxima reunión | `data/cb-calendar.json`, mantenido por el propietario; primera fecha ≥ hoy, o "—" con aviso en el log |
-| Precios | BCE, tipos de referencia diarios, cruzados vía EUR. Difieren del bróker en ≤ 0.3 %; sirven para el carry en USD/día, no para operar |
-| Calendario | Lunes a viernes 16:00 UTC y al editar `cb-calendar.json` o `manual.json` |
-| Validación | Tasas en −2…30 %, BIS con dato en los últimos 21 días, BCE en los últimos 7, 28 pares con precio |
+| Calendario | Lunes a viernes 16:00 UTC y al editar `manual.json` |
+| Validación | Tasas en −2…30 %, cada banco con dato en los últimos 21 días, 28 pares |
 
-Reproducción verificada (2026-10-24): al 16-oct coinciden tasas, diferencia con la Fed, ranking, orden de los 28 pares, diferenciales y dirección del swap. "Cambio" ahora es la fecha de entrada en vigor según el BIS (antes vacía en 5 bancos; en BoJ y BoC difiere 1–6 días de la fecha de decisión).
+Reproducción verificada (2026-10-24): al 16-oct coinciden las tasas, los diferenciales y la dirección del swap de los 28 pares. Por decisión del propietario el módulo solo muestra la tabla de pares (sin próximas reuniones, precios ni carry en USD).
 
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.
