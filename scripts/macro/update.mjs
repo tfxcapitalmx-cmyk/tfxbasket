@@ -11,8 +11,11 @@ const MANUAL = new URL('../../data/manual.json', import.meta.url);
 const KEY = process.env.FRED_API_KEY;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// The cycle statistics use the whole OECD CLI history since 1955; everything else needs only recent years.
+const START = { USALOLITOAASTSAM: '1955-01-01' };
+
 async function fred(id, tries = 3) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${KEY}&file_type=json&observation_start=2000-01-01`;
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${KEY}&file_type=json&observation_start=${START[id] || '2000-01-01'}`;
   let last;
   for (let i = 0; i < tries; i++) {
     try {
