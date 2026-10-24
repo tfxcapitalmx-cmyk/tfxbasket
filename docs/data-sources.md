@@ -4,7 +4,8 @@ Estado al 2026-10-24. "Automatizable" = API oficial con uso comercial razonable;
 
 | Dato en la terminal | Fuente actual | Fuente objetivo | Licencia / riesgo | Automatizable |
 |---|---|---|---|---|
-| CPI, Core CPI, PPI, Core PPI, desempleo, solicitudes, UST 2Y/10Y, curva 10Y–2Y, breakeven 5Y, WTI, M2, Fed funds, ventas minoristas, permisos | FRED (manual) | FRED API (clave gratuita) | BLS/BEA/Fed/Tesoro son dominio público; revisar notas de copyright por serie | Sí |
+| CPI, Core CPI, Core PPI, desempleo, solicitudes, NFP, UST 2Y/10Y, breakeven 5Y, WTI, M2, Fed funds, permisos, OECD CLI (puntaje) | **FRED API, automático** | — | BLS/BEA/Fed/Tesoro son dominio público; revisar notas de copyright por serie | **Hecho** (2026-10-24) |
+| Curva completa, ventas minoristas, gráficos históricos | FRED (manual) | FRED API | Igual | Sí |
 | NFP | Libro A.E. TFX | FRED `PAYEMS` | Dominio público (BLS) | Sí |
 | PIB real | Libro A.E. TFX | FRED / BEA API | Dominio público | Sí |
 | OECD CLI | FRED | OECD SDMX API | Uso con atribución | Sí |

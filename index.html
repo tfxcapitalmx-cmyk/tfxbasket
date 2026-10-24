@@ -406,8 +406,9 @@ mq.addEventListener('change',sync);sync();})();
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
 (function(){
   const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' â†’ HTTP '+r.status);return r.json();});
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json')]).then(([snap,mkt,cot])=>{
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json')]).then(([snap,mkt,cot,macro])=>{
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
+    Object.assign(snap.snap,macro);   // scorecard fields, refreshed daily by .github/workflows/macro.yml
     window.D=snap;window.MKT_ENC=mkt;
     const s=document.createElement('script');s.src='assets/app.js';document.body.appendChild(s);
   }).catch(err=>{

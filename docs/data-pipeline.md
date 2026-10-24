@@ -31,5 +31,24 @@ Reproducción verificada (2026-10-24): reconstruido hasta el corte 2026-10-13, c
 3. Netlify → sitio de producción → Site configuration → Build & deploy → Link repository → `tfxbasket`, rama de producción la anterior, publish directory `.`, sin comando de build.
 4. Prueba manual: GitHub → Actions → "COT CFTC" → Run workflow.
 
+## Puntaje macro (FRED + captura manual)
+
+| | |
+|---|---|
+| Alimenta | Resumen (Sesgo TFX Macro, tarjetas) y Cuantitativo (tabla de 19 indicadores, bloques, compuesto). `data/macro.json` se superpone a `D.snap` |
+| Fuentes | FRED API (secreto `FRED_API_KEY`): CPILFESL, CPIAUCSL, PPIFES, UNRATE, ICSA, PAYEMS, USALOLITOAASTSAM, UMCSENT, PERMIT, MICH, T5YIE, DCOILWTICO, DFF, DGS2, DGS10, M2SL. Manual (`data/manual.json`): ISM PMI, ISM NMI, LEI 6m; UMich opcional (gana el mes más reciente) |
+| Calendario | Lunes a viernes 13:45 y 22:30 UTC, y cada vez que se edita `data/manual.json` |
+| Validación | 19 indicadores con puntos en −2…+2, compuesto en ±2, rangos plausibles de niveles, captura manual con periodo AAAA-MM y valores en rango. Error si bonos o Fed funds llevan más de 10 días sin dato |
+| Historial | `hist` mensual: al cambiar de mes se agrega el último compuesto calculado del mes anterior. El historial previo a oct-2026 viene del generador original |
+
+Cálculos por fecha de calendario, no por número de fila: FRED no tiene octubre de 2025 en CPI ni desempleo (cierre del gobierno de EE.UU.).
+
+Reproducción verificada (2026-10-24): con los datos recortados al 16-oct, los 19 puntajes, los cinco bloques, líderes (+0.78), catalizadores (+1.06) y el compuesto (+0.93) coinciden exactamente con la versión anterior. Difieren solo valores mostrados por revisiones de FRED (permisos, CLI, solicitudes, core 3m) y la definición del WTI a/a (ver `docs/decisions.md`).
+
+### Cómo actualizar la captura manual (propietario)
+1. Abrir https://github.com/tfxcapitalmx-cmyk/tfxbasket/blob/main/data/manual.json → icono de lápiz.
+2. Cambiar `periodo` y `valor` del dato publicado (ISM el 1.er y 3.er día hábil del mes; LEI a mediados de mes).
+3. "Commit changes". En 1–2 minutos el proceso recalcula y publica; si el dato es inválido, falla sin publicar y llega un correo.
+
 ## Próximas fuentes
-FRED (serie por serie), tasas de bancos centrales. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.
+Tasas de bancos centrales (módulo Carry), gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.

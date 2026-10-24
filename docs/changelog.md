@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-24 — Puntaje macro automático (FRED)
+- Nuevo pipeline `scripts/macro/` + `.github/workflows/macro.yml`: 16 series de FRED + `data/manual.json` (ISM, LEI, UMich preliminar) → `data/macro.json`, dos veces por día hábil y al editar la captura manual.
+- Resumen y Cuantitativo leen `data/macro.json`. Verificado: al 16-oct reproduce exactamente los 19 puntajes y el compuesto +0.93.
+- Supuestos de reglas no documentadas registrados en `docs/decisions.md`.
+- El workflow del COT hace `git pull --rebase` antes de publicar, para convivir con el de macro.
+
 ## 2026-10-24 — COT automático y lectura swing
 - Nuevo pipeline `scripts/cot/` + `.github/workflows/cot.yml`: descarga el COT de la API de la CFTC cada semana, valida y publica `data/cot.json`. Verificado valor por valor contra los datos anteriores.
 - `data/cot.json` ya incluye el informe del 2026-10-20 (la terminal estaba en el 13-oct). Se quitó el bloque `pos` de `snapshot.json`.

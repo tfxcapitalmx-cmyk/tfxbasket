@@ -1,0 +1,8 @@
+{
+  "_instrucciones": "Datos con licencia que no se pueden descargar automáticamente. Al publicarse un dato nuevo, cambia 'periodo' (AAAA-MM, el mes al que corresponde) y 'valor', y guarda con 'Commit changes'. UMich (umcsi, mich) es opcional: si FRED ya tiene un mes igual o más reciente, se usa FRED. Marca 'preliminar': true para la lectura preliminar de UMich.",
+  "pmi": { "periodo": "2026-09", "valor": 54.5, "fuente": "ISM Manufacturing PMI" },
+  "nmi": { "periodo": "2026-09", "valor": 54.9, "fuente": "ISM Services PMI" },
+  "lei_6m": { "periodo": "2026-08", "valor": -0.1, "fuente": "The Conference Board LEI, variación 6 meses (%)" },
+  "umcsi": { "periodo": "2026-10", "valor": 46.3, "preliminar": true, "fuente": "Universidad de Michigan" },
+  "mich": { "periodo": "2026-10", "valor": 4.7, "preliminar": true, "fuente": "Universidad de Michigan, expectativa 1 año (%)" }
+}
