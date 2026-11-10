@@ -11,7 +11,10 @@ const toTs = y => Date.UTC(Math.floor(y / 10000), Math.floor(y / 100) % 100 - 1,
 const MAX_AGE_DAYS = 6; // weekends and holidays included
 
 // Yahoo's chart endpoint is unofficial: retry, try both hosts, never echo more than the symbol.
-async function yahoo(sym, fromTs, toTsx, tries = 4) {
+// Price decimals as quoted (same as the stored Investing.com candles).
+const decimals = p => (p.endsWith('JPY') ? 3 : kindOf(p) === 'fx' ? 5 : p === 'XAGUSD' ? 3 : 2);
+
+async function yahoo(sym, fromTs, toTsx, dec, tries = 4) {
   let last;
   for (let i = 0; i < tries; i++) {
     const host = i % 2 ? 'query2' : 'query1';
@@ -25,7 +28,8 @@ async function yahoo(sym, fromTs, toTsx, tries = 4) {
       const t = r.timestamp || [], q = r.indicators.quote[0], off = (r.meta.gmtoffset || 0) * 1000, rows = [];
       for (let k = 0; k < t.length; k++) {
         if ([q.open[k], q.high[k], q.low[k], q.close[k]].some(x => x == null || !Number.isFinite(x))) continue;
-        rows.push([ymd(t[k] * 1000 + off), ...[q.open[k], q.high[k], q.low[k], q.close[k]].map(x => +x.toPrecision(8))]);
+        const [o, h, l, c] = [q.open[k], q.high[k], q.low[k], q.close[k]].map(x => +x.toFixed(dec));
+        rows.push([ymd(t[k] * 1000 + off), o, Math.max(o, h, c), Math.min(o, l, c), c]); // Yahoo sometimes leaves the close a tick outside the high-low
       }
       return rows;
     } catch (e) { last = e; if (i < tries - 1) await sleep(4000 * (i + 1)); }
@@ -45,7 +49,7 @@ async function main() {
     const have = (prevLive.live[p] || []);
     // Re-read the last two weeks every run: the latest candle can be revised and the previous run may have caught a partial one.
     const from = toTs((have.length ? have[have.length - 1][0] : storedD[p][storedD[p].length - 1][0])) - 14 * 864e5;
-    let rows = await yahoo(YAHOO[p], from, now + 2 * 864e5);
+    let rows = await yahoo(YAHOO[p], from, now + 2 * 864e5, decimals(p));
     // A candle dated today is still forming unless the market has closed (FX stays in progress until midnight GMT and is kept: it is the live price).
     const closed = new Date(now).getUTCHours() >= 22;
     if (kindOf(p) !== 'fx' && !closed) rows = rows.filter(r => r[0] < todayYmd);
