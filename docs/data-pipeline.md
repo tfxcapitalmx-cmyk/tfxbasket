@@ -86,5 +86,19 @@ Reproducción verificada (2026-10-24): con el historial guardado, fase, racha, f
 
 Reproducción verificada (2026-10-24): al 16-oct coinciden las tasas, los diferenciales y la dirección del swap de los 28 pares. Por decisión del propietario el módulo solo muestra la tabla de pares (sin próximas reuniones, precios ni carry en USD).
 
+## Mercados (Volatilidad y Estacionalidad)
+
+| | |
+|---|---|
+| Alimenta | Módulos Volatilidad (`data/vol.json` → `D.snap.vol`) y Estacionalidad (`data/seas.json` → `D.snap.seas`); `scripts/markets/` |
+| Fuente | Yahoo Finance, `query1.finance.yahoo.com/v8/chart` (no oficial, sin clave): 18 cruces FX (`XXXYYY=X`), `^NDX`, `^GSPC`, `^DJI`, `^VIX`, `CL=F`, `GC=F`, `SI=F` |
+| Método | `data/markets.json` (histórico de Investing.com) no se modifica. `data/mkt-live.json` guarda las velas diarias de Yahoo posteriores a la última fecha del histórico; cada ejecución relee las últimas 2 semanas (revisiones y vela parcial). Estacionalidad: meses guardados hasta el mes de la última vela mensual y cierres derivados de las velas diarias desde ahí. Volatilidad: sesiones comunes de VIX y S&P 500 desde 1998 |
+| Calendario | Lunes a viernes 22:45 UTC y martes a sábado 00:30 UTC (recoge la vela completa), y al editar `scripts/markets/**` |
+| Validación | Yahoo debe coincidir con el histórico guardado en el solape (0.05 % índices, 1 % FX, 5 % futuros); cada instrumento con dato de menos de 6 días; 7,000+ sesiones alineadas, VIX y S&P en rango, correlación entre −0.95 y −0.5, tramos que suman las sesiones; 25 instrumentos con estadísticos en rango |
+| Velas del día | Índices y futuros: se descarta la vela de hoy hasta las 22:00 UTC (aún se forma). FX: se conserva (precio vigente) y se corrige al día siguiente |
+| En la terminal | Sello "Automático · Yahoo Finance · datos al …"; Estacionalidad muestra la fecha del instrumento menos actualizado |
+
+Reproducción verificada (2026-11-09): `node scripts/markets/check.mjs` reconstruye ambos módulos con las velas guardadas y coinciden todos los valores con `data/snapshot.json`.
+
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.

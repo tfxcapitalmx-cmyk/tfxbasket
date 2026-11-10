@@ -1879,7 +1879,9 @@ function freshSources(){
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
-    ciclo:mac,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man};
+    ciclo:mac,catalizador:man,modelos:man,distribucion:man,
+    vol:{auto:true,src:'Yahoo Finance',date:S.vol&&S.vol.asof,max:6},
+    estacional:{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}};
 }
 function freshBadges(){
   for(const [id,f] of Object.entries(freshSources())){

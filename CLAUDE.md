@@ -26,6 +26,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - Ojo con PowerShell 5.1: lee los `.ps1` sin BOM como ANSI; no poner texto no ASCII en scripts `.ps1` que escriban archivos del sitio.
 - `.cache/` (ignorado por git) — CSV de FRED para pruebas locales sin clave.
 - `data/cot.json` — automático (se inyecta como `D.snap.pos`). Lo generan `scripts/cot/` y `.github/workflows/cot.yml`; patrón en `docs/data-pipeline.md`.
+- `data/vol.json` (→ `D.snap.vol`), `data/seas.json` (→ `D.snap.seas`) y `data/mkt-live.json` (velas diarias de Yahoo Finance posteriores al histórico de `markets.json`) — automáticos; `scripts/markets/` y `.github/workflows/markets.yml`. `node scripts/markets/check.mjs` verifica que el cálculo reproduce `snapshot.json`.
 - Scripts de datos en JavaScript (Node 20 en Actions). `core.mjs` es puro y se prueba importándolo en el navegador contra el servidor local.
 
 ## Fuentes manuales del propietario

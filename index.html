@@ -400,12 +400,13 @@ mq.addEventListener('change',sync);sync();})();
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
 (function(){
   const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json')]).then(([snap,mkt,cot,macro,carry,charts])=>{
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json')]).then(([snap,mkt,cot,macro,carry,charts,vol,seas])=>{
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     snap.snap.asof_manual=snap.snap.asof;   // date of the hand-loaded modules, before macro.json overrides asof
     Object.assign(snap.snap,macro);   // scorecard fields, refreshed daily by .github/workflows/macro.yml
     snap.snap.carry=carry;   // policy rates and carry, refreshed daily by .github/workflows/carry.yml
     snap.snap.charts=charts.charts;snap.snap.charts_asof=charts.asof_iso;   // Gráficos, refreshed with the scorecard
+    snap.snap.vol=vol;snap.snap.seas=seas;   // Volatilidad y Estacionalidad, refreshed daily by .github/workflows/markets.yml (Yahoo Finance)
     window.D=snap;window.MKT_ENC=mkt;
     const s=document.createElement('script');s.src='assets/app.js';document.body.appendChild(s);
   }).catch(err=>{
