@@ -1,0 +1,39 @@
+# Refreshes data/vol.json (Volatilidad), data/seas.json (Estacionalidad) and data/mkt-live.json (velas diarias de Yahoo Finance).
+name: Mercados (Volatilidad y Estacionalidad)
+
+on:
+  schedule:
+    - cron: '45 22 * * 1-5'  # tras el cierre de Nueva York y de CME
+    - cron: '30 0 * * 2-6'   # segundo intento: recoge la vela completa si Yahoo se retrasó
+  push:
+    branches: [main]
+    paths: ['scripts/markets/**']  # al cambiar el código del proceso
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-markets
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Descargar, calcular y validar
+        run: node scripts/markets/update.mjs
+      - name: Publicar si hay datos nuevos
+        run: |
+          if git diff --quiet -- data/vol.json data/seas.json data/mkt-live.json && [ -z "$(git ls-files --others --exclude-standard data)" ]; then echo "Sin cambios"; exit 0; fi
+          git config user.name "tfx-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/vol.json data/seas.json data/mkt-live.json
+          git commit -m "datos: mercados $(node -p "require('./data/vol.json').asof")"
+          git pull --rebase
+          git push

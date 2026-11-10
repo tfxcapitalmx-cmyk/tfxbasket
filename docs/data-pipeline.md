@@ -86,5 +86,31 @@ Reproducción verificada (2026-10-24): con el historial guardado, fase, racha, f
 
 Reproducción verificada (2026-10-24): al 16-oct coinciden las tasas, los diferenciales y la dirección del swap de los 28 pares. Por decisión del propietario el módulo solo muestra la tabla de pares (sin próximas reuniones, precios ni carry en USD).
 
+## Distribución → Datos macroeconómicos
+
+| | |
+|---|---|
+| Alimenta | `data/dist.json` → `D.series` (23 series, 70 horizontes); lo genera el proceso del puntaje (`scripts/macro/dist.mjs`) |
+| Fuentes | FRED, historial completo: CPIAUCSL, CPILFESL, PPIFIS, PPIFES, DCOILWTICO, T5YIE, T10Y2Y, UNRATE, ICSA, USALOLITOAASTSAM, MICH, DGS2, DGS10, PAYEMS, GDPC1, M2SL, FEDFUNDS, PERMIT, RSAFS. ISM y UMich: series de Gráficos (FRED + `data/manual.json`). S&P 500: cierres mensuales de `markets.json` + Yahoo |
+| Definiciones | m/m y a/a por fecha de calendario; 3m anualizado = (x/x₋₃)⁴−1; diarias: cambio contra la observación previa (pb en tasas); semanal = último cierre de la semana (clave viernes) contra el anterior, con rango máx−mín (sobre el mínimo en WTI); mensual = mes calendario cerrado; WTI m/m y a/a sobre el promedio mensual; curva nivel = promedio mensual en pb; ICSA 4 sem a/a = promedio de 4 semanas contra las mismas 52 semanas antes; ventas reales = ventas / CPI; PIB t/t anualizado |
+| Historial | Se recalcula completo en cada ejecución (recoge revisiones). Lo anterior a la primera fecha que FRED permite calcular se conserva del archivo previo |
+| Validación | Ninguna serie u horizonte puede desaparecer, encogerse más de 3 %, retroceder en fecha, tener fechas desordenadas o valores no numéricos |
+
+Reproducción verificada (2026-11-09): `node scripts/macro/check-dist.mjs` (requiere `.cache/fred/<ID>.json`) → 97.98 % de los valores idénticos; el resto, revisiones de FRED o diferencias del libro A.E.
+
+## Mercados (Volatilidad y Estacionalidad)
+
+| | |
+|---|---|
+| Alimenta | Módulos Volatilidad (`data/vol.json` → `D.snap.vol`) y Estacionalidad (`data/seas.json` → `D.snap.seas`); `scripts/markets/` |
+| Fuente | Yahoo Finance, `query1.finance.yahoo.com/v8/chart` (no oficial, sin clave): 18 cruces FX (`XXXYYY=X`), `^NDX`, `^GSPC`, `^DJI`, `^VIX`, `CL=F`, `GC=F`, `SI=F` |
+| Método | `data/markets.json` (histórico de Investing.com) no se modifica. `data/mkt-live.json` guarda las velas diarias de Yahoo posteriores a la última fecha del histórico; cada ejecución relee las últimas 2 semanas (revisiones y vela parcial). Estacionalidad: meses guardados hasta el mes de la última vela mensual y cierres derivados de las velas diarias desde ahí. Volatilidad: sesiones comunes de VIX y S&P 500 desde 1998 |
+| Calendario | Lunes a viernes 22:45 UTC y martes a sábado 00:30 UTC (recoge la vela completa), y al editar `scripts/markets/**` |
+| Validación | Yahoo debe coincidir con el histórico guardado en el solape (0.05 % índices, 1 % FX, 5 % futuros); cada instrumento con dato de menos de 6 días; 7,000+ sesiones alineadas, VIX y S&P en rango, correlación entre −0.95 y −0.5, tramos que suman las sesiones; 25 instrumentos con estadísticos en rango |
+| Velas del día | Índices y futuros: se descarta la vela de hoy hasta las 22:00 UTC (aún se forma). FX: se conserva (precio vigente) y se corrige al día siguiente |
+| En la terminal | Sello "Automático · Yahoo Finance · datos al …" en Volatilidad, Estacionalidad y Distribución → Mercados (fecha del instrumento menos actualizado). En el navegador, `MKSEED` (app.js) agrega `mkt-live.json` a las velas guardadas: diarias tras la última fecha; semanas (domingo) y meses (día 1) se completan con los días vivos |
+
+Reproducción verificada (2026-11-09): `node scripts/markets/check.mjs` reconstruye ambos módulos con las velas guardadas y coinciden todos los valores con `data/snapshot.json`.
+
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.

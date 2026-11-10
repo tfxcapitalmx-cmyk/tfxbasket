@@ -1327,8 +1327,28 @@ const MKSEED=(function(){
       const d=new Date(dt);
       rows[i]=[d.getUTCFullYear()*10000+(d.getUTCMonth()+1)*100+d.getUTCDate(),o/sc,h/sc,l/sc,c/sc];
     }
-    rows.reverse();
     return rows;
+  }
+  // Live daily candles (data/mkt-live.json, Yahoo Finance) extend the stored history after its last date.
+  // D: appended. W (weeks dated on Sunday) and M (dated on the 1st): the last stored candle absorbs the live days
+  // of its period (open kept, high/low widened, close updated) and later periods are built from the live days.
+  const LIVE=(typeof MKT_LIVE!=='undefined'&&MKT_LIVE&&MKT_LIVE.live)||{};
+  const ymdOf=t=>{const d=new Date(t);return d.getUTCFullYear()*10000+(d.getUTCMonth()+1)*100+d.getUTCDate();};
+  const tOf=y=>Date.UTC(Math.floor(y/10000),Math.floor(y/100)%100-1,y%100);
+  const keyOf={W:y=>{const t=tOf(y);return ymdOf(t-new Date(t).getUTCDay()*864e5);},M:y=>Math.floor(y/100)*100+1};
+  function extend(rows,tf,live){
+    if(!live||!live.length||!rows.length)return rows;
+    const last=rows[rows.length-1];
+    if(tf==='D')return rows.concat(live.filter(r=>r[0]>last[0]));
+    const kf=keyOf[tf];if(!kf)return rows;
+    const out=rows.slice(0,-1),g=new Map([[last[0],last.slice()]]);
+    for(const r of live){
+      if(r[0]<last[0])continue;
+      const k=kf(r[0]),c=g.get(k);
+      if(!c)g.set(k,[k,r[1],r[2],r[3],r[4]]);
+      else{c[2]=Math.max(c[2],r[2]);c[3]=Math.min(c[3],r[3]);c[4]=r[4];}
+    }
+    return out.concat([...g.values()].filter(c=>c[0]>=last[0]).sort((a,b)=>a[0]-b[0]));
   }
   return {
     pairs(){return Object.keys(E);},
@@ -1336,8 +1356,9 @@ const MKSEED=(function(){
     get(p,tf){
       if(!E[p]||!E[p][tf])return null;
       const k=p+tf;
-      return cache[k]||(cache[k]=dec(E[p][tf]));
-    }
+      return cache[k]||(cache[k]=extend(dec(E[p][tf]),tf,LIVE[p]).reverse());
+    },
+    liveAsof(){return (typeof MKT_LIVE!=='undefined'&&MKT_LIVE&&MKT_LIVE.asof)||null;}
   };
 })();
 
@@ -1351,8 +1372,9 @@ const MK=(function(){
   const GRPL={maj:'Divisa mayor',min:'Divisa menor',idx:'Índice',com:'Materia prima'};
   const TABS=[['niveles','Niveles'],['atrp','ATRP'],['cc','DoR C-C'],['hl','DoR H-L'],['pct','Percentiles'],['matriz','Matriz'],['pips','Pips'],['datos','Actualizar datos']];
   const INCID=[
-    'FX (18 cruces EUR, AUD y GBP), XAUUSD, XAGUSD, WTI, US30, NAS100 y SPX500 con datos al 12-10-2026, exportados de Investing.com.',
-    'US30 diario: el archivo recibido termina el 31-10-2025. Hay que exportarlo de nuevo con el rango hasta hoy.',
+    'FX (18 cruces EUR, AUD y GBP), XAUUSD, XAGUSD, WTI, US30, NAS100 y SPX500 exportados de Investing.com con datos al 12-10-2026 (VIX y SPX500 diario al 16-10-2026).',
+    'Desde esa fecha las velas se extienden solas cada día hábil con Yahoo Finance. Índices y VIX coinciden exactamente con Investing.com; FX difiere ~0.1 % en el cierre (otro corte horario) y WTI, oro y plata ~0.3-0.6 % (Yahoo usa futuros continuos, no spot).',
+    'US30 diario: el archivo de Investing.com terminaba el 31-10-2025; el hueco hasta hoy lo cubre Yahoo Finance.',
     'XAUUSD y XAGUSD semanal y mensual empiezan en febrero de 2006: antes de esa fecha el archivo trae velas inválidas (Máximo y Mínimo iguales al Cierre).',
     'US30 mensual: el archivo traía 68 velas duplicadas; se dejó una por mes.',
     'Las series semanales y mensuales anteriores a ~1990 traen velas planas (Apertura = Máximo = Mínimo = Cierre). Inflan el tramo «Igual a 0.00%» del H-L y bajan su media.'
@@ -1841,6 +1863,7 @@ function renderDorSec(){
   $('dorMacro').classList.toggle('on',dorMode==='macro');
   $('dorMkt').classList.toggle('on',dorMode==='mercados');
   if(dorMode==='macro')renderDor();else MK.render();
+  if(typeof freshBadges==='function'&&document.querySelector('#distribucion > .sh .fresh'))freshBadges();
 }
 
 // ---------- Navegación por secciones ----------
@@ -1879,7 +1902,11 @@ function freshSources(){
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
-    ciclo:mac,catalizador:man,modelos:man,distribucion:man,vol:man,estacional:man};
+    ciclo:mac,catalizador:man,modelos:man,
+    // Distribución: the Mercados view reads the Yahoo candles; the macro view is rebuilt from FRED with the scorecard.
+    distribucion:dorMode==='mercados'?{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}:{auto:true,src:'FRED',date:S.dist_asof,max:5},
+    vol:{auto:true,src:'Yahoo Finance',date:S.vol&&S.vol.asof,max:6},
+    estacional:{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}};
 }
 function freshBadges(){
   for(const [id,f] of Object.entries(freshSources())){
