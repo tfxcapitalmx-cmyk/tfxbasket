@@ -17,7 +17,7 @@ Aceptación: el sitio publicado desde el repo se ve igual que hoy.
 2. [x] Series FRED del puntaje (Resumen + Cuantitativo). Supuestos confirmados. Ciclo automático (régimen de mercado oculto). Gráficos automático (proyección oculta hasta definir reglas). Tarjetas informativas (componentes ISM, ADP, PIB) siguen manuales.
 3. [x] Tasas de bancos centrales oficiales (Carry: dirección del swap de 28 pares).
 4. [x] Indicador de antigüedad en cada panel (automático/manual, fecha, aviso si está atrasado). Los fallos de los procesos automáticos llegan por correo de GitHub.
-5. [x] Volatilidad y Estacionalidad (Yahoo Finance sobre el histórico guardado). La misma capa alimenta Distribución → Mercados y el precio de Posicionamiento. Pendiente: Distribución → Datos macroeconómicos (`D.series`, 23 series, casi todas FRED) — verificarlo requiere la clave de FRED, que solo existe en GitHub Actions.
+5. [x] Volatilidad y Estacionalidad (Yahoo Finance sobre el histórico guardado). La misma capa alimenta Distribución → Mercados y el precio de Posicionamiento. Distribución → Datos macroeconómicos también es automático (FRED, con el puntaje).
 
 Aceptación: 7 días sin intervención manual en las fuentes automatizadas.
 

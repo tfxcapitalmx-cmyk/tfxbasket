@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09 — Distribución: datos macroeconómicos automáticos (FRED)
+- Nuevo `scripts/macro/dist.mjs`, dentro del proceso diario del puntaje: las 23 series de Distribución → Datos macroeconómicos se recalculan desde FRED (historial completo), los gráficos que ya mantiene el proceso (ISM y UMich con la captura manual) y los cierres mensuales del S&P 500 (histórico + Yahoo) → `data/dist.json` (→ `D.series`).
+- `scripts/macro/check-dist.mjs` compara contra los valores anteriores: coinciden 142,065 de 145,001 (97.98 %). Las diferencias son revisiones de FRED (últimos meses de CPI, PPI, NFP, permisos; OECD CLI revisa toda su historia; M2 desde 2021; PIB desde 2021) y series que venían del libro A.E. y FRED publica distinto (Fed funds mensual = promedio oficial FEDFUNDS, la misma decisión ya tomada en Gráficos; UMich ene-2025).
+- ISM manufactura 1950: se corrige el mes faltante (may-1950), como en Gráficos.
+- Los meses de las series diarias (WTI, bonos, breakeven, curva) solo se cuentan cerrados; las semanas incluyen la semana en curso, como antes.
+- `data/snapshot.json` pasa de 3.5 MB a 0.4 MB: las series de Distribución y los datos de Volatilidad y Estacionalidad ya no se cargan de ahí. Los valores originales quedan como referencia en `scripts/reference/snapshot-2026-10-16.json` (solo para las verificaciones).
+- Sello de Distribución → Datos macroeconómicos: "Automático · FRED".
+
 ## 2026-11-09 — Velas vivas en Distribución (Mercados) y Posicionamiento
 - La mesa de velas (Distribución → Mercados: niveles, ATRP, DoR, percentiles, matriz, pips) y el gráfico de precio de Posicionamiento leen también `data/mkt-live.json`: las velas diarias de Yahoo se agregan tras el histórico y forman las semanas (fechadas en domingo) y los meses; la última vela guardada absorbe los días de su periodo.
 - `data/mkt-live.json` es opcional para la página: si no carga, se muestran solo las velas guardadas.

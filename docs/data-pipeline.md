@@ -86,6 +86,18 @@ Reproducción verificada (2026-10-24): con el historial guardado, fase, racha, f
 
 Reproducción verificada (2026-10-24): al 16-oct coinciden las tasas, los diferenciales y la dirección del swap de los 28 pares. Por decisión del propietario el módulo solo muestra la tabla de pares (sin próximas reuniones, precios ni carry en USD).
 
+## Distribución → Datos macroeconómicos
+
+| | |
+|---|---|
+| Alimenta | `data/dist.json` → `D.series` (23 series, 70 horizontes); lo genera el proceso del puntaje (`scripts/macro/dist.mjs`) |
+| Fuentes | FRED, historial completo: CPIAUCSL, CPILFESL, PPIFIS, PPIFES, DCOILWTICO, T5YIE, T10Y2Y, UNRATE, ICSA, USALOLITOAASTSAM, MICH, DGS2, DGS10, PAYEMS, GDPC1, M2SL, FEDFUNDS, PERMIT, RSAFS. ISM y UMich: series de Gráficos (FRED + `data/manual.json`). S&P 500: cierres mensuales de `markets.json` + Yahoo |
+| Definiciones | m/m y a/a por fecha de calendario; 3m anualizado = (x/x₋₃)⁴−1; diarias: cambio contra la observación previa (pb en tasas); semanal = último cierre de la semana (clave viernes) contra el anterior, con rango máx−mín (sobre el mínimo en WTI); mensual = mes calendario cerrado; WTI m/m y a/a sobre el promedio mensual; curva nivel = promedio mensual en pb; ICSA 4 sem a/a = promedio de 4 semanas contra las mismas 52 semanas antes; ventas reales = ventas / CPI; PIB t/t anualizado |
+| Historial | Se recalcula completo en cada ejecución (recoge revisiones). Lo anterior a la primera fecha que FRED permite calcular se conserva del archivo previo |
+| Validación | Ninguna serie u horizonte puede desaparecer, encogerse más de 3 %, retroceder en fecha, tener fechas desordenadas o valores no numéricos |
+
+Reproducción verificada (2026-11-09): `node scripts/macro/check-dist.mjs` (requiere `.cache/fred/<ID>.json`) → 97.98 % de los valores idénticos; el resto, revisiones de FRED o diferencias del libro A.E.
+
 ## Mercados (Volatilidad y Estacionalidad)
 
 | | |

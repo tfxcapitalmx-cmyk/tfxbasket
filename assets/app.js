@@ -1903,8 +1903,8 @@ function freshSources(){
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
     ciclo:mac,catalizador:man,modelos:man,
-    // Distribución: the Mercados view reads the Yahoo candles; the macro view is still loaded by hand.
-    distribucion:dorMode==='mercados'?{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}:man,
+    // Distribución: the Mercados view reads the Yahoo candles; the macro view is rebuilt from FRED with the scorecard.
+    distribucion:dorMode==='mercados'?{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}:{auto:true,src:'FRED',date:S.dist_asof,max:5},
     vol:{auto:true,src:'Yahoo Finance',date:S.vol&&S.vol.asof,max:6},
     estacional:{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}};
 }

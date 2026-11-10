@@ -10,3 +10,4 @@ for (const id of IDS) {
   await writeFile(`.cache/fred/${id}.json`, JSON.stringify(obs)); console.log(id, obs.length, obs[0][0], obs.at(-1)[0]);
   await new Promise(s => setTimeout(s, 300));
 }
+// DEV ONLY: dispara el ensayo 2026-11-10T01:47:40

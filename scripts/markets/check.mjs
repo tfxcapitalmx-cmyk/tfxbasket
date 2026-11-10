@@ -1,11 +1,11 @@
 // Reproduction check: rebuilds D.snap.vol and D.snap.seas from the STORED candles (data/markets.json, no Yahoo)
-// and compares them with the figures stored in data/snapshot.json (calculated in earlier chats).
+// and compares them with the figures of scripts/reference/snapshot-2026-10-16.json (calculated in earlier chats).
 // Run: node scripts/markets/check.mjs   (Node 20+, no network). Exit 1 if anything differs.
 import { readFile } from 'node:fs/promises';
 import { INSTRUMENTS, decodeSeries, monthlyCloses, buildSeason, buildVol } from './core.mjs';
 
 const mk = JSON.parse(await readFile(new URL('../../data/markets.json', import.meta.url), 'utf8'));
-const snap = JSON.parse(await readFile(new URL('../../data/snapshot.json', import.meta.url), 'utf8')).snap;
+const snap = JSON.parse(await readFile(new URL('../../scripts/reference/snapshot-2026-10-16.json', import.meta.url), 'utf8')).snap;
 
 const closes = {};
 for (const p of INSTRUMENTS) closes[p] = monthlyCloses(decodeSeries(mk[p].M), [], null);
@@ -36,4 +36,4 @@ for (const k of ['asof', 'vix', 'spx', 'n', 'desde', 'corr', 'corr_min', 'corr_m
 
 console.log(`Estacionalidad: ${INSTRUMENTS.length} instrumentos · Volatilidad: ${vol.n} sesiones (${vol.desde} → ${vol.asof})`);
 if (diffs.length) { console.log(`${diffs.length} diferencias (primeras 40):\n- ` + diffs.slice(0, 40).join('\n- ')); process.exit(1); }
-console.log('Reproducción exacta: todos los valores coinciden con data/snapshot.json.');
+console.log('Reproducción exacta: todos los valores coinciden con los de referencia (16-oct-2026).');

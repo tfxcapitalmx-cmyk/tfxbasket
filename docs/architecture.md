@@ -4,7 +4,8 @@
 Sitio estático en Netlify, sin backend.
 
 ```
-index.html ──fetch──> data/snapshot.json  (D: snap + series, ~4.1 MB)
+index.html ──fetch──> data/snapshot.json  (D.snap de los módulos manuales, ~0.4 MB)
+           ──fetch──> data/dist.json      (D.series: Distribución macro, automático con el puntaje)
            ──fetch──> data/markets.json   (MKT_ENC: velas OHLC delta base-36, ~2.6 MB)
            ──fetch──> data/cot.json       (COT CFTC, automático cada semana → D.snap.pos)
            ──fetch──> data/macro.json     (puntaje macro FRED + manual, automático diario → se superpone a D.snap)
