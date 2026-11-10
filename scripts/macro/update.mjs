@@ -83,9 +83,7 @@ async function main() {
   const base = prevDist ? prevDist.series : JSON.parse(await readFile(REFERENCE, 'utf8')).series;
   const dist = buildDist(base, distObs, charts, spx);
   const distErr = validateDist(dist, base);
-  if (distErr.length) { console.error('Distribución: validación fallida; se conserva el archivo anterior:
-- ' + distErr.join('
-- ')); process.exit(1); }
+  if (distErr.length) { console.error('Distribución: validación fallida; se conserva el archivo anterior:\n- ' + distErr.join('\n- ')); process.exit(1); }
   if (!prevDist || JSON.stringify(prevDist.series) !== JSON.stringify(dist)) {
     await writeFile(DIST, JSON.stringify({ asof_iso: today, series: dist }));
     console.log('Distribución actualizada.');
