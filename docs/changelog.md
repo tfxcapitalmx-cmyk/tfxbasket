@@ -1,11 +1,16 @@
 # Changelog
 
+## 2026-11-09 — Velas vivas en Distribución (Mercados) y Posicionamiento
+- La mesa de velas (Distribución → Mercados: niveles, ATRP, DoR, percentiles, matriz, pips) y el gráfico de precio de Posicionamiento leen también `data/mkt-live.json`: las velas diarias de Yahoo se agregan tras el histórico y forman las semanas (fechadas en domingo) y los meses; la última vela guardada absorbe los días de su periodo.
+- `data/mkt-live.json` es opcional para la página: si no carga, se muestran solo las velas guardadas.
+- Precios de Yahoo redondeados a los decimales de cotización (5 FX, 3 JPY y plata, 2 resto) y máximo/mínimo corregidos cuando Yahoo deja el cierre fuera del rango.
+- El sello de Distribución depende de la vista: Mercados = automático (Yahoo Finance); Datos macroeconómicos sigue manual.
+
 ## 2026-11-09 — Volatilidad y Estacionalidad automáticas (Yahoo Finance)
 - Nuevo pipeline `scripts/markets/` + `.github/workflows/markets.yml`: velas diarias de Yahoo Finance extienden el histórico guardado (`data/markets.json`, Investing.com) → `data/mkt-live.json`; de ahí se recalculan `data/vol.json` (→ `D.snap.vol`) y `data/seas.json` (→ `D.snap.seas`) cada día hábil.
 - `scripts/markets/check.mjs` reconstruye ambos módulos solo con las velas guardadas y los compara con `data/snapshot.json`: coinciden todos los valores (25 instrumentos en Estacionalidad; 7,242 sesiones en Volatilidad).
 - Vol y Estacional pasan de "Manual · 16-oct" a "Automático · Yahoo Finance". US30 diario tenía un hueco desde 2025-10-31; queda cubierto.
 - Investing.com bloquea la descarga automática (HTTP 403): no se usa como fuente del pipeline.
-- Pendiente (no incluido): Distribución, la mesa de Posicionamiento (precios) y el módulo de velas (`MKT_ENC`) siguen leyendo solo `data/markets.json`; ver `docs/roadmap.md`.
 
 ## 2026-10-24 — Ciclo automático
 - Fases, reloj, frecuencias y proyección del ciclo se recalculan cada día desde el OECD CLI (FRED) con el proceso del puntaje.

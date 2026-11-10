@@ -8,6 +8,8 @@ index.html ──fetch──> data/snapshot.json  (D: snap + series, ~4.1 MB)
            ──fetch──> data/markets.json   (MKT_ENC: velas OHLC delta base-36, ~2.6 MB)
            ──fetch──> data/cot.json       (COT CFTC, automático cada semana → D.snap.pos)
            ──fetch──> data/macro.json     (puntaje macro FRED + manual, automático diario → se superpone a D.snap)
+           ──fetch──> data/vol.json, data/seas.json (Volatilidad y Estacionalidad, automático diario)
+           ──fetch──> data/mkt-live.json (velas diarias de Yahoo tras el histórico; opcional)
            ──luego──> assets/app.js       (render de los 12 módulos, Chart.js)
 ```
 

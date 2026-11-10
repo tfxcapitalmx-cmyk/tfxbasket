@@ -96,7 +96,7 @@ Reproducción verificada (2026-10-24): al 16-oct coinciden las tasas, los difere
 | Calendario | Lunes a viernes 22:45 UTC y martes a sábado 00:30 UTC (recoge la vela completa), y al editar `scripts/markets/**` |
 | Validación | Yahoo debe coincidir con el histórico guardado en el solape (0.05 % índices, 1 % FX, 5 % futuros); cada instrumento con dato de menos de 6 días; 7,000+ sesiones alineadas, VIX y S&P en rango, correlación entre −0.95 y −0.5, tramos que suman las sesiones; 25 instrumentos con estadísticos en rango |
 | Velas del día | Índices y futuros: se descarta la vela de hoy hasta las 22:00 UTC (aún se forma). FX: se conserva (precio vigente) y se corrige al día siguiente |
-| En la terminal | Sello "Automático · Yahoo Finance · datos al …"; Estacionalidad muestra la fecha del instrumento menos actualizado |
+| En la terminal | Sello "Automático · Yahoo Finance · datos al …" en Volatilidad, Estacionalidad y Distribución → Mercados (fecha del instrumento menos actualizado). En el navegador, `MKSEED` (app.js) agrega `mkt-live.json` a las velas guardadas: diarias tras la última fecha; semanas (domingo) y meses (día 1) se completan con los días vivos |
 
 Reproducción verificada (2026-11-09): `node scripts/markets/check.mjs` reconstruye ambos módulos con las velas guardadas y coinciden todos los valores con `data/snapshot.json`.
 
