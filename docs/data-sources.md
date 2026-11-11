@@ -14,7 +14,7 @@ Estado al 2026-10-24. "Automatizable" = API oficial con uso comercial razonable;
 | LEI Conference Board | Manual | — | Propietario, de pago | No sin licencia |
 | COT Leveraged Funds, Asset Managers, no reportables | **CFTC Socrata API (TFF), automático** | — | Dominio público | **Hecho** (2026-10-24) |
 | Tasas de bancos centrales | **BIS WS_CBPOL + FRED (Fed), automático** | — | Oficiales (reemplaza a CB.watch) | **Hecho** (2026-10-24) |
-| Calendario y consenso | Manual (consenso en 9 de 48 eventos) | Calendarios oficiales; consenso de proveedor con licencia | El consenso no es gratuito | Parcial |
+| Calendario y consenso | **Fechas: FRED (calendarios oficiales), ISM por regla, FOMC en `scripts/calendar/fomc.json`. Consenso: ForexFactory, automático** (2026-11-11) | Consenso de proveedor con licencia | ForexFactory: feed no oficial, uso personal; puede limitar consultas (HTTP 429) o cambiar sin aviso | Hecho para uso propio; requiere contratar antes de comercializar |
 | S&P 500 mensual (Gráficos) | **FRED SP500, automático** | — | Copyright S&P DJI: uso propio sí; comercial requiere licencia | Hecho, revisar en Etapa 4 |
 | Velas FX, índices, metales, VIX, WTI | Histórico: Broker / Investing.com (manual). Desde 2026-11-09 la capa viva (Volatilidad y Estacionalidad) viene de **Yahoo Finance, automático** | Proveedor con licencia comercial | Yahoo: endpoint no oficial, solo uso personal; Investing.com bloquea la descarga automática (403) | Hecho para uso propio; requiere contratar antes de comercializar |
 | S&P 500 | Investing.com export | Proveedor con licencia | Igual que arriba | Requiere contratar |

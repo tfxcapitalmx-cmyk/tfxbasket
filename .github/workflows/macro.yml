@@ -1,4 +1,5 @@
-# Refreshes data/macro.json (Resumen + Cuantitativo), data/charts.json (Gráficos) and data/dist.json (Distribución, datos macro) from FRED and data/manual.json.
+# Refreshes data/macro.json (Resumen + Cuantitativo), data/charts.json (Gráficos), data/dist.json (Distribución, datos macro)
+# and data/calendar.json (Catalizador → agenda) from FRED, ForexFactory and data/manual.json.
 name: Puntaje macro (FRED)
 
 on:
@@ -7,7 +8,7 @@ on:
     - cron: '30 22 * * 1-5'  # cierre: bonos, breakevens y Fed funds del día
   push:
     branches: [main]
-    paths: ['data/manual.json', 'scripts/macro/**']  # al editar la captura manual o el código del proceso
+    paths: ['data/manual.json', 'scripts/macro/**', 'scripts/calendar/**']  # al editar la captura manual o el código del proceso
   workflow_dispatch:
 
 permissions:
@@ -27,15 +28,30 @@ jobs:
         with:
           node-version: 20
       - name: Descargar, calcular y validar
+        id: macro
+        continue-on-error: true
         run: node scripts/macro/update.mjs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      # The agenda is independent: if the scorecard fails, the agenda still publishes (and vice versa).
+      - name: Agenda del Catalizador
+        id: agenda
+        continue-on-error: true
+        run: node scripts/calendar/update.mjs
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       - name: Publicar si hay datos nuevos
         run: |
-          if git diff --quiet -- data/macro.json data/charts.json data/dist.json && [ ! -f data/dist.json -o -n "$(git ls-files data/dist.json)" ]; then echo "Sin cambios"; exit 0; fi
-          git config user.name "tfx-data-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/macro.json data/charts.json data/dist.json
-          git commit -m "datos: puntaje macro $(node -p "require('./data/macro.json').asof_iso")"
-          git pull --rebase
-          git push
+          git add data/macro.json data/charts.json data/dist.json data/calendar.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Sin cambios"; else
+            git config user.name "tfx-data-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "datos: puntaje macro $(node -p "require('./data/macro.json').asof_iso")"
+            git pull --rebase
+            git push
+          fi
+      - name: Marcar fallo si algún paso falló
+        if: steps.macro.outcome == 'failure' || steps.agenda.outcome == 'failure'
+        run: |
+          echo "Puntaje: ${{ steps.macro.outcome }} · Agenda: ${{ steps.agenda.outcome }}. Se publicó lo que sí se validó."
+          exit 1

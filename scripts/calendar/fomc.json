@@ -1,0 +1,4 @@
+{
+  "_instrucciones": "Días de decisión del FOMC (segundo día de cada reunión, comunicado a las 14:00 Nueva York). La Fed publica el calendario del año siguiente a mediados de año en https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm: agregar las fechas aquí. El vigilante avisa cuando quedan menos de 60 días cubiertos.",
+  "fechas": ["2026-01-28", "2026-03-18", "2026-04-29", "2026-06-17", "2026-07-29", "2026-09-16", "2026-10-28", "2026-12-09", "2027-01-27", "2027-03-17"]
+}
