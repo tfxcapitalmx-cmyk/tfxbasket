@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-11 — Datos fuera de los deploys de Netlify y refresco automático
+- La cuenta de Netlify está en el plan Free por créditos (300 al mes, 15 por deploy de producción) y los procesos de datos generaban unos 3 deploys al día: el 11-nov quedaban 70 créditos. `netlify.toml` omite el deploy cuando un commit solo cambia `data/`; la página lee `data/` del repo (`raw.githubusercontent.com`, rama `main`, caché de 5 minutos) y, si no responde, la copia publicada con el código.
+- La página abierta revisa cada 5 minutos (solo con la pestaña visible) si cambiaron `macro`, `carry`, `vol` y `mkt-live` (el COT cada 30 minutos); si hay datos nuevos avisa y se recarga a los 30 s, conservando la sección y la posición. "Más tarde" pospone 10 minutos.
+
 ## 2026-11-09 — Distribución: datos macroeconómicos automáticos (FRED)
 - Nuevo `scripts/macro/dist.mjs`, dentro del proceso diario del puntaje: las 23 series de Distribución → Datos macroeconómicos se recalculan desde FRED (historial completo), los gráficos que ya mantiene el proceso (ISM y UMich con la captura manual) y los cierres mensuales del S&P 500 (histórico + Yahoo) → `data/dist.json` (→ `D.series`).
 - `scripts/macro/check-dist.mjs` compara contra los valores anteriores: coinciden 142,065 de 145,001 (97.98 %). Las diferencias son revisiones de FRED (últimos meses de CPI, PPI, NFP, permisos; OECD CLI revisa toda su historia; M2 desde 2021; PIB desde 2021) y series que venían del libro A.E. y FRED publica distinto (Fed funds mensual = promedio oficial FEDFUNDS, la misma decisión ya tomada en Gráficos; UMich ene-2025).

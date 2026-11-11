@@ -398,8 +398,15 @@ mq.addEventListener('change',sync);sync();})();
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <script>
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
+// The data processes commit to GitHub several times a day. Each Netlify deploy costs credits, so data-only commits
+// are not deployed (netlify.toml → ignore): the page reads data/ straight from the repo (main) and falls back to the
+// copy deployed with the code. Locally (localhost) or with ?datos=local it reads only the local copy.
 (function(){
-  const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
+  const local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)||/[?&]datos=local\b/.test(location.search);
+  const REMOTE='https://raw.githubusercontent.com/tfxcapitalmx-cmyk/tfxbasket/main/';
+  const one=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
+  const get=p=>local?one(p):one(REMOTE+p).catch(e=>{console.warn('Repo no disponible, uso la copia publicada:',e.message);return one(p);});
+  window.TFX_DATA={get,remote:!local};   // used by the auto-refresh in app.js
   Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json')]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist])=>{
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     snap.snap.asof_manual=snap.snap.asof;   // date of the hand-loaded modules, before macro.json overrides asof

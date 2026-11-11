@@ -4,7 +4,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 
 ## Reglas permanentes
 - Idioma del producto y de la comunicación con el propietario: español. Propuestas con el formato Problema / Diagnóstico / Solución / Justificación / Impacto / Costo / Riesgos / Plan.
-- Producción = https://tfxmacrointelligence.netlify.app (hoy se publica arrastrando archivos, sin conexión al repo). No publicar ni conectar Netlify al repo sin autorización.
+- Producción = https://tfxmacrointelligence.netlify.app, conectada a `main` del repo (plan Free de Netlify por créditos: 300/mes, 15 por deploy de producción). Los commits que solo tocan `data/` no se despliegan (`netlify.toml` → `ignore`): en producción la página lee `data/` directamente del repo (raw.githubusercontent.com, `main`) y usa la copia publicada como respaldo. En localhost o con `?datos=local` lee solo la copia local. No cambiar el plan de Netlify sin autorización.
 - Trabajar en ramas; `main` solo con aprobación. El proyecto anterior del repo quedó en la etiqueta `archivo-tfxbasket`.
 - Nunca inventar datos. Si una fuente falla se conserva el último valor válido y se marca como desactualizado.
 - Separar siempre Actual / Previous / Revised / Consensus / Forecast.

@@ -1922,5 +1922,39 @@ function freshBadges(){
 }
 function renderAll(){show(view||(location.hash||'').slice(1)||store.get('view','resumen'),false);}
 renderAll();wireNav();freshBadges();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
+autoRefresh();
+
+// ---------- Actualización automática de la página abierta ----------
+// The data processes publish several times a day. Every 5 minutes (only while the tab is visible) the small data
+// files are compared with the ones loaded; if any changed, the page reloads itself keeping the section and scroll.
+function autoRefresh(){
+  const T=window.TFX_DATA;if(!T||!window.fetch)return;
+  const SMALL=['macro','carry','vol','mkt-live'],ALL=[...SMALL,'cot'];
+  const hash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return s.length+':'+h;};
+  const sig=async fs=>{const o={};for(const f of fs){try{o[f]=hash(JSON.stringify(await T.get('data/'+f+'.json')));}catch(e){o[f]=null;}}return o;};
+  try{const y=sessionStorage.getItem('tfx-scroll');if(y!=null){sessionStorage.removeItem('tfx-scroll');setTimeout(()=>scrollTo(0,+y),300);}}catch(e){}
+  let base=null,n=0,pending=false;
+  async function check(){
+    if(pending||document.hidden)return;
+    const fs=n++%6===0?ALL:SMALL,now=await sig(fs);   // the COT (640 KB, weekly) only every 30 minutes
+    if(!base){base=now;return;}
+    const changed=fs.filter(f=>now[f]&&base[f]!==undefined&&base[f]!==null&&now[f]!==base[f]);
+    fs.forEach(f=>{if(base[f]==null)base[f]=now[f];});
+    if(changed.length)announce();
+  }
+  function announce(){
+    pending=true;
+    const b=document.createElement('div');b.setAttribute('role','status');
+    b.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99;display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:8px;background:var(--panel);color:var(--ink);border:1px solid var(--accent);font:13px var(--f-body);box-shadow:0 6px 24px rgba(0,0,0,.25)';
+    let s=30;b.innerHTML=`<span>Hay datos nuevos. La terminal se actualiza en <b id="arS">${s}</b> s.</span>`;
+    const go=()=>{try{sessionStorage.setItem('tfx-scroll',String(scrollY));}catch(e){}location.reload();};
+    const now=document.createElement('button');now.type='button';now.className='chip sm';now.textContent='Actualizar ahora';now.onclick=go;
+    const no=document.createElement('button');no.type='button';no.className='chip sm';no.textContent='Más tarde';no.onclick=()=>{clearInterval(t);b.remove();setTimeout(()=>{pending=false;},10*60000);};   // asks again in 10 minutes
+    b.append(now,no);document.body.appendChild(b);
+    const t=setInterval(()=>{s--;const e=document.getElementById('arS');if(e)e.textContent=s;if(s<=0){clearInterval(t);go();}},1000);
+  }
+  setTimeout(check,5000);setInterval(check,5*60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
+}
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderAll);
 new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
