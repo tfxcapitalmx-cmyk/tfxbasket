@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-11 — Fase 1: bonos y curva automáticos, tarjetas desde FRED, sello por insumo y vigilante
+- Cuantitativo → Rendimientos de los bonos (curva por plazos, diferenciales, régimen de la curva y tablas del 2Y y el 10Y) se calcula desde FRED en el proceso del puntaje (`scripts/macro/curve.mjs` → `data/macro.json`). Antes seguía con los datos del 14-oct bajo el sello "Automático": mostraba el 2Y en 4.82% y el 10Y en 5.19% cuando ya estaban en 4.56% y 4.88%.
+- `node scripts/macro/check-curve.mjs` reconstruye la sección con los datos del 14-oct: coinciden 460 de 537 valores (85.7 %). La curva por plazo coincide en 9 de 10 plazos; el 30Y difiere por su hueco de 2002–2006; el resto son meses recientes que entran o salen por la disponibilidad del CPI (oct-2025, cierre del gobierno), con diferencias de décimas de punto básico.
+- Tarjetas informativas (ventas minoristas, PPI general, ADP, PIB t/t y a/a) desde FRED (`scripts/macro/info.mjs`); ADP sale de `ADPMNUSNERSA`. Los componentes del ISM siguen siendo manuales. Ya no muestran el consenso (no hay fuente gratuita; llegará con el Catalizador automático).
+- Sello por insumo: Resumen, Cuantitativo y Ciclo indican cuántos insumos van atrasados frente a su calendario habitual (al pasar el cursor se ven cuáles) y la tabla los marca como "atrasado".
+- Vigilante diario (`scripts/watchdog/check.mjs` + `.github/workflows/watchdog.yml`): abre un issue (llega por correo) si un archivo de `data/` o la captura manual se atrasan, y lo cierra cuando todo vuelve a estar al día. Opcional: secreto `DISCORD_WEBHOOK_URL`.
+- Guía del disparador externo para horarios puntuales: `docs/disparador-externo.md`.
+
 ## 2026-11-11 — Datos fuera de los deploys de Netlify y refresco automático
 - La cuenta de Netlify está en el plan Free por créditos (300 al mes, 15 por deploy de producción) y los procesos de datos generaban unos 3 deploys al día: el 11-nov quedaban 70 créditos. `netlify.toml` omite el deploy cuando un commit solo cambia `data/`; la página lee `data/` del repo (`raw.githubusercontent.com`, rama `main`, caché de 5 minutos) y, si no responde, la copia publicada con el código.
 - La página abierta revisa cada 5 minutos (solo con la pestaña visible) si cambiaron `macro`, `carry`, `vol` y `mkt-live` (el COT cada 30 minutos); si hay datos nuevos avisa y se recarga a los 30 s, conservando la sección y la posición. "Más tarde" pospone 10 minutos.

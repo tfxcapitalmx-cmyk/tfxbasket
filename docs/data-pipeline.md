@@ -112,5 +112,28 @@ Reproducción verificada (2026-11-09): `node scripts/macro/check-dist.mjs` (requ
 
 Reproducción verificada (2026-11-09): `node scripts/markets/check.mjs` reconstruye ambos módulos con las velas guardadas y coinciden todos los valores con `data/snapshot.json`.
 
+## Bonos y curva (Cuantitativo)
+
+| | |
+|---|---|
+| Alimenta | `D.snap.curve` y `D.snap.yields` dentro de `data/macro.json`; `scripts/macro/curve.mjs` |
+| Fuentes | FRED diario desde 1962: DGS3MO, DGS6MO, DGS1, DGS2, DGS3, DGS5, DGS7, DGS10, DGS20, DGS30. Mensuales (de Gráficos): Fed funds, core y CPI a/a, desempleo |
+| Definiciones | Rendimiento mensual = promedio de los días del mes (2 decimales en la tabla de la curva; el mes en curso, sin redondear). Tramos de 6 meses: ≤ −75, −75/−25, ±25, +25/+75, ≥ +75 pb. Resultados a 6 y 12 meses; un movimiento de la Fed cuenta si supera 12.5 pb. Régimen: nivel = promedio de 2Y y 10Y, pendiente = 10Y − 2Y; nivel estable si se mueve menos de 25 pb, steepening o flattening si la pendiente se mueve más de 10 pb. Las tablas del 2Y y el 10Y y los regímenes empiezan en 1977 |
+| Validación | 10 plazos con rendimientos en rango, al menos 30 meses por tramo y 500 por tabla, régimen conocido; error si la curva lleva más de 10 días sin datos |
+
+Reproducción (2026-11-11): `node scripts/macro/check-curve.mjs` (requiere `.cache/fred/<ID>.json`) → 85.7 % de los valores idénticos; ver `docs/changelog.md`.
+
+## Tarjetas informativas
+
+`scripts/macro/info.mjs`, dentro del proceso del puntaje: ventas minoristas (RSAFS; real = ventas / CPI), PPI demanda final (PPIFIS), ADP (ADPMNUSNERSA), PIB real (GDPC1). Los componentes del ISM se conservan como estén (captura manual).
+
+## Vigilante
+
+`.github/workflows/watchdog.yml` corre a diario y `scripts/watchdog/check.mjs` compara la fecha de cada archivo de `data/` con su máximo (macro 4 días, carry 14, COT 13, mercados 5…) y la captura manual con su calendario. Si algo se atrasa abre un issue (GitHub avisa por correo) o lo actualiza, y lo cierra cuando todo vuelve a estar al día.
+
+## Horarios puntuales
+
+Los cron de GitHub se retrasan entre 3 y 9 horas. Ver `docs/disparador-externo.md` (cron-job.org → `workflow_dispatch`).
+
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.

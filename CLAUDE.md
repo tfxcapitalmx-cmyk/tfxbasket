@@ -11,7 +11,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - Secretos (FRED_API_KEY, etc.) solo como secretos de GitHub o variables de Netlify, nunca en el repo ni en el frontend.
 - Datos con licencia (ISM, UMich, Conference Board, velas del broker, Investing.com, CB.watch) no se pueden redistribuir comercialmente sin licencia; ver `docs/data-sources.md`.
 - No contratar servicios ni planes de pago sin autorización expresa.
-- No hay Node ni Python instalados en la PC del propietario; los scripts de datos correrán en GitHub Actions.
+- Los scripts de datos corren en GitHub Actions (Node 20). La PC del propietario ya tiene Node 24 y Python 3.15 para pruebas locales; la clave de FRED solo existe en Actions (para pruebas: descarga temporal a un artefacto, como en `scripts/dev/`).
 
 ## Estructura
 - `index.html` — marcado y arranque: descarga `data/*.json` y luego ejecuta `assets/app.js`.
@@ -20,6 +20,8 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `data/macro.json` — automático (FRED + `data/manual.json`), se superpone a `D.snap` (rows, blocks, composite, hist…). Lo generan `scripts/macro/` y `.github/workflows/macro.yml`.
 - `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI con su previo, CEI, UMich preliminar, `tasas` para decisiones recientes).
 - `data/macro.json` también lleva `cycle` y `cycproj` (Ciclo), calculados por `scripts/macro/cycle.mjs`. `D.snap.regime_mkt` queda oculto.
+- `data/macro.json` también lleva `curve` y `yields` (Cuantitativo → bonos y curva, `scripts/macro/curve.mjs`, verificación `node scripts/macro/check-curve.mjs`) e `info` (tarjetas de ventas, PPI, ADP y PIB, `scripts/macro/info.mjs`; los componentes ISM siguen manuales).
+- Vigilante diario: `.github/workflows/watchdog.yml` + `scripts/watchdog/check.mjs` (issue si algo se atrasa). Disparador externo: `docs/disparador-externo.md`.
 - `data/charts.json` — automático, lo genera el proceso del puntaje (`scripts/macro/charts.mjs`) → `D.snap.charts`. Proyección oculta: `PRJ={}` en `app.js`.
 - `data/carry.json` — automático (BIS + FRED) → `D.snap.carry`, solo pares y dirección del swap; `scripts/carry/`, `.github/workflows/carry.yml`.
 - Los valores de `data/snapshot.json` para `pos`, el puntaje y `carry` quedan sobrescritos por los archivos automáticos.

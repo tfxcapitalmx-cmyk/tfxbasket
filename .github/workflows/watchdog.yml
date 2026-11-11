@@ -1,0 +1,46 @@
+# Daily freshness check of data/: opens (or updates) an issue when something is late and closes it when all is current.
+# GitHub emails the owner on each new issue. Optional: secret DISCORD_WEBHOOK_URL also posts the alert to Discord.
+name: Vigilante de datos
+
+on:
+  schedule:
+    - cron: '30 14 * * *'   # todos los días; tras la publicación de las 8:30 Nueva York
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Revisar antigüedad
+        id: check
+        run: |
+          if node scripts/watchdog/check.mjs; then echo "late=0" >> "$GITHUB_OUTPUT"; else echo "late=1" >> "$GITHUB_OUTPUT"; fi
+      - name: Abrir, actualizar o cerrar el aviso
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          TITLE="Vigilante: datos atrasados en la terminal"
+          NUM=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          if [ "${{ steps.check.outputs.late }}" = "1" ]; then
+            if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file watchdog-report.md; else gh issue create --title "$TITLE" --body-file watchdog-report.md; fi
+            if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+              node -e 'const fs=require("fs");process.stdout.write(JSON.stringify({content:("**TFX terminal · datos atrasados**\n"+fs.readFileSync("watchdog-report.md","utf8")).slice(0,1900)}))' > discord.json
+              curl -sS -H "Content-Type: application/json" -d @discord.json "$DISCORD_WEBHOOK_URL" > /dev/null
+            fi
+          elif [ -n "$NUM" ]; then
+            gh issue close "$NUM" --comment "Todo al día de nuevo. $(head -1 watchdog-report.md)"
+          fi

@@ -115,11 +115,11 @@ function renderScore(){
   const grp=(lab,side,val)=>{const bs=B.filter(b=>SD[b]===side),wt=bs.reduce((a,b)=>a+S.weights[b],0);
     return `<div class="grpbox"><div class="gh"><span>${lab} · ${Math.round(wt*100)}%</span><b style="color:${colv(val)}">${sg(val)}</b></div><div class="gb">${bs.map(blk).join('')}</div></div>`;};
   $('blocks').innerHTML=grp('Catalizadores · coincidentes','Coincidente',S.sub.coin)+grp('Líderes','Líder',S.sub.lead);
-  const row=(r,tag)=>`<tr><td><b>${r.name}</b>${tag?`<span class="side L" style="margin-left:8px">${r.block}</span>`:''}<span class="sub">${r.what}</span></td><td class="num">${r.val}<span class="sub">${r.date}</span></td>
+  const row=(r,tag)=>`<tr><td><b>${r.name}</b>${tag?`<span class="side L" style="margin-left:8px">${r.block}</span>`:''}<span class="sub">${r.what}</span></td><td class="num">${r.val}<span class="sub">${r.date}${staleTag(r)}</span></td>
     <td class="rule"><span class="th0">Estable</span> ${r.stable}<br><span class="th1">Calienta</span> ${r.hot}<br><span class="th2">Enfría</span> ${r.cold}</td><td class="num"><span class="pts ${ptsCls(r.pts)}">${ptsTxt(r.pts)}</span></td></tr>`;
   const bs=B.filter(b=>SD[b]===fScore),rows=S.rows.filter(r=>bs.includes(r.block)),sv=fScore==='Rezagado'?null:S.sub[fScore==='Líder'?'lead':'coin'];
   const STL={hot:'Calienta',cold:'Enfría',flat:'Estable'},GI={'Componentes ISM':'Componentes ISM · informativos: el PMI y el NMI ya los incluyen','Empleo':'Empleo · informativo: ADP no tiene tabla TFX','PIB':'PIB · rezagado: confirma el ciclo, no suma al puntaje'};
-  const irow=r=>`<tr class="info"><td><b>${r.name}</b><span class="side C">${r.pts!=null?'no pondera':'informativo'}</span><span class="sub">${r.what}</span></td><td class="num">${r.val}<span class="sub">${r.prev} · ${r.date}</span></td>
+  const irow=r=>`<tr class="info"><td><b>${r.name}</b><span class="side C">${r.pts!=null?'no pondera':'informativo'}</span><span class="sub">${r.what}</span></td><td class="num">${r.val}<span class="sub">${r.prev} · ${r.date}${staleTag(r)}</span></td>
     <td class="rule"><span class="th0">Estable</span> ${r.stable}<br><span class="th1">Calienta</span> ${r.hot}<br><span class="th2">Enfría</span> ${r.cold}</td><td class="num">${r.pts!=null?`<span class="pts ${ptsCls(r.pts)}">${ptsTxt(r.pts)}</span>`:`<span class="is ${r.state}">${STL[r.state]}</span>`}</td></tr>`;
   const IR=S.info.filter(r=>r.side===fScore),ig=[...new Set(IR.map(r=>r.block))].map(g=>`<tr class="grp"><td colspan="4">${GI[g]||g}</td></tr>`+IR.filter(r=>r.block===g).map(irow).join('')).join('');
   let h='<thead><tr><th>Indicador · qué mide</th><th class="num">Lectura</th><th>Umbrales</th><th class="num">Puntos</th></tr></thead><tbody>';
@@ -1908,15 +1908,39 @@ function freshSources(){
     vol:{auto:true,src:'Yahoo Finance',date:S.vol&&S.vol.asof,max:6},
     estacional:{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}};
 }
+// Each input against its usual release calendar: an input is late when the next period should already be out
+// (end of the following month + publication lag in days + 4 days of margin). Daily and weekly series by age.
+const LAG=[[/^Core CPI|^Tasa real/,15],[/PPI/,16],[/Desempleo|NFP/,10],[/ISM Manufactura/,3],[/ISM Servicios/,5],[/OECD CLI/,20],
+  [/LEI|Índice coincidente/,25],[/Permisos/,20],[/M2/,28],[/Ventas minoristas/,17],[/ADP/,5],[/PIB/,30]];
+function staleInfo(name,date,now=Date.now()){
+  let m=/^(\d{1,2})-([a-z]{3})-(\d{4})$/.exec(date||'');
+  if(m){const age=(now-Date.UTC(+m[3],FMES[m[2]],+m[1]))/864e5,max=/Solicitudes/.test(name)?13:10;return age>max?`dato del ${date}`:null;}
+  const prel=/\(prel\.\)/.test(date||'');
+  m=/^([a-z]{3})-(\d{4})/.exec(date||'');let mo,y;
+  if(m){mo=FMES[m[1]];y=+m[2];}else if((m=/^T([1-4])-(\d{4})$/.exec(date||''))){mo=+m[1]*3-1;y=+m[2];}else if((m=/^(\d{4})-(\d{2})$/.exec(date||''))){mo=+m[2]-1;y=+m[1];}else return null;
+  const quarter=/^T/.test(date);
+  // UMich: the preliminary reading is replaced by the final one at the end of the same month.
+  const due=prel?Date.UTC(y,mo+1,0)+4*864e5:Date.UTC(y,mo+(quarter?4:2),0)+((LAG.find(([re])=>re.test(name))||[0,20])[1]+4)*864e5;
+  return now>due?(prel?'falta la lectura final':'ya debió publicarse el siguiente dato'):null;
+}
+const staleTag=r=>staleInfo(r.name,r.date)?' · <b style="color:var(--accent)">atrasado</b>':'';
+function staleInputs(id){
+  const L=[],seen=new Set();const add=(n,d)=>{const k=n.replace(/[ ,·].*$/,'');if(seen.has(k)&&/^(LEI|Índice)/.test(n))return;seen.add(k);const w=staleInfo(n,d);if(w)L.push(`${n} (${d}): ${w}`);};
+  if(['resumen','cuantitativo'].includes(id)){(S.rows||[]).forEach(r=>add(r.name,r.date));(S.info||[]).forEach(r=>add(r.name,r.date));}
+  if(id==='resumen'||id==='ciclo'){const c=S.cycle||{};if(c.lei_periodo)add('LEI Conference Board, 6m',c.lei_periodo);if(c.cei_periodo)add('Índice coincidente, 6m',c.cei_periodo);}
+  if(id==='cuantitativo'&&S.curve&&S.curve.date)add('Curva del Tesoro',S.curve.date.slice(8)+'-'+Object.keys(FMES)[+S.curve.date.slice(5,7)-1]+'-'+S.curve.date.slice(0,4));
+  return [...new Set(L)];
+}
 function freshBadges(){
   for(const [id,f] of Object.entries(freshSources())){
     const sh=document.querySelector(`#${id} > .sh`);if(!sh)continue;
     let b=sh.querySelector('.fresh');if(!b){b=document.createElement('span');sh.appendChild(b);}
     const t=freshDate(f.date),age=t==null?null:Math.floor((Date.now()-t)/864e5),old=age==null||age>f.max;
     const when=t==null?'sin fecha':`${f.lab||'datos al'} ${freshLab(t)}`;
-    b.className='fresh '+(f.auto?(old?'old':'ok'):(old?'manold':'man'));
-    b.innerHTML=`<i></i>${f.auto?(old?'Sin actualizar':'Automático · '+f.src):'Manual'} · ${when}${old&&age!=null?` · hace ${age} días`:''}`;
-    b.title=f.auto?(old?`La actualización automática desde ${f.src} no trae datos nuevos desde hace ${age} días. Se muestra el último dato válido.`:`Se actualiza solo desde ${f.src}.`)
+    const late=f.auto&&!old?staleInputs(id):[];
+    b.className='fresh '+(f.auto?(old?'old':late.length?'manold':'ok'):(old?'manold':'man'));
+    b.innerHTML=`<i></i>${f.auto?(old?'Sin actualizar':'Automático · '+f.src):'Manual'} · ${when}${old&&age!=null?` · hace ${age} días`:''}${late.length?` · ${late.length} ${late.length===1?'insumo atrasado':'insumos atrasados'}`:''}`;
+    b.title=f.auto?(old?`La actualización automática desde ${f.src} no trae datos nuevos desde hace ${age} días. Se muestra el último dato válido.`:`Se actualiza solo desde ${f.src}.`+(late.length?`\nAtrasados frente a su calendario habitual:\n- ${late.join('\n- ')}`:''))
       :`Estos datos se cargan a mano.${old?` Tienen más de ${f.max} días.`:''}`;
   }
 }
