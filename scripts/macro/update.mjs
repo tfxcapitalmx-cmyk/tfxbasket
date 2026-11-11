@@ -5,6 +5,8 @@ import { SERIES, buildMacro, rollHistory, validateMacro, validateManual, fromApi
 import { CHART_SERIES, computeCharts, mergeCharts, validateCharts } from './charts.mjs';
 import { buildCycle, validateCycle } from './cycle.mjs';
 import { DIST_SERIES, buildDist, validateDist } from './dist.mjs';
+import { CURVE_SERIES, buildCurve, validateCurve } from './curve.mjs';
+import { INFO_SERIES, buildInfo, validateInfo } from './info.mjs';
 import { decodeSeries, mergeDaily, monthlyCloses } from '../markets/core.mjs';
 
 const OUT = new URL('../../data/macro.json', import.meta.url);
@@ -14,6 +16,7 @@ const DIST = new URL('../../data/dist.json', import.meta.url);
 const REFERENCE = new URL('../../scripts/reference/snapshot-2026-10-16.json', import.meta.url);
 const MARKETS = new URL('../../data/markets.json', import.meta.url);
 const MKT_LIVE = new URL('../../data/mkt-live.json', import.meta.url);
+const SNAPSHOT = new URL('../../data/snapshot.json', import.meta.url);
 const KEY = process.env.FRED_API_KEY;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -68,6 +71,20 @@ async function main() {
 
   // Only the content counts as a change, not the date of the check.
   const strip = m => JSON.stringify({ ...m, asof: null, asof_iso: null });
+  // Cuantitativo → bonos y curva (full daily history since 1962) and the informative cards (retail, PPI, ADP, GDP).
+  // Monthly inputs come from the charts just built: Fed funds, core and headline CPI a/a, unemployment.
+  const cm = k => new Map(charts[k].s.d.map((d, i) => [d, charts[k].s.v[i]]));
+  const daily = {};
+  for (const id of CURVE_SERIES) daily[id] = await fred(id, 3, '1962-01-01');
+  Object.assign(next, buildCurve(daily, { ff: cm('ff'), core: cm('corey'), cpi: cm('cpiy'), un: cm('unrate') }));
+  const curveErr = validateCurve(next, today);
+  if (curveErr.length) { console.error('Bonos y curva: validación fallida; se conserva el archivo anterior:\n- ' + curveErr.join('\n- ')); process.exit(1); }
+  const infoObs = {};
+  for (const id of INFO_SERIES) infoObs[id] = obs[id] || await fred(id, 3, '2000-01-01');
+  next.info = buildInfo(prev.info || JSON.parse(await readFile(SNAPSHOT, 'utf8')).snap.info, infoObs);
+  const infoErr = validateInfo(next.info);
+  if (infoErr.length) { console.error('Tarjetas informativas: validación fallida; se conserva el archivo anterior:\n- ' + infoErr.join('\n- ')); process.exit(1); }
+
   if (JSON.stringify(prevCharts.charts) !== JSON.stringify(charts)) {
     await writeFile(CHARTS, JSON.stringify({ asof_iso: today, charts }));
     console.log('Gráficos actualizados.');
