@@ -8,7 +8,7 @@ on:
     - cron: '30 22 * * 1-5'  # cierre: bonos, breakevens y Fed funds del día
   push:
     branches: [main]
-    paths: ['data/manual.json', 'scripts/macro/**', 'scripts/calendar/**']  # al editar la captura manual o el código del proceso
+    paths: ['data/manual.json', 'scripts/macro/**', 'scripts/calendar/**', 'scripts/nowcast/**']  # al editar la captura manual o el código del proceso
   workflow_dispatch:
 
 permissions:
@@ -40,9 +40,16 @@ jobs:
         run: node scripts/calendar/update.mjs
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      # The nowcast reads the agenda just built (release time and consensus of each figure).
+      - name: Nowcast
+        id: nowcast
+        continue-on-error: true
+        run: node scripts/nowcast/update.mjs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       - name: Publicar si hay datos nuevos
         run: |
-          git add data/macro.json data/charts.json data/dist.json data/calendar.json 2>/dev/null || true
+          git add data/macro.json data/charts.json data/dist.json data/calendar.json data/nowcast.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "Sin cambios"; else
             git config user.name "tfx-data-bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -51,7 +58,7 @@ jobs:
             git push
           fi
       - name: Marcar fallo si algún paso falló
-        if: steps.macro.outcome == 'failure' || steps.agenda.outcome == 'failure'
+        if: steps.macro.outcome == 'failure' || steps.agenda.outcome == 'failure' || steps.nowcast.outcome == 'failure'
         run: |
-          echo "Puntaje: ${{ steps.macro.outcome }} · Agenda: ${{ steps.agenda.outcome }}. Se publicó lo que sí se validó."
+          echo "Puntaje: ${{ steps.macro.outcome }} · Agenda: ${{ steps.agenda.outcome }} · Nowcast: ${{ steps.nowcast.outcome }}. Se publicó lo que sí se validó."
           exit 1

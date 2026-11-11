@@ -20,6 +20,7 @@ const FILES = [
   ['seas.json', m => m.asof, 5, 'Mercados (Yahoo Finance)'],
   ['mkt-live.json', m => m.asof, 5, 'Mercados (Yahoo Finance)'],
   ['calendar.json', m => m.asof.slice(0, 10), 4, 'Puntaje macro (FRED) · Agenda del Catalizador'],
+  ['nowcast.json', m => m.asof, 4, 'Puntaje macro (FRED) · Nowcast (Modelos)'],
 ];
 for (const [f, get, max, who] of FILES) {
   try {
@@ -52,9 +53,7 @@ try {
   if (c.ff && days(c.ff) > 8) problems.push('calendar.json · el consenso de ForexFactory no se actualiza desde ' + c.ff.slice(0, 10));
 } catch { /* reported above */ }
 
-// Módulos que siguen congelados en data/snapshot.json (Modelos): se reportan sin bloquear.
-const snap = (await R('snapshot.json')).snap, sd = /^(\d{1,2})-([a-z]{3})-(\d{4})$/.exec(snap.asof || '');
-const frozen = sd ? `Modelos (nowcast) y las pestañas de modelo del Catalizador siguen siendo manuales (datos al ${snap.asof}, ${Math.floor((now - Date.UTC(+sd[3], MES[sd[2]], +sd[1])) / 864e5)} días).` : '';
+const frozen = '';   // every module of the menu updates itself since the nowcast (2026-11-11)
 
 const today = new Date(now).toISOString().slice(0, 10);
 const md = [
