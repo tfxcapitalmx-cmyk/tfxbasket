@@ -1,10 +1,10 @@
 # Static site, no build step. Data files are refreshed by commits, so they must revalidate on every visit.
 [build]
   publish = "."
-  # Skip the deploy when a commit only touches data/ (the page reads data/ from the repo; see index.html).
-  # Each production deploy costs 15 Netlify credits and the data processes commit several times a day.
-  # Exit code 0 = nothing outside data/ changed → Netlify cancels the build.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)data'"
+  # Deploy only when the page itself changes (index.html, assets/, netlify.toml). Data, scripts, workflows and docs
+  # do not change what the site serves (the page reads data/ from the repo; see index.html).
+  # Each production deploy costs 15 Netlify credits. Exit code 0 = nothing served changed → Netlify cancels the build.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.html assets netlify.toml"
 
 [[headers]]
   for = "/data/*"

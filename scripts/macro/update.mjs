@@ -81,7 +81,7 @@ async function main() {
   if (curveErr.length) { console.error('Bonos y curva: validación fallida; se conserva el archivo anterior:\n- ' + curveErr.join('\n- ')); process.exit(1); }
   const infoObs = {};
   for (const id of INFO_SERIES) infoObs[id] = obs[id] || await fred(id, 3, '2000-01-01');
-  next.info = buildInfo(prev.info || JSON.parse(await readFile(SNAPSHOT, 'utf8')).snap.info, infoObs);
+  next.info = buildInfo(prev.info || JSON.parse(await readFile(SNAPSHOT, 'utf8')).snap.info, infoObs, man);
   const infoErr = validateInfo(next.info);
   if (infoErr.length) { console.error('Tarjetas informativas: validación fallida; se conserva el archivo anterior:\n- ' + infoErr.join('\n- ')); process.exit(1); }
 
