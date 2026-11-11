@@ -175,14 +175,16 @@ function runTarget(key, S, ctx) {
   const fan = { p5: [], p25: [], p50: [], p75: [], p95: [] };
   for (const p of paths) { const s = Array.from(p).sort((a, b) => a - b); for (const [k, v] of [['p5', 0.05], ['p25', 0.25], ['p50', 0.5], ['p75', 0.75], ['p95', 0.95]]) fan[k].push(quantile(s, v)); }
   const histK = range(sh(lastY, -35), lastY);
-  const yIdx = pct ? S[{ HM: 'HI', CM: 'CI', PM: 'PI', PCM: 'PCI' }[T.y]] : null;
-  const yoyAt = k => (yIdx.has(k) && yIdx.has(sh(k, -12)) ? +((yIdx.get(k) / yIdx.get(sh(k, -12)) - 1) * 100).toFixed(3) : null);
+  // a/a of a published month; when the base month does not exist (CPI Oct/Nov-2025, shutdown) the base is the
+  // interpolated index, as the page says under the chart. The month itself must be published.
+  const yIdx = pct ? S[{ HM: 'HI', CM: 'CI', PM: 'PI', PCM: 'PCI' }[T.y]] : null, yBase = pct ? fillIndex(yIdx) : null;
+  const yoyAt = k => (yIdx.has(k) && yBase.has(sh(k, -12)) ? +((yIdx.get(k) / yBase.get(sh(k, -12)) - 1) * 100).toFixed(3) : null);
   const hist = histK.map(k => (pct ? yoyAt(k) : Y.get(k) ?? null));
 
   const r3 = v => (v == null ? null : Math.round(v * 1000) / 1000);
   const coef = { const: best.now.b[0] }, x = {}, lab = {};
   best.vars.forEach((v, i) => { coef[v] = best.now.b[i + 1]; x[v] = best.now.x[i]; lab[v] = LAB[v]; });
-  const yprev = pct ? (yIdx.has(lastY) && yIdx.has(sh(lastY, -12)) ? Math.round((yIdx.get(lastY) / yIdx.get(sh(lastY, -12)) - 1) * 1000) / 10 : null) : baseMM;
+  const yprev = pct ? (yoyAt(lastY) == null ? null : Math.round(yoyAt(lastY) * 10) / 10) : baseMM;
   return {
     name: T.name, unit: T.unit, ref, actual: null, pred_pub: null, cons, prev: prevPub, refv, consKind: cons != null ? 'consenso' : 'dato previo',
     central, pred, w, table: [[`Regresión (${best.name})`, rmse(R, A), dir(R)], [`ARIMA(${order[0]}, 0, ${order[2]})`, rmse(AR, A), dir(AR)], ['Ensamble', rmse(ENS, A), dir(ENS)], ['Dato anterior (ingenuo)', rmse(NAIVE, A), dir(NAIVE)]],
