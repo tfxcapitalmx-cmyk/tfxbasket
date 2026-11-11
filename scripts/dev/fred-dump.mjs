@@ -5,9 +5,9 @@ await mkdir('.cache/fred', { recursive: true });
 const get = async (p) => { const r = await fetch(`${B}/${p}&api_key=${KEY}&file_type=json`); if (!r.ok) throw new Error(p.split('?')[0] + ' HTTP ' + r.status); return r.json(); };
 const rel = await get('releases?limit=1000');
 await writeFile('.cache/fred/_releases.json', JSON.stringify(rel.releases.map(r => [r.id, r.name])));
-const dates = await get('releases/dates?realtime_start=2026-09-01&realtime_end=2027-06-30&include_release_dates_with_no_data=true&limit=1000&sort_order=asc');
-await writeFile('.cache/fred/_dates.json', JSON.stringify(dates.release_dates));
-console.log('releases', rel.releases.length, 'dates', dates.release_dates.length);
+const dates = {};
+for (const id of [9, 10, 11, 46, 50, 53, 54, 91, 101, 180, 192]) { const d = await get(`release/dates?release_id=${id}&realtime_start=2026-01-01&realtime_end=9999-12-31&include_release_dates_with_no_data=true&sort_order=asc&limit=1000`); dates[id] = d.release_dates.map(x => x.date); console.log(id, dates[id].filter(x => x >= '2026-10-15').slice(0, 6).join(' ')); }
+await writeFile('.cache/fred/_dates.json', JSON.stringify(dates));
 const IDS = ['PAYEMS', 'UNRATE', 'CPIAUCSL', 'CPILFESL', 'PPIFIS', 'PPIFES', 'RSAFS', 'ICSA', 'GDPC1', 'PCEPI', 'PCEPILFE', 'ECIALLCIV', 'JTSJOL', 'UMCSENT', 'DFEDTARU', 'DFEDTARL'];
 for (const id of IDS) {
   try { const j = await get(`series/observations?series_id=${id}&observation_start=2024-01-01`); const o = j.observations.filter(x => x.value !== '.').map(x => [x.date, +x.value]); await writeFile(`.cache/fred/${id}.json`, JSON.stringify(o)); console.log(id, o.at(-1)); }
