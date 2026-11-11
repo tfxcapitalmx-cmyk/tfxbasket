@@ -148,5 +148,17 @@ Los cron de GitHub se retrasan entre 3 y 9 horas. Ver `docs/disparador-externo.m
 
 Prueba local sin clave: `FRED_CACHE=.cache/fred node scripts/calendar/update.mjs` (requiere `.cache/fred/_dates.json` y las series).
 
+## Nowcast (Modelos y Escenarios)
+
+| | |
+|---|---|
+| Alimenta | `data/nowcast.json` → `D.snap.nowcast`, `D.snap.nc_order`, `D.snap.evt`; `scripts/nowcast/`, paso "Nowcast" de `.github/workflows/macro.yml` (después de la agenda) |
+| Indicadores | CPI, core CPI, PPI, core PPI (m/m) y NFP (miles); cada uno pronostica el próximo mes sin publicar |
+| Fuentes | FRED: CPIAUCSL, CPILFESL, PPIFIS, PPIFES, PAYEMS, ICSA, MICH, GASREGW; DTWEXBGS y DGS2 para el estudio de evento. Agenda: hora y consenso. `data/manual.json`: UMich del mes que FRED aún no publica |
+| Modelos | Regresión (variantes guardadas; NFP también con ventanas de 36 y 60 meses), ARIMA(p,0,q) por AIC, ensamble por inverso del error cuadrático, GARCH(1,1)-t si ARCH-LM < 0.05, Monte Carlo de 20,000 escenarios calibrado al 90 %, abanico a 6 meses. Reglas en `docs/decisions.md` |
+| Validación | Predicción finita y en rango (±3 pp; NFP ±1,500k), al menos 60 meses de backtest, probabilidades que suman 1 |
+
+Reproducción (2026-11-11): `node scripts/nowcast/check.mjs` (requiere `.cache/fred/<ID>_v1016.json`, las series tal como se conocían el 16-oct). Prueba local con los datos actuales: `FRED_CACHE=.cache/fred node scripts/nowcast/update.mjs`.
+
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.
