@@ -1,6 +1,6 @@
 # TFX Macro Intelligence Terminal
 
-Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de uso propio; la arquitectura debe permitir comercializarla después.
+Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Es de uso propio y no se comercializará (decisión del propietario, 2026-11-11): se pueden usar fuentes no oficiales o con licencia para uso personal.
 
 ## Reglas permanentes
 - Idioma del producto y de la comunicación con el propietario: español. Propuestas con el formato Problema / Diagnóstico / Solución / Justificación / Impacto / Costo / Riesgos / Plan.
@@ -22,6 +22,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `data/macro.json` también lleva `cycle` y `cycproj` (Ciclo), calculados por `scripts/macro/cycle.mjs`. `D.snap.regime_mkt` queda oculto.
 - `data/macro.json` también lleva `curve` y `yields` (Cuantitativo → bonos y curva, `scripts/macro/curve.mjs`, verificación `node scripts/macro/check-curve.mjs`) e `info` (tarjetas de ventas, PPI, ADP y PIB, `scripts/macro/info.mjs`; los componentes ISM siguen manuales).
 - `data/calendar.json` (→ `D.snap.calendar`, Catalizador → agenda) — automático: `scripts/calendar/` (FRED + ForexFactory + `data/manual.json`), paso del workflow del puntaje. Fechas del FOMC a mano en `scripts/calendar/fomc.json` (una vez al año).
+- `data/nowcast.json` (→ `D.snap.nowcast`, `nc_order`, `evt`: Modelos y Escenarios) — automático: `scripts/nowcast/` (JS sin dependencias: regresión, ARIMA, GARCH, Monte Carlo), paso del workflow del puntaje después de la agenda. Verificación: `node scripts/nowcast/check.mjs`.
 - Vigilante diario: `.github/workflows/watchdog.yml` + `scripts/watchdog/check.mjs` (issue si algo se atrasa). Disparador externo: `docs/disparador-externo.md`.
 - `data/charts.json` — automático, lo genera el proceso del puntaje (`scripts/macro/charts.mjs`) → `D.snap.charts`. Proyección oculta: `PRJ={}` en `app.js`.
 - `data/carry.json` — automático (BIS + FRED) → `D.snap.carry`, solo pares y dirección del swap; `scripts/carry/`, `.github/workflows/carry.yml`.
@@ -35,7 +36,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 
 ## Fuentes manuales del propietario
 - Libro A.E.: `C:\Users\Gus-a\OneDrive\Documentos\Proyectos\TFX Capital\Excel Trading\United States Macro\Endogenous\AE EE.UU. 2026 Q4.xlsx` (hojas: DATA, Sources, US Endo' Historical, US Indicators, Cycles, GDP, CPI All, Core CPI, PPI All, Core PPI, NFP, IR, PMI, NMI, M2, Permits, UMCSI, T10%, Govt, CBBS). Sin conexiones externas.
-- Los modelos (ARIMA, GARCH, Monte Carlo, regresiones del nowcast) se hicieron en chats anteriores y no existe su código: hay que reconstruirlos en el repo.
+- Los modelos del nowcast se reconstruyeron en `scripts/nowcast/` (2026-11-11); reglas en `docs/decisions.md`.
 - `docs/` — arquitectura, fuentes, roadmap, decisiones y changelog. Actualizar `docs/changelog.md` en cada cambio relevante.
 
 ## Verificar un cambio

@@ -1,5 +1,15 @@
 # Decisiones
 
+## 2026-11-11 — Uso propio, sin comercialización
+El propietario decide que la terminal es solo de uso propio. Las fuentes no oficiales o con licencia (Yahoo Finance, ForexFactory, ISM, UMich, Conference Board) se usan para uso personal. Si algún día se comercializa, hay que sustituirlas o licenciarlas (ver `docs/data-sources.md`). El repo es público: los datos quedan visibles en GitHub.
+
+## 2026-11-11 — Nowcast reconstruido en JavaScript
+Python 3.15 (PC del propietario) no tiene paquetes de `statsmodels`/`arch`; los modelos se reescribieron en JavaScript sin dependencias para poder probarlos en local y en Actions con el mismo código. Reglas que no estaban escritas y se fijaron así:
+- Insumos: promedios de m/m sobre índices de FRED (el original usaba el último mes redondeado tal como se publica, p. ej. core sep = 0.3); gasolina = promedio mensual de GASREGW con ajuste estacional por el cambio medio del mismo mes en años previos; solicitudes = promedio mensual de ICSA; el mes en pronóstico usa el último dato semanal disponible si aún no hay semanas del mes; UMich de `data/manual.json` cuando FRED aún no tiene el mes.
+- Muestra: entrenamiento desde 2000 (PPI desde 2010), backtest desde 2016; NFP excluye mar-2020 a dic-2021 y elige por error de los últimos 36 meses (cambio de régimen tras la pandemia); el resto por error de toda la muestra.
+- Central = el de menor error entre regresión, ARIMA y ensamble. Ensamble con pesos recalculados cada mes con los errores conocidos hasta entonces.
+- Monte Carlo redondea como la fuente (0.1 pp; NFP ±10k = en línea) y compara contra el consenso si existe, si no contra el dato previo. "Prob. a/a sube" usa el m/m del mismo mes un año antes; si no existe (CPI nov-2025), el promedio de los 12 meses previos.
+
 ## 2026-11-09 — Distribución macro: historial completo desde FRED
 Las 23 series se reconstruyeron y el 98 % de los valores coincide exactamente con la versión anterior. Se recalcula todo el historial en cada ejecución (no solo los meses recientes) porque FRED es la fuente oficial y sus revisiones afectan años atrás (OECD CLI, M2, PIB). Donde el libro A.E. y FRED difieren se usa FRED: Fed funds mensual = FEDFUNDS (misma decisión que en Gráficos), UMich y PIB vigentes. ISM sigue siendo captura manual (licencia) y llega a través de Gráficos. El S&P 500 usa los cierres mensuales del histórico de Investing.com extendidos con Yahoo (mismo riesgo de licencia que en Mercados).
 

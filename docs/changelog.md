@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Fase 3: nowcast automático (Modelos y Escenarios)
+- Nuevo `scripts/nowcast/` → `data/nowcast.json` (→ `D.snap.nowcast`, `nc_order`, `evt`), paso "Nowcast" del workflow del puntaje, después de la agenda (de ella toma la hora de publicación y el consenso). Modelos y las pestañas Modelo y Escenarios del Catalizador dejan de depender de la carga manual del 16-oct.
+- Reconstruido en JavaScript sin dependencias (`stats.mjs`): regresión con las variantes guardadas, ARIMA(p,0,q) por mínimos cuadrados condicionales con orden por AIC, ensamble por inverso del error cuadrático, GARCH(1,1) con errores t cuando la prueba ARCH-LM lo justifica, Monte Carlo de 20,000 escenarios calibrado para que la banda del 90 % cubra el 90 % de los errores históricos, abanico a 6 meses y backtest mensual desde 2016.
+- `node scripts/nowcast/check.mjs` reconstruye el modelo con los datos tal como se conocían el 16-oct (ALFRED): CPI oct **0.418 frente a 0.418** guardado, mismo error de la regresión (0.145) y mismo peso del ensamble (0.743 frente a 0.742). Core CPI y NFP quedan cerca; los órdenes ARIMA difieren porque el original usó máxima verosimilitud exacta.
+- Estudio de evento (Escenarios): reacción del día del CPI desde 2016 según el tercil de la sorpresa frente al modelo. El "DXY" es el índice amplio del dólar de la Fed (FRED DTWEXBGS); 2Y de FRED; S&P 500 y oro de las velas guardadas + Yahoo.
+- Meses inexistentes del CPI (oct-nov 2025, cierre del gobierno): las regresiones nunca los usan; el ARIMA y la base del a/a (abanico, a/a previo) usan el índice interpolado geométricamente, como ya decía la nota bajo el gráfico.
+- Sello de Modelos: "Automático · FRED". El vigilante revisa `nowcast.json`. Con esto, los 12 módulos del menú se actualizan solos.
+- Decisión del propietario (2026-11-11): la terminal es de **uso propio**, no se comercializa; se pueden usar las fuentes no oficiales o con licencia (Yahoo, ForexFactory, ISM, UMich) para uso personal.
+
 ## 2026-11-11 — Fase 2: Catalizador → agenda automática
 - Nuevo `scripts/calendar/` → `data/calendar.json` (→ `D.snap.calendar`), dentro del proceso del puntaje (corre a las horas exactas de los datos vía cron-job.org). Sustituye la agenda escrita a mano el 16-oct, que tenía en blanco los 11 resultados publicados desde el 22-oct.
 - Fechas: FRED `release/dates` (CPI, PPI, empleo, ventas, solicitudes, PIB, PCE, ECI, JOLTS: el calendario oficial de cada agencia, 1–2 meses hacia adelante); ISM por regla (1.er y 3.er día hábil); FOMC desde `scripts/calendar/fomc.json` (se actualiza una vez al año; el vigilante avisa cuando quedan menos de 60 días cubiertos).

@@ -20,7 +20,8 @@ Aceptación: el sitio publicado desde el repo se ve igual que hoy.
 4. [x] Indicador de antigüedad en cada panel (automático/manual, fecha, aviso si está atrasado). Los fallos de los procesos automáticos llegan por correo de GitHub.
 5. [x] Volatilidad y Estacionalidad (Yahoo Finance sobre el histórico guardado). La misma capa alimenta Distribución → Mercados y el precio de Posicionamiento. Distribución → Datos macroeconómicos también es automático (FRED, con el puntaje).
 
-6. [x] Catalizador → agenda automática (FRED + ForexFactory, 2026-11-11). Pendiente: nowcast y escenarios (Etapa 3).
+6. [x] Catalizador → agenda automática (FRED + ForexFactory, 2026-11-11).
+7. [x] Nowcast, abanico y estudio de evento automáticos (2026-11-11). Los 12 módulos del menú se actualizan solos.
 
 Aceptación: 7 días sin intervención manual en las fuentes automatizadas.
 
