@@ -264,7 +264,7 @@ function renderCatalyst(){
   chipset($('fCat'),[{id:'modelo',label:'Modelo vs consenso'},{id:'escenarios',label:'Escenarios y reacción'},{id:'agenda',label:'Agenda'}],fCat,id=>{fCat=id;store.set('fCat',id);renderCatalyst();});
   ['modelo','escenarios','agenda'].forEach(t=>$('cat-'+t).hidden=t!==fCat);
   if(!nm||!TG.length){
-    $('cpiCtx').textContent=nm?`${CATN[nm.key]} ${nm.ref} · ${fDate(nm.t)}, ${fTime(nm.t)} ${TZN()}. El modelo de este dato se calcula al publicarse el dato previo.`:'Sin catalizadores con modelo en el calendario.';
+    $('cpiCtx').textContent=nm?`${CATN[nm.key]} ${nm.ref} · ${fDate(nm.t)}, ${fTime(nm.t)} ${TZN()}. El nowcast de este dato todavía no se recalcula solo (pendiente: modelos automáticos); la agenda, el consenso y los resultados sí se actualizan.`:'Sin catalizadores con modelo en el calendario.';
     $('cpiTable').innerHTML='';$('scen').innerHTML='';$('scenNote').textContent='';
   }else{
     const N0=S.nowcast[TG[0]],same=nx&&nm.t===nx.t&&nm.key===nx.key;
@@ -1902,7 +1902,9 @@ function freshSources(){
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
-    ciclo:mac,catalizador:man,modelos:man,
+    ciclo:mac,modelos:man,
+    // Catalizador: the agenda updates itself; the model and scenario tabs still use the hand-loaded nowcast (Modelos).
+    catalizador:S.cal_asof?{auto:true,src:'FRED + ForexFactory',date:S.cal_asof.slice(0,10),max:4}:man,
     // Distribución: the Mercados view reads the Yahoo candles; the macro view is rebuilt from FRED with the scorecard.
     distribucion:dorMode==='mercados'?{auto:true,src:'Yahoo Finance',date:S.seas&&S.seas.asof,max:6}:{auto:true,src:'FRED',date:S.dist_asof,max:5},
     vol:{auto:true,src:'Yahoo Finance',date:S.vol&&S.vol.asof,max:6},
@@ -1953,7 +1955,7 @@ autoRefresh();
 // files are compared with the ones loaded; if any changed, the page reloads itself keeping the section and scroll.
 function autoRefresh(){
   const T=window.TFX_DATA;if(!T||!window.fetch)return;
-  const SMALL=['macro','carry','vol','mkt-live'],ALL=[...SMALL,'cot'];
+  const SMALL=['macro','carry','vol','mkt-live','calendar'],ALL=[...SMALL,'cot'];
   const hash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return s.length+':'+h;};
   const sig=async fs=>{const o={};for(const f of fs){try{o[f]=hash(JSON.stringify(await T.get('data/'+f+'.json')));}catch(e){o[f]=null;}}return o;};
   try{const y=sessionStorage.getItem('tfx-scroll');if(y!=null){sessionStorage.removeItem('tfx-scroll');setTimeout(()=>scrollTo(0,+y),300);}}catch(e){}

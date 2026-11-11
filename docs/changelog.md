@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Fase 2: Catalizador → agenda automática
+- Nuevo `scripts/calendar/` → `data/calendar.json` (→ `D.snap.calendar`), dentro del proceso del puntaje (corre a las horas exactas de los datos vía cron-job.org). Sustituye la agenda escrita a mano el 16-oct, que tenía en blanco los 11 resultados publicados desde el 22-oct.
+- Fechas: FRED `release/dates` (CPI, PPI, empleo, ventas, solicitudes, PIB, PCE, ECI, JOLTS: el calendario oficial de cada agencia, 1–2 meses hacia adelante); ISM por regla (1.er y 3.er día hábil); FOMC desde `scripts/calendar/fomc.json` (se actualiza una vez al año; el vigilante avisa cuando quedan menos de 60 días cubiertos).
+- Actual y previo desde FRED. Los eventos pasados conservan el dato tal como se publicó; si después se revisa, el siguiente evento marca el previo con "(rev.)" (p. ej. NFP sep: publicado +29k, hoy +60k). ISM y UMich: de `data/manual.json` (licencia).
+- Consenso y hora exacta de la semana (incluye cambios por festivos): feed semanal de ForexFactory (no oficial, uso propio). Si no responde (p. ej. HTTP 429), se conserva el consenso ya guardado; el vigilante avisa si pasan más de 8 días sin consenso.
+- Los años-a-año del CPI de octubre de 2026 quedan vacíos: FRED no tiene octubre de 2025 (cierre del gobierno de EE.UU.). No se rellenan.
+- Sello del Catalizador: "Automático · FRED + ForexFactory". Las pestañas "Modelo vs consenso" y "Escenarios" siguen usando el nowcast manual (Modelos) y lo dicen en pantalla.
+- El paso de la agenda es independiente del puntaje: si uno falla, el otro publica igual y la ejecución queda marcada como fallida (correo de GitHub).
+
 ## 2026-11-11 — Fase 1: bonos y curva automáticos, tarjetas desde FRED, sello por insumo y vigilante
 - Cuantitativo → Rendimientos de los bonos (curva por plazos, diferenciales, régimen de la curva y tablas del 2Y y el 10Y) se calcula desde FRED en el proceso del puntaje (`scripts/macro/curve.mjs` → `data/macro.json`). Antes seguía con los datos del 14-oct bajo el sello "Automático": mostraba el 2Y en 4.82% y el 10Y en 5.19% cuando ya estaban en 4.56% y 4.88%.
 - `node scripts/macro/check-curve.mjs` reconstruye la sección con los datos del 14-oct: coinciden 460 de 537 valores (85.7 %). La curva por plazo coincide en 9 de 10 plazos; el 30Y difiere por su hueco de 2002–2006; el resto son meses recientes que entran o salen por la disponibilidad del CPI (oct-2025, cierre del gobierno), con diferencias de décimas de punto básico.

@@ -19,6 +19,7 @@ const FILES = [
   ['vol.json', m => m.asof, 5, 'Mercados (Yahoo Finance)'],
   ['seas.json', m => m.asof, 5, 'Mercados (Yahoo Finance)'],
   ['mkt-live.json', m => m.asof, 5, 'Mercados (Yahoo Finance)'],
+  ['calendar.json', m => m.asof.slice(0, 10), 4, 'Puntaje macro (FRED) · Agenda del Catalizador'],
 ];
 for (const [f, get, max, who] of FILES) {
   try {
@@ -41,9 +42,19 @@ for (const k of ['umcsi', 'mich']) {
   if (now > Date.UTC(y, m, 0) + 4 * 864e5) problems.push(`\`manual.json\` → ${k} · ${x.periodo} sigue como preliminar (la lectura final ya salió)`);
 }
 
-// Módulos que siguen congelados en data/snapshot.json (Catalizador y Modelos): se reportan sin bloquear.
+// Fechas del FOMC: scripts/calendar/fomc.json debe cubrir al menos los próximos 60 días.
+try {
+  const f = JSON.parse(await readFile(new URL('../calendar/fomc.json', import.meta.url), 'utf8')).fechas, last = f[f.length - 1], short = Date.parse(last) - now < 60 * 864e5;
+  (short ? problems : ok).push('scripts/calendar/fomc.json · última reunión cargada: ' + last + (short ? ': agregar las fechas del año siguiente (federalreserve.gov)' : ''));
+} catch (e) { problems.push('scripts/calendar/fomc.json no se pudo leer: ' + e.message); }
+try {
+  const c = await R('calendar.json');
+  if (c.ff && days(c.ff) > 8) problems.push('calendar.json · el consenso de ForexFactory no se actualiza desde ' + c.ff.slice(0, 10));
+} catch { /* reported above */ }
+
+// Módulos que siguen congelados en data/snapshot.json (Modelos): se reportan sin bloquear.
 const snap = (await R('snapshot.json')).snap, sd = /^(\d{1,2})-([a-z]{3})-(\d{4})$/.exec(snap.asof || '');
-const frozen = sd ? `Catalizador y Modelos siguen siendo manuales (datos al ${snap.asof}, ${Math.floor((now - Date.UTC(+sd[3], MES[sd[2]], +sd[1])) / 864e5)} días).` : '';
+const frozen = sd ? `Modelos (nowcast) y las pestañas de modelo del Catalizador siguen siendo manuales (datos al ${snap.asof}, ${Math.floor((now - Date.UTC(+sd[3], MES[sd[2]], +sd[1])) / 864e5)} días).` : '';
 
 const today = new Date(now).toISOString().slice(0, 10);
 const md = [

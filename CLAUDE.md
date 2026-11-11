@@ -21,6 +21,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Hoy es de us
 - `data/manual.json` — lo edita el propietario desde GitHub (ISM, LEI con su previo, CEI, UMich preliminar, `tasas` para decisiones recientes).
 - `data/macro.json` también lleva `cycle` y `cycproj` (Ciclo), calculados por `scripts/macro/cycle.mjs`. `D.snap.regime_mkt` queda oculto.
 - `data/macro.json` también lleva `curve` y `yields` (Cuantitativo → bonos y curva, `scripts/macro/curve.mjs`, verificación `node scripts/macro/check-curve.mjs`) e `info` (tarjetas de ventas, PPI, ADP y PIB, `scripts/macro/info.mjs`; los componentes ISM siguen manuales).
+- `data/calendar.json` (→ `D.snap.calendar`, Catalizador → agenda) — automático: `scripts/calendar/` (FRED + ForexFactory + `data/manual.json`), paso del workflow del puntaje. Fechas del FOMC a mano en `scripts/calendar/fomc.json` (una vez al año).
 - Vigilante diario: `.github/workflows/watchdog.yml` + `scripts/watchdog/check.mjs` (issue si algo se atrasa). Disparador externo: `docs/disparador-externo.md`.
 - `data/charts.json` — automático, lo genera el proceso del puntaje (`scripts/macro/charts.mjs`) → `D.snap.charts`. Proyección oculta: `PRJ={}` en `app.js`.
 - `data/carry.json` — automático (BIS + FRED) → `D.snap.carry`, solo pares y dirección del swap; `scripts/carry/`, `.github/workflows/carry.yml`.

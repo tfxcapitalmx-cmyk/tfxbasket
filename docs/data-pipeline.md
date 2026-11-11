@@ -135,5 +135,18 @@ Reproducción (2026-11-11): `node scripts/macro/check-curve.mjs` (requiere `.cac
 
 Los cron de GitHub se retrasan entre 3 y 9 horas. Ver `docs/disparador-externo.md` (cron-job.org → `workflow_dispatch`).
 
+## Catalizador → agenda
+
+| | |
+|---|---|
+| Alimenta | `data/calendar.json` → `D.snap.calendar` (pestaña Agenda y el "próximo catalizador" de Modelo y Escenarios); `scripts/calendar/`, paso "Agenda del Catalizador" de `.github/workflows/macro.yml` |
+| Fechas | FRED `release/dates` (IDs: CPI 10, PPI 46, ventas 9, empleo 50, solicitudes 180, PIB 53, PCE 54, ECI 11, JOLTS 192). ISM: 1.er (manufactura) y 3.er (servicios) día hábil, 10:00 NY. FOMC: `scripts/calendar/fomc.json`, 14:00 NY. Horas en hora de Nueva York convertidas a UTC con el horario de verano de EE.UU. |
+| Valores | Actual y previo desde FRED (CPIAUCSL, CPILFESL, PPIFIS, PPIFES, RSAFS, PAYEMS, UNRATE, ICSA, GDPC1, PCEPI, ECIALLCIV, JTSJOL, DFEDTARL/U). Un evento pasado conserva el valor tal como se publicó; el previo del siguiente lleva "(rev.)" si FRED lo revisó. ISM y UMich: `data/manual.json` |
+| Consenso | ForexFactory, `nfs.faireconomy.media/ff_calendar_thisweek.json` (semana en curso). También corrige la hora exacta (festivos) y agrega eventos sin fecha en FRED (UMich, LEI). Se conserva entre ejecuciones |
+| Ventana | 60 días hacia atrás y 120 hacia adelante; los eventos de ejecuciones anteriores dentro de la ventana se conservan |
+| Validación | Al menos 20 eventos y 10 futuros, sin duplicados, fechas ISO, CPI y NFP en los próximos 45 días |
+
+Prueba local sin clave: `FRED_CACHE=.cache/fred node scripts/calendar/update.mjs` (requiere `.cache/fred/_dates.json` y las series).
+
 ## Próximas fuentes
 Gráficos históricos de FRED, modelos. Mismo patrón: `scripts/<fuente>/core.mjs` + `update.mjs` + `.github/workflows/<fuente>.yml`.
