@@ -1,6 +1,10 @@
 # Static site, no build step. Data files are refreshed by commits, so they must revalidate on every visit.
 [build]
   publish = "."
+  # Skip the deploy when a commit only touches data/ (the page reads data/ from the repo; see index.html).
+  # Each production deploy costs 15 Netlify credits and the data processes commit several times a day.
+  # Exit code 0 = nothing outside data/ changed → Netlify cancels the build.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)data'"
 
 [[headers]]
   for = "/data/*"
