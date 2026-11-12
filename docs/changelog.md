@@ -1,13 +1,13 @@
 # Changelog
 
-## 2026-11-12 — Rediseño visual editorial "Tinta y champán" con motion
-- Sustituye a la primera versión ("Obsidiana y oro"), que se veía genérica. Capa v4 al final de `assets/app.css`:
-  - Tipografía editorial: titulares en Instrument Serif con la última palabra en cursiva champán; Geist para texto y cifras (números tabulares); IBM Plex Mono para etiquetas y la cinta. Syncopate solo en el logotipo.
-  - Paleta tinta / marfil / champán (sin amarillo neón). Estados seleccionados monocromos (marfil sobre tinta o al revés).
-  - Sin rejilla de fondo: lienzo `#fx` con ondas de "seda" generativas (a 25 cuadros por segundo, se pausa con la pestaña oculta) y grano de película.
-  - Tarjeta insignia en tinta con un haz de luz que recorre el borde.
-- Motion (`assets/app.js`, bloque "Motion"): cinta de cotizaciones (pares mayores con su cambio diario y datos macro), logotipo que se dibuja, titulares que suben palabra por palabra, cifras que cuentan hasta su valor exacto, tarjetas que aparecen al hacer scroll (con red de seguridad) y barrido de revelado en los gráficos. Con "reducir movimiento" del sistema todo queda estático.
-- Pie de página con titular, aviso educativo y fuentes. Tooltip de los gráficos en tinta con filo champán.
+## 2026-11-12 — Rediseño visual con la marca TFX, motion e interacción
+- Capa v5 al final de `assets/app.css` y bloques "Motion" e "Interacción" en `assets/app.js`. No cambia la lógica de los módulos.
+- **Marca**: Syncopate en títulos y subtítulos, Montserrat en el cuerpo, Calibri en los números (Carlito donde Calibri no está instalada, por ejemplo en celulares). Colores de marca sin redefinir: dorado #FFD248, azul marino #0F1C2E, negro. La tarjeta insignia (régimen macro) va en azul marino con un haz dorado que recorre el borde.
+- **Fondo**: sin rejilla. Lienzo `#fx` con ondas doradas que se apartan del cursor, más grano de película.
+- **Gráficos**: animación de entrada (`CHA`), guía vertical que sigue al cursor, **clic para fijar una lectura** (cuadro bajo el gráfico; otro clic o "Soltar" la libera), doble clic restablece el zoom. Arrastrar no fija. Los de dispersión conservan su propio clic.
+- **Interacción**: cursor con anillo (dice "FIJAR" sobre los gráficos), tarjetas con inclinación 3D, botones de cabecera magnéticos, onda al clic, filas de tabla con filo dorado, barras y agujas que se despliegan. Las tarjetas del resumen de Posicionamiento abren su gráfico.
+- **Navegación**: buscador rápido (Ctrl/⌘ + K o "/") para saltar a un módulo, abrir un par en Posicionamiento o cambiar tema y nivel; transición entre secciones (View Transitions); intro animada una vez por sesión; título fantasma con paralaje; cinta de cotizaciones.
+- Titulares que suben palabra por palabra (la última en contorno dorado), cifras que cuentan hasta su valor exacto, tarjetas que aparecen al hacer scroll. Todo se desactiva con "reducir movimiento"; el cursor y la inclinación solo existen con ratón.
 
 ## 2026-11-12 — Posicionamiento ordenado para el trader que está aprendiendo
 - Mercado → Posicionamiento se reorganiza en tres bloques, con los mismos datos y recursos que antes:
