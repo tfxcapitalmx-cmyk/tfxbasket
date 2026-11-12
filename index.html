@@ -398,8 +398,8 @@ mq.addEventListener('change',sync);sync();})();
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <script>
 // Data lives in /data so it can be refreshed without touching the page; app.js runs once it has arrived.
-// The data processes commit to GitHub several times a day. Each Netlify deploy costs credits, so data-only commits
-// are not deployed (netlify.toml → ignore): the page reads data/ straight from the repo (main) and falls back to the
+// The data processes commit to GitHub several times a day and data-only commits are not deployed (Cloudflare Pages
+// build watch paths exclude data/): the page reads data/ straight from the repo (main) and falls back to the
 // copy deployed with the code. Locally (localhost) or with ?datos=local it reads only the local copy.
 (function(){
   const local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)||/[?&]datos=local\b/.test(location.search);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-12 — La terminal se muda a Cloudflare Pages
+- Producción: https://tfxmacrointelligence.pages.dev (Cloudflare Pages, plan gratuito). Configuración en `docs/architecture.md` → Hosting; `_headers` replica las cabeceras que tenía `netlify.toml`.
+- Netlify congelado desde el repo (`netlify.toml` → `ignore = "exit 0"`): no vuelve a construir ni a gastar créditos. tfxmacrointelligence.netlify.app y tfxterminal.netlify.app siguen en línea con su último deploy (leen los datos en vivo), sin cambios de código futuros.
+- Los procesos de datos, cron-job.org y el vigilante no cambian: escriben en el repo y la página lee de ahí.
+
 ## 2026-11-11 — Componentes del ISM desde la captura manual; Netlify despliega solo cambios de la página
 - `data/manual.json` → `ism_componentes` (nuevas órdenes, empleo, precios, actividad de servicios): las tarjetas informativas del ISM se actualizan con el proceso del puntaje; al avanzar el periodo, la lectura anterior pasa a "previo".
 - Captura del 11-nov: ISM manufactura oct 55.5 (componentes 55.5 / 52.4 / 75.2), ISM servicios oct 54.5 (actividad 53.8), UMich preliminar nov 51.0 y expectativa 1 año 4.3 %.

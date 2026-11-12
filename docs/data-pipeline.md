@@ -3,7 +3,7 @@
 Patrón para cada fuente automatizada (el COT es la primera):
 
 ```
-GitHub Actions (cron) → scripts/<fuente>/update.mjs → validate() → data/<fuente>.json → commit → Netlify publica
+GitHub Actions (cron) → scripts/<fuente>/update.mjs → validate() → data/<fuente>.json → commit → la página lo lee del repo
 ```
 
 - `core.mjs` = cálculo puro (sin red ni disco), probado contra los datos anteriores. `update.mjs` = red, reintentos, escritura.

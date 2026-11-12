@@ -1,0 +1,11 @@
+# Cloudflare Pages response headers (copied into the build output; see docs/architecture.md → Hosting).
+# Page and data must revalidate on every visit: the data processes commit several times a day.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=0, must-revalidate

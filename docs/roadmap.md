@@ -4,7 +4,7 @@
 - [x] Repositorio versionado (rama `terminal`).
 - [x] Separar el HTML de 8 MB en `index.html`, `assets/` y `data/` sin cambiar el render (verificado módulo por módulo).
 - [x] SheetJS bajo demanda (−1.3 MB).
-- [ ] Conectar Netlify al repo con Deploy Previews (requiere aprobación del propietario).
+- [x] Sitio conectado al repo con vistas previas por PR: Cloudflare Pages (2026-11-12; antes Netlify).
 - [ ] Reconstruir el generador de `snapshot.json`: no existe fuera de los chats anteriores. La fuente manual es el libro A.E. (ver CLAUDE.md); los modelos ARIMA/GARCH/Monte Carlo/regresiones deben reescribirse como scripts del repo.
 - [x] Corregir fecha fuera de orden en `snap.charts.pmi` (1950-05).
 - [x] Sello de antigüedad por insumo (2026-11-11), en el navegador; falta el esquema completo.

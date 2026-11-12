@@ -1,5 +1,8 @@
 # Decisiones
 
+## 2026-11-12 — Hosting: de Netlify a Cloudflare Pages
+Netlify en su plan gratuito por créditos cobra 15 de 300 créditos mensuales por cada deploy de producción; el 11-nov se agotaron con 4 deploys de código y se pausaron los deploys. Cloudflare Pages gratis da 500 builds al mes y ancho de banda ilimitado, y permite proteger el sitio con Cloudflare Access sin costo. La terminal es estática y sus datos ya se leían del repo, así que el cambio no toca código ni procesos de datos. Se descartó GitHub Pages (no permite sitio privado en el plan gratuito) y Vercel (su plan gratuito prohíbe uso comercial y tiene límites similares).
+
 ## 2026-11-11 — Uso propio, sin comercialización
 El propietario decide que la terminal es solo de uso propio. Las fuentes no oficiales o con licencia (Yahoo Finance, ForexFactory, ISM, UMich, Conference Board) se usan para uso personal. Si algún día se comercializa, hay que sustituirlas o licenciarlas (ver `docs/data-sources.md`). El repo es público: los datos quedan visibles en GitHub.
 

@@ -1,7 +1,7 @@
 # Arquitectura
 
 ## Estado actual (Etapa 1)
-Sitio estático en Netlify, sin backend.
+Sitio estático en Cloudflare Pages (https://tfxmacrointelligence.pages.dev), sin backend. Los datos se leen del repo en GitHub (raw.githubusercontent.com, rama `main`); la copia de `data/` publicada con el sitio es solo respaldo.
 
 ```
 index.html ──fetch──> data/snapshot.json  (D.snap de los módulos manuales, ~0.4 MB)
@@ -35,4 +35,21 @@ index.html ──fetch──> data/snapshot.json  (D.snap de los módulos manual
 | tv | configuración local (YouTube) |
 
 ## Objetivo (Etapa 2)
-GitHub Actions programado → scripts de ingesta por fuente → validación → JSON por módulo en `data/` → commit → Netlify despliega. El historial de git sirve como registro de vintages y rollback. Ver `docs/roadmap.md`.
+GitHub Actions programado → scripts de ingesta por fuente → validación → JSON por módulo en `data/` → commit → la página lee el JSON nuevo desde el repo (sin deploy). El historial de git sirve como registro de vintages y rollback. Ver `docs/roadmap.md`.
+
+## Hosting (Cloudflare Pages, desde 2026-11-12)
+
+| Ajuste | Valor |
+|---|---|
+| Proyecto | `tfxmacrointelligence` → https://tfxmacrointelligence.pages.dev |
+| Repositorio / rama de producción | `tfxcapitalmx-cmyk/tfxbasket` / `main` (cada PR genera una vista previa) |
+| Framework | Ninguno |
+| Comando de build | `mkdir -p dist && cp -r index.html assets data dist/ && if [ -f _headers ]; then cp _headers dist/; fi` |
+| Directorio de salida | `dist` |
+| Build watch paths | Incluir `*`; excluir `data/*` (los commits de datos no construyen; la página los lee del repo) |
+| Cabeceras | `_headers` (revalidación de `/data` y `/assets`, `nosniff`, `Referrer-Policy`) |
+| Límites del plan gratuito | 500 builds al mes, ancho de banda ilimitado |
+
+Por qué se dejó Netlify: el plan gratuito por créditos (300 al mes, 15 por deploy de producción) se agotó el 11-nov con 4 deploys de código y pausó los deploys. Netlify queda congelado desde el repo (`netlify.toml` → `ignore = "exit 0"`); sus dos sitios siguen sirviendo su último deploy, que también lee los datos en vivo.
+
+Privacidad (opcional, pendiente de decisión del propietario): Cloudflare Access (Zero Trust, plan gratuito hasta 50 usuarios) puede exigir inicio de sesión con correo para abrir la terminal. El repo es público: los JSON de `data/` siguen visibles en GitHub aunque la página esté protegida.

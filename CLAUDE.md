@@ -4,11 +4,11 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Es de uso pr
 
 ## Reglas permanentes
 - Idioma del producto y de la comunicación con el propietario: español. Propuestas con el formato Problema / Diagnóstico / Solución / Justificación / Impacto / Costo / Riesgos / Plan.
-- Producción = https://tfxmacrointelligence.netlify.app, conectada a `main` del repo (plan Free de Netlify por créditos: 300/mes, 15 por deploy de producción). Los commits que solo tocan `data/` no se despliegan (`netlify.toml` → `ignore`): en producción la página lee `data/` directamente del repo (raw.githubusercontent.com, `main`) y usa la copia publicada como respaldo. En localhost o con `?datos=local` lee solo la copia local. No cambiar el plan de Netlify sin autorización.
+- Producción = https://tfxmacrointelligence.pages.dev (Cloudflare Pages, plan gratuito; desde 2026-11-12), conectada a `main` del repo. Configuración en `docs/architecture.md` → Hosting. Los commits que solo tocan `data/` no se construyen (build watch paths); la página lee `data/` directamente del repo (raw.githubusercontent.com, `main`) y usa la copia publicada como respaldo. En localhost o con `?datos=local` lee solo la copia local. Netlify (tfxmacrointelligence / tfxterminal .netlify.app) quedó congelado con `netlify.toml` → `ignore = "exit 0"`: no borrar ese archivo mientras los sitios sigan conectados al repo. No contratar planes de pago sin autorización.
 - Trabajar en ramas; `main` solo con aprobación. El proyecto anterior del repo quedó en la etiqueta `archivo-tfxbasket`.
 - Nunca inventar datos. Si una fuente falla se conserva el último valor válido y se marca como desactualizado.
 - Separar siempre Actual / Previous / Revised / Consensus / Forecast.
-- Secretos (FRED_API_KEY, etc.) solo como secretos de GitHub o variables de Netlify, nunca en el repo ni en el frontend.
+- Secretos (FRED_API_KEY, etc.) solo como secretos de GitHub o variables de Cloudflare, nunca en el repo ni en el frontend.
 - Datos con licencia (ISM, UMich, Conference Board, velas del broker, Investing.com, CB.watch) no se pueden redistribuir comercialmente sin licencia; ver `docs/data-sources.md`.
 - No contratar servicios ni planes de pago sin autorización expresa.
 - Los scripts de datos corren en GitHub Actions (Node 20). La PC del propietario ya tiene Node 24 y Python 3.15 para pruebas locales; la clave de FRED solo existe en Actions (para pruebas: descarga temporal a un artefacto, como en `scripts/dev/`).
