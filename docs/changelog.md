@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-12 — Los 21 componentes del ISM
+- `data/manual.json` → `ism_componentes` ahora lleva la tabla completa "AT A GLANCE" de ambos informes (mes y mes previo): manufactura 10 componentes, servicios 10 (incluye sentimiento de inventarios). Antes la terminal solo tenía 4.
+- `scripts/macro/info.mjs` reconstruye las tarjetas en cada ejecución, con una explicación de qué anticipa cada componente y reglas propias para los índices especiales (entregas de proveedores invertido; inventarios de clientes "muy bajos" = positivo para la producción futura; sentimiento de inventarios "muy alto" = frena pedidos).
+- Captura de octubre-2026 tomada de ismworld.org (2 y 4-nov). Licencia de ISM: uso personal, no comercial.
+
 ## 2026-11-12 — La terminal se muda a Cloudflare Pages
 - Producción: https://tfxmacrointelligence.pages.dev (Cloudflare Pages, plan gratuito). Configuración en `docs/architecture.md` → Hosting; `_headers` replica las cabeceras que tenía `netlify.toml`.
 - Netlify congelado desde el repo (`netlify.toml` → `ignore = "exit 0"`): no vuelve a construir ni a gastar créditos. tfxmacrointelligence.netlify.app y tfxterminal.netlify.app siguen en línea con su último deploy (leen los datos en vivo), sin cambios de código futuros.

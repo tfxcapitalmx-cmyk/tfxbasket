@@ -10,20 +10,65 @@ const sg = (v, d = 1) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d);
 const back = (obs, n) => obs[obs.length - 1 - n];
 const yoyAt = (obs, i) => { const d = obs[i][0], p = obs.find(([x]) => x === `${+d.slice(0, 4) - 1}${d.slice(4)}`); return p ? (obs[i][1] / p[1] - 1) * 100 : null; };
 
+// ISM components: [key, card name, what it anticipates, rule]. Rule 'up' = ≥ 52 heats / < 48 cools (diffusion index);
+// 'deliv' = slower deliveries (> 50) signal strong demand; 'low' = customers' inventories too low (< 50) push future
+// production up; 'high' = inventories "too high" (> 50) weigh on future orders.
+const ISM = {
+  manufactura: [
+    ['nuevas_ordenes', 'Nuevas órdenes', 'Pedidos nuevos de manufactura: demanda futura de la industria.', 'up'],
+    ['produccion', 'Producción', 'Producción industrial del mes; sobre 52 suele coincidir con alza de la producción industrial de la Fed.', 'up'],
+    ['empleo', 'Empleo', 'Contratación en manufactura: adelanta el empleo industrial.', 'up'],
+    ['entregas', 'Entregas de proveedores', 'Índice invertido: sobre 50 = entregas más lentas, típico de demanda fuerte o cuellos de botella.', 'deliv'],
+    ['inventarios', 'Inventarios', 'Inventarios propios de materias primas.', 'up'],
+    ['inventarios_clientes', 'Inventarios de clientes', 'Bajo 50 = "muy bajos": los clientes tendrán que reponer, positivo para la producción futura.', 'low'],
+    ['precios', 'Precios', 'Precios que pagan las fábricas: presión de costos que llega al PPI y al CPI.', 'up'],
+    ['pedidos_pendientes', 'Pedidos pendientes', 'Órdenes acumuladas sin entregar: sostienen la producción de los próximos meses.', 'up'],
+    ['exportaciones', 'Nuevas órdenes de exportación', 'Demanda externa de manufacturas de EE.UU.', 'up'],
+    ['importaciones', 'Importaciones', 'Compras de insumos del exterior: actividad y demanda de materiales.', 'up'],
+  ],
+  servicios: [
+    ['actividad', 'Actividad empresarial', 'Producción del sector servicios: el pulso actual del sector más grande.', 'up'],
+    ['nuevas_ordenes', 'Nuevas órdenes', 'Demanda futura de servicios.', 'up'],
+    ['empleo', 'Empleo', 'Contratación en servicios: adelanta el empleo privado.', 'up'],
+    ['entregas', 'Entregas de proveedores', 'Índice invertido: sobre 50 = entregas más lentas.', 'deliv'],
+    ['inventarios', 'Inventarios', 'Inventarios de las empresas de servicios.', 'up'],
+    ['precios', 'Precios', 'Precios que pagan las empresas de servicios: la inflación más persistente.', 'up'],
+    ['pedidos_pendientes', 'Pedidos pendientes', 'Trabajo acumulado sin terminar.', 'up'],
+    ['exportaciones', 'Nuevas órdenes de exportación', 'Demanda externa de servicios.', 'up'],
+    ['importaciones', 'Importaciones', 'Compras de servicios e insumos del exterior.', 'up'],
+    ['sentimiento_inventarios', 'Sentimiento de inventarios', 'Sobre 50 = las empresas sienten sus inventarios "muy altos": frena pedidos futuros.', 'high'],
+  ],
+};
+const RULES = {
+  up: { st: v => (v >= 52 ? 'hot' : v < 48 ? 'cold' : 'flat'), stable: '48–51.9', hot: '≥ 52', cold: '< 48' },
+  deliv: { st: v => (v >= 52 ? 'hot' : v < 48 ? 'cold' : 'flat'), stable: '48–51.9', hot: '≥ 52 (más lentas)', cold: '< 48 (más rápidas)' },
+  low: { st: v => (v < 45 ? 'hot' : v > 55 ? 'cold' : 'flat'), stable: '45–55', hot: '< 45 (muy bajos)', cold: '> 55 (muy altos)' },
+  high: { st: v => (v > 55 ? 'cold' : v < 45 ? 'hot' : 'flat'), stable: '45–55', hot: '< 45 (muy bajos)', cold: '> 55 (muy altos)' },
+};
+export function ismCards(ic) {
+  const lab = mLab(`${ic.periodo}-01`), p = ic.previo || {}, plab = p.periodo ? MES[+p.periodo.slice(5, 7) - 1] : '';
+  const cards = [];
+  for (const [sector, list] of Object.entries(ISM)) for (const [k, nm, what, rule] of list) {
+    const v = (ic[sector] || {})[k]; if (typeof v !== 'number' || v < 10 || v > 95) continue;
+    const pv = (p[sector] || {})[k], R = RULES[rule];
+    cards.push({ side: 'Líder', block: 'Componentes ISM', name: `ISM ${sector === 'manufactura' ? 'Manufactura' : 'Servicios'} · ${nm}`, val: v.toFixed(1),
+      prev: typeof pv === 'number' ? `${plab} ${pv.toFixed(1)} (${Math.abs(v - pv) < 0.05 ? 'sin cambio' : `${v > pv ? '+' : '−'}${Math.abs(v - pv).toFixed(1)}`})` : '', date: lab, what,
+      state: R.st(v), stable: R.stable, hot: R.hot, cold: R.cold, pts: null, src: 'ISM (captura manual)' });
+  }
+  return cards;
+}
+
 export function buildInfo(prev, O, manual) {
   const out = prev.map(c => ({ ...c }));
   const set = (prefix, f) => { const c = out.find(x => x.name.startsWith(prefix)); if (c) Object.assign(c, f(c)); };
 
-  // ISM components (licensed): data/manual.json → ism_componentes. When the period advances, the stored reading
-  // becomes the previous one. Same thresholds as the original cards (≥ 52 expansion, < 48 contraction).
+  // ISM components (licensed): data/manual.json → ism_componentes {periodo, manufactura, servicios, previo}. The cards
+  // are rebuilt from the capture every run, all 21 components of both reports.
   const ic = manual && manual.ism_componentes;
-  if (ic && /^\d{4}-\d{2}$/.test(ic.periodo || '')) {
-    const lab = mLab(`${ic.periodo}-01`), st = v => (v >= 52 ? 'hot' : v < 48 ? 'cold' : 'flat');
-    for (const [prefix, k] of [['ISM Manufactura · Nuevas', 'nuevas_ordenes'], ['ISM Manufactura · Empleo', 'empleo'], ['ISM Manufactura · Precios', 'precios'], ['ISM Servicios · Actividad', 'servicios_actividad']]) {
-      const v = ic[k]; if (typeof v !== 'number' || v < 20 || v > 90) continue;
-      set(prefix, c => (c.date === lab ? { val: v.toFixed(1), state: st(v) }
-        : { val: v.toFixed(1), prev: `${c.date.slice(0, 3)} ${c.val}`, date: lab, state: st(v), src: 'ISM (captura manual)' }));
-    }
+  if (ic && /^\d{4}-\d{2}$/.test(ic.periodo || '') && ic.manufactura) {
+    const cards = ismCards(ic);
+    const rest = out.filter(c => c.block !== 'Componentes ISM');
+    out.length = 0; out.push(...cards, ...rest);
   }
 
   const R = O.RSAFS, C = O.CPIAUCSL;

@@ -2,8 +2,17 @@
   "_instrucciones": "Datos con licencia que no se pueden descargar automáticamente. Al publicarse un dato nuevo, cambia 'periodo' (AAAA-MM, el mes al que corresponde) y 'valor', y guarda con 'Commit changes'. UMich (umcsi, mich) es opcional: si FRED ya tiene un mes igual o más reciente, se usa FRED. Marca 'preliminar': true para la lectura preliminar de UMich.",
   "pmi": { "periodo": "2026-10", "valor": 55.5, "fuente": "ISM Manufacturing PMI" },
   "nmi": { "periodo": "2026-10", "valor": 54.5, "fuente": "ISM Services PMI" },
-  "_ism_componentes": "Componentes del ISM para las tarjetas informativas (mismo periodo que pmi / nmi).",
-  "ism_componentes": { "periodo": "2026-10", "nuevas_ordenes": 55.5, "empleo": 52.4, "precios": 75.2, "servicios_actividad": 53.8 },
+  "_ism_componentes": "Componentes del ISM para las tarjetas informativas. Copiar la tabla 'AT A GLANCE' de cada informe en ismworld.org (manufactura: 1.er día hábil; servicios: 3.er día hábil): columna del mes en 'periodo/manufactura/servicios' y la del mes anterior en 'previo'.",
+  "ism_componentes": {
+    "periodo": "2026-10",
+    "manufactura": { "nuevas_ordenes": 55.5, "produccion": 59.0, "empleo": 52.4, "entregas": 59.1, "inventarios": 51.4, "inventarios_clientes": 41.6, "precios": 75.2, "pedidos_pendientes": 54.6, "exportaciones": 51.2, "importaciones": 52.9 },
+    "servicios": { "actividad": 53.8, "nuevas_ordenes": 55.9, "empleo": 51.4, "entregas": 56.7, "inventarios": 55.4, "precios": 73.0, "pedidos_pendientes": 58.0, "exportaciones": 55.2, "importaciones": 54.2, "sentimiento_inventarios": 52.1 },
+    "previo": {
+      "periodo": "2026-09",
+      "manufactura": { "nuevas_ordenes": 55.3, "produccion": 56.7, "empleo": 52.7, "entregas": 59.0, "inventarios": 48.6, "inventarios_clientes": 41.6, "precios": 77.9, "pedidos_pendientes": 56.4, "exportaciones": 50.9, "importaciones": 51.0 },
+      "servicios": { "actividad": 56.5, "nuevas_ordenes": 59.8, "empleo": 50.1, "entregas": 53.2, "inventarios": 57.8, "precios": 74.0, "pedidos_pendientes": 56.6, "exportaciones": 46.9, "importaciones": 52.9, "sentimiento_inventarios": 51.7 }
+    }
+  },
   "lei_6m": { "periodo": "2026-08", "valor": -0.1, "previo": -0.6, "fuente": "The Conference Board LEI, variación 6 meses (%); 'previo' = la lectura del mes anterior" },
   "cei_6m": { "periodo": "2026-08", "valor": 0.4, "fuente": "The Conference Board, índice coincidente (CEI), variación 6 meses (%); se publica junto con el LEI" },
   "umcsi": { "periodo": "2026-11", "valor": 51.0, "preliminar": true, "fuente": "Universidad de Michigan" },
