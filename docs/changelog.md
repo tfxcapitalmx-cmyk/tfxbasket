@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-12 — Portada "Hoy" para el trader, navegación por grupos y modo Simple/Pro
+- Nueva vista inicial **Hoy** (`renderHoy` en `assets/app.js`), calculada con los datos automáticos, en el orden en que la lee un trader:
+  1. El panorama macro en una frase, con una escala de cinco niveles y lo que suele implicar (dólar, tasa a 2 años, ciclo).
+  2. El próximo dato de alto impacto: consenso, modelo TFX, previo, la barra de probabilidad y los tres escenarios.
+  3. Qué cambió en los últimos 10 días, con la sorpresa frente al consenso o, si no hay, frente al dato previo. En desempleo y solicitudes, un dato más alto enfría.
+  4. "Antes de operar" para un par mayor contra el USD: macro, carry, posicionamiento CFTC (extremo si el percentil a 5 años es ≤ 10 o ≥ 90), catalizador en menos de 48 h y volatilidad.
+  5. Lo que dice la historia el día del CPI.
+- Menú en 5 grupos (Hoy · Contexto · Catalizadores · Mercado · TV), con una segunda barra que muestra los módulos del grupo. En celular, los grupos son una barra inferior.
+- Cuenta regresiva al próximo dato de alto impacto, siempre en la cabecera.
+- Interruptor **Simple / Pro** (`data-nivel` en `<html>`, guardado en el navegador). Simple usa lenguaje claro; Pro agrega compuesto, líderes y catalizadores, rango del 90 %, la tabla completa del estudio de evento y el movimiento típico por tramo de VIX.
+- En "Hoy", calentar y enfriar se muestran en ámbar y azul, siempre con flecha y texto. El rojo y el verde quedan para la dirección del precio.
+- La vista inicial pasa a ser Hoy (clave nueva `view2` en el navegador).
+
 ## 2026-11-12 — Los 21 componentes del ISM
 - `data/manual.json` → `ism_componentes` ahora lleva la tabla completa "AT A GLANCE" de ambos informes (mes y mes previo): manufactura 10 componentes, servicios 10 (incluye sentimiento de inventarios). Antes la terminal solo tenía 4.
 - `scripts/macro/info.mjs` reconstruye las tarjetas en cada ejecución, con una explicación de qué anticipa cada componente y reglas propias para los índices especiales (entregas de proveedores invertido; inventarios de clientes "muy bajos" = positivo para la producción futura; sentimiento de inventarios "muy alto" = frena pedidos).

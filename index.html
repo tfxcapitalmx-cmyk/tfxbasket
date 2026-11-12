@@ -14,8 +14,19 @@
 <header class="top" id="top">
   <div class="top-in">
     <div class="brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b><span>Macro Intelligence</span></div>
-    <nav class="menu" id="menu" aria-label="Secciones">
-      <a href="#resumen">Resumen</a><a href="#cuantitativo">Cuantitativo</a><a href="#ciclo">Ciclo</a><a href="#catalizador">Catalizador</a><a href="#modelos">Modelos</a><a href="#distribucion">DoR</a><a href="#posicion">Posicionamiento</a><a href="#carry">Carry</a><a href="#vol">Volatilidad</a><a href="#estacional">Estacionalidad</a><a href="#graficos">Gráficos</a><a href="#tv">TV</a>
+    <nav class="groups" id="groups" aria-label="Secciones">
+      <button type="button" data-g="hoy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>Hoy</span></button>
+      <button type="button" data-g="contexto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"></path></svg><span>Contexto</span></button>
+      <button type="button" data-g="catalizadores"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg><span>Catalizadores</span></button>
+      <button type="button" data-g="mercado"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"></path></svg><span>Mercado</span></button>
+      <button type="button" data-g="tv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path></svg><span>TV</span></button>
+    </nav>
+    <div class="tools">
+      <a class="nextpill" id="nextPill" href="#catalizador" hidden></a>
+      <div class="lvl" id="lvl" role="group" aria-label="Nivel de detalle"><button type="button" data-lvl="simple">Simple</button><button type="button" data-lvl="pro">Pro</button></div>
+    </div>
+    <nav class="menu" id="menu" aria-label="Módulos de la sección">
+      <a href="#hoy">Hoy</a><a href="#resumen">Resumen</a><a href="#cuantitativo">Cuantitativo</a><a href="#ciclo">Ciclo</a><a href="#catalizador">Catalizador</a><a href="#modelos">Modelos</a><a href="#distribucion">DoR</a><a href="#posicion">Posicionamiento</a><a href="#carry">Carry</a><a href="#vol">Volatilidad</a><a href="#estacional">Estacionalidad</a><a href="#graficos">Gráficos</a><a href="#tv">TV</a>
     </nav>
     <button class="themebtn" id="themeBtn" type="button" aria-label="Cambiar a tema claro" title="Tema claro / oscuro"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg></button>
   </div>
@@ -29,6 +40,20 @@ mq.addEventListener('change',sync);sync();})();
 </script>
 
 <main>
+  <section id="hoy">
+    <div class="sh"><div class="sh-t"><span class="eyebrow" id="hoyFecha">Hoy</span><h1>Lo que importa hoy</h1></div></div>
+    <div class="hoy-row">
+      <div class="panel regime hoy-reg" id="hoyReg"></div>
+      <div class="panel hoy-next" id="hoyNext"></div>
+    </div>
+    <div class="hoy-row">
+      <div class="panel" id="hoyCambio"></div>
+      <div class="panel" id="hoyCheck"></div>
+    </div>
+    <div class="panel" id="hoyHist"></div>
+    <p class="note hoy-disc">Probabilidades y promedios históricos, no promesas ni recomendaciones. Antes de llevar una idea a cuenta real, pruébala con backtest y en demo.</p>
+  </section>
+
   <section id="resumen">
     <div class="sh"><div class="sh-t"><span class="eyebrow">Contexto actual</span><h1>Sesgo TFX Macro</h1></div></div>
     <div class="hero">
