@@ -8,7 +8,17 @@ const mLab = d => `${MES[+d.slice(5, 7) - 1]}-${d.slice(0, 4)}`;
 const qLab = d => `T${Math.floor((+d.slice(5, 7) - 1) / 3) + 1}-${d.slice(0, 4)}`;
 const sg = (v, d = 1) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d);
 const back = (obs, n) => obs[obs.length - 1 - n];
-const yoyAt = (obs, i) => { const d = obs[i][0], p = obs.find(([x]) => x === `${+d.slice(0, 4) - 1}${d.slice(4)}`); return p ? (obs[i][1] / p[1] - 1) * 100 : null; };
+// Value of a monthly series at `iso`; a missing month (Oct-2025, shutdown) is interpolated geometrically between its
+// neighbours (at most 3 months apart), the same convention as the scorecard and the nowcast.
+const mIdx = d => +d.slice(0, 4) * 12 + +d.slice(5, 7);
+function baseAt(obs, iso) {
+  const e = obs.find(([x]) => x === iso); if (e) return { v: e[1], interp: false };
+  const t = mIdx(iso), a = [...obs].reverse().find(([x]) => mIdx(x) < t), b = obs.find(([x]) => mIdx(x) > t);
+  if (!a || !b || mIdx(b[0]) - mIdx(a[0]) > 3) return null;
+  return { v: a[1] * (b[1] / a[1]) ** ((t - mIdx(a[0])) / (mIdx(b[0]) - mIdx(a[0]))), interp: true };
+}
+const yoyAt = (obs, i) => { const d = obs[i][0], p = baseAt(obs, `${+d.slice(0, 4) - 1}${d.slice(4)}`); return p ? (obs[i][1] / p.v - 1) * 100 : null; };
+const yoyInterp = (obs, i) => { const d = obs[i][0], p = baseAt(obs, `${+d.slice(0, 4) - 1}${d.slice(4)}`); return !!(p && p.interp); };
 
 // ISM components: [key, card name, what it anticipates, rule]. Rule 'up' = ≥ 52 heats / < 48 cools (diffusion index);
 // 'deliv' = slower deliveries (> 50) signal strong demand; 'low' = customers' inventories too low (< 50) push future
@@ -78,6 +88,18 @@ export function buildInfo(prev, O, manual) {
     const real = yy != null && cy != null ? ((1 + yy / 100) / (1 + cy / 100) - 1) * 100 : null;
     set('Ventas minoristas', () => ({ val: `${sg(mm)}%`, prev: `a/a ${sg(yy)}%${real != null ? ` · real ${sg(real)}%` : ''}`, date: mLab(R[i][0]),
       state: mm > 0.4 ? 'hot' : mm < 0 ? 'cold' : 'flat', src: 'FRED RSAFS' }));
+  }
+  // CPI general (all items): informative, the score already carries core CPI. Inserted before the PPI card.
+  if (C && C.length > 13) {
+    if (!out.some(x => x.name.startsWith('CPI general'))) {
+      const at = out.findIndex(x => x.name.startsWith('PPI general'));
+      out.splice(at < 0 ? out.length : at, 0, { side: 'Coincidente', block: 'Inflación', name: 'CPI general · a/a',
+        what: 'Precios al consumidor con alimentos y energía, variación anual: el dato de inflación que mueve titulares y expectativas. No pondera: el core CPI ya está en el puntaje.',
+        stable: '2–2.9%', hot: '≥ 3%', cold: '< 2%', pts: null, src: '' });
+    }
+    const i = C.length - 1, yy = yoyAt(C, i), mm = (C[i][1] / C[i - 1][1] - 1) * 100, py = yoyAt(C, i - 1);
+    if (yy != null) set('CPI general', () => ({ val: `${sg(yy)}%`, prev: `m/m ${sg(mm)}%${py != null ? ` · ${MES[+C[i - 1][0].slice(5, 7) - 1]} ${sg(py)}%` : ''}${yoyInterp(C, i) ? ' · base interpolada (oct-2025 sin dato)' : ''}`,
+      date: mLab(C[i][0]), state: yy >= 3 ? 'hot' : yy < 2 ? 'cold' : 'flat', src: 'FRED CPIAUCSL' }));
   }
   const P = O.PPIFIS;
   if (P && P.length > 2) {

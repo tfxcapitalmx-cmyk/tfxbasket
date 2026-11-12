@@ -1,5 +1,8 @@
 # Decisiones
 
+## 2026-11-12 — a/a cuando falta el mes base (oct-2025)
+Opciones: (a) tomar el mes anterior, como se hacía: es una variación de 13 meses rotulada como anual; (b) dejarlo vacío: la terminal perdería el dato de inflación más visto durante un mes; (c) interpolar la base entre los meses vecinos. Se eligió (c): es una estimación del índice base, no del dato publicado, se aplica solo a series mensuales con vecinos a no más de 3 meses y se indica en pantalla. El nowcast ya usaba este criterio.
+
 ## 2026-11-12 — Hosting: de Netlify a Cloudflare Pages
 Netlify en su plan gratuito por créditos cobra 15 de 300 créditos mensuales por cada deploy de producción; el 11-nov se agotaron con 4 deploys de código y se pausaron los deploys. Cloudflare Pages gratis da 500 builds al mes y ancho de banda ilimitado, y permite proteger el sitio con Cloudflare Access sin costo. La terminal es estática y sus datos ya se leían del repo, así que el cambio no toca código ni procesos de datos. Se descartó GitHub Pages (no permite sitio privado en el plan gratuito) y Vercel (su plan gratuito prohíbe uso comercial y tiene límites similares).
 
