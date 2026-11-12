@@ -2145,8 +2145,19 @@ function freshBadges(){
       :`Estos datos se cargan a mano.${old?` Tienen más de ${f.max} días.`:''}`;
   }
 }
-setNivel(store.get('nivel','simple'));
-function renderAll(){show(view||(location.hash||'').slice(1)||store.get('view2','hoy'),false);}
+setNivel(store.get('nivel','simple'));chartTheme();
+// Tema común de los gráficos: tipografía, rejilla, leyendas con punto y tooltip oscuro. Se recalcula al cambiar de tema.
+function chartTheme(){
+  if(!window.Chart)return;const d=Chart.defaults,dark=getComputedStyle(document.documentElement).colorScheme==='dark';
+  d.font.family='"Inter",system-ui,sans-serif';d.font.size=11.5;d.color=css('--muted');d.borderColor=css('--line');
+  d.elements.line.borderJoinStyle='round';d.elements.line.borderCapStyle='round';
+  d.elements.point.hoverRadius=5;d.elements.point.hoverBorderWidth=2;d.elements.bar.borderRadius=2;
+  const L=d.plugins.legend.labels;L.usePointStyle=true;L.pointStyle='circle';L.boxHeight=7;L.padding=16;L.font={size:12,weight:'500'};
+  Object.assign(d.plugins.tooltip,{backgroundColor:dark?'rgba(20,26,37,.96)':'rgba(11,15,23,.94)',titleColor:'#FFFFFF',bodyColor:'#C9CFD9',footerColor:'#C9CFD9',
+    borderColor:dark?'rgba(242,201,76,.28)':'rgba(255,255,255,.08)',borderWidth:1,padding:12,cornerRadius:10,caretSize:6,boxPadding:6,usePointStyle:true,
+    titleFont:{family:'"Inter Tight",system-ui,sans-serif',size:12.5,weight:'600'},bodyFont:{family:'"IBM Plex Mono",monospace',size:11.5}});
+}
+function renderAll(){chartTheme();show(view||(location.hash||'').slice(1)||store.get('view2','hoy'),false);}
 renderAll();wireNav();freshBadges();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
 autoRefresh();
 

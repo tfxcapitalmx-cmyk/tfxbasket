@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-12 — Rediseño visual "Obsidiana y oro"
+- Nueva capa final en `assets/app.css` (v3) que redefine tokens, tipografía y componentes base sin tocar la lógica de los módulos:
+  - Tipografía: Inter (texto), Inter Tight (títulos y cifras grandes, con números tabulares), IBM Plex Mono (etiquetas). Syncopate queda solo para el logotipo. Los títulos dejan las mayúsculas forzadas.
+  - Color: fondo obsidiana con brillo dorado y rejilla tenue (oscuro) o marfil (claro); tarjetas con relieve, luz superior y sombra; estados seleccionados en oro (oscuro) o tinta (claro).
+  - Tarjeta insignia (régimen macro) en azul profundo con filo dorado en ambos temas.
+  - Tablas, pestañas, chips, sellos de frescura (con pulso cuando el dato es automático y vigente) y foco de teclado en oro.
+  - Entrada suave de cada sección (se desactiva con "reducir movimiento").
+  - Pie de página con marca, aviso educativo y fuentes de datos.
+- `chartTheme()` en `assets/app.js`: tema común para todos los gráficos (tipografía, leyendas con punto, tooltip oscuro con filo dorado); se recalcula al cambiar de tema.
+- En celular, la cabecera sigue sin desenfoque para que la barra inferior de grupos quede fija abajo.
+
 ## 2026-11-12 — Posicionamiento ordenado para el trader que está aprendiendo
 - Mercado → Posicionamiento se reorganiza en tres bloques, con los mismos datos y recursos que antes:
   1. **Resumen en 10 segundos**: la lectura del par en una frase y cuatro tarjetas con números grandes y un dibujo cada una — a qué apuestan los fondos (barras largo/corto de cada divisa), qué tan extremo (medidor 0–100 con zonas ≤ 20 y ≥ 80), si entran o salen (flecha + minigráfico de 13 semanas) y si fondos y gestores coinciden. Botón "¿Qué es el COT?" con la guía resumida.
