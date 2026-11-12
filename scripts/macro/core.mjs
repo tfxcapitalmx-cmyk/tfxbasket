@@ -46,7 +46,21 @@ const last = obs => obs[obs.length - 1];
 const back = (obs, k) => obs[obs.length - 1 - k][1];
 // Monthly maths go by calendar date, not by row count: FRED has gaps (e.g. no October 2025 CPI or
 // unemployment because of the US government shutdown), and counting rows would silently shift the base.
-const atM = (obs, k) => { const r = asOf(obs, addMonths(last(obs)[0], k)); return r ? r[1] : NaN; };
+// When the base month itself is missing (Oct-2025), the base is interpolated geometrically between the months around
+// it (at most two months apart), the same convention the nowcast uses; before 2026-11-12 the month before was taken,
+// which turned "a/a" into a 13-month change. Only base months are filled; a published reading is never invented.
+const atM = (obs, k) => {
+  const iso = addMonths(last(obs)[0], k), r = asOf(obs, iso);
+  if (r && r[0] === iso) return r[1];
+  const i = r ? obs.indexOf(r) : -1, nx = obs[i + 1];
+  const monthly = d => d.slice(8) === '01';   // daily and weekly series keep the last observation as before
+  if (r && nx && monthly(iso) && monthly(r[0]) && monthly(nx[0]) && nx[0] <= addMonths(r[0], 3) && nx[0] > iso) {
+    const span = monthsBetween(r[0], nx[0]), pos = monthsBetween(r[0], iso);
+    return r[1] * (nx[1] / r[1]) ** (pos / span);
+  }
+  return r ? r[1] : NaN;
+};
+const monthsBetween = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
 const yoyM = obs => (back(obs, 0) / atM(obs, -12) - 1) * 100;
 const ann3 = obs => ((back(obs, 0) / atM(obs, -3)) ** 4 - 1) * 100;
 const avg = a => a.reduce((s, x) => s + x, 0) / a.length;

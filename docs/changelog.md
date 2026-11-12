@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-12 — CPI general en Cuantitativo y a/a con el mes base faltante
+- Cuantitativo → Indicadores coincidentes → Inflación: nueva tarjeta **CPI general · a/a** (FRED CPIAUCSL), con el m/m y el a/a del mes previo. Es informativa: no pondera, porque el core CPI ya está en el puntaje.
+- Corrección: octubre de 2025 no existe en FRED (cierre del gobierno). El cálculo tomaba el mes anterior como base, así que el "a/a" de octubre de 2026 era en realidad una variación de 13 meses (CPI 4.1 %, core 2.9 %). Ahora la base que falta se interpola geométricamente entre septiembre y noviembre de 2025 (CPI 3.9 %, core 2.8 %), el mismo criterio que ya usaba el nowcast, y la tarjeta lo indica. Solo se rellenan meses base de series mensuales; nunca un dato publicado. Los puntos del core no cambian (sigue en el tramo 2.5–3.0).
+
 ## 2026-11-12 — Portada "Hoy" para el trader, navegación por grupos y modo Simple/Pro
 - Nueva vista inicial **Hoy** (`renderHoy` en `assets/app.js`), calculada con los datos automáticos, en el orden en que la lee un trader:
   1. El panorama macro en una frase, con una escala de cinco niveles y lo que suele implicar (dólar, tasa a 2 años, ciclo).
