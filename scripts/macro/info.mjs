@@ -10,9 +10,21 @@ const sg = (v, d = 1) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d);
 const back = (obs, n) => obs[obs.length - 1 - n];
 const yoyAt = (obs, i) => { const d = obs[i][0], p = obs.find(([x]) => x === `${+d.slice(0, 4) - 1}${d.slice(4)}`); return p ? (obs[i][1] / p[1] - 1) * 100 : null; };
 
-export function buildInfo(prev, O) {
+export function buildInfo(prev, O, manual) {
   const out = prev.map(c => ({ ...c }));
   const set = (prefix, f) => { const c = out.find(x => x.name.startsWith(prefix)); if (c) Object.assign(c, f(c)); };
+
+  // ISM components (licensed): data/manual.json → ism_componentes. When the period advances, the stored reading
+  // becomes the previous one. Same thresholds as the original cards (≥ 52 expansion, < 48 contraction).
+  const ic = manual && manual.ism_componentes;
+  if (ic && /^\d{4}-\d{2}$/.test(ic.periodo || '')) {
+    const lab = mLab(`${ic.periodo}-01`), st = v => (v >= 52 ? 'hot' : v < 48 ? 'cold' : 'flat');
+    for (const [prefix, k] of [['ISM Manufactura · Nuevas', 'nuevas_ordenes'], ['ISM Manufactura · Empleo', 'empleo'], ['ISM Manufactura · Precios', 'precios'], ['ISM Servicios · Actividad', 'servicios_actividad']]) {
+      const v = ic[k]; if (typeof v !== 'number' || v < 20 || v > 90) continue;
+      set(prefix, c => (c.date === lab ? { val: v.toFixed(1), state: st(v) }
+        : { val: v.toFixed(1), prev: `${c.date.slice(0, 3)} ${c.val}`, date: lab, state: st(v), src: 'ISM (captura manual)' }));
+    }
+  }
 
   const R = O.RSAFS, C = O.CPIAUCSL;
   if (R && R.length > 13) {

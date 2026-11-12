@@ -1,23 +1,7 @@
-# Static site, no build step. Data files are refreshed by commits, so they must revalidate on every visit.
+# The terminal moved to Cloudflare Pages on 2026-11-12 (docs/architecture.md → Hosting).
+# Netlify must not build anymore: each production deploy costs credits. The Netlify sites linked to this repo
+# (tfxmacrointelligence and tfxterminal) keep serving their last deploy, which reads data/ live from the repo.
+# Delete this file only after disconnecting or deleting those Netlify sites; without it, every commit would deploy.
 [build]
   publish = "."
-  # Skip the deploy when a commit only touches data/ (the page reads data/ from the repo; see index.html).
-  # Each production deploy costs 15 Netlify credits and the data processes commit several times a day.
-  # Exit code 0 = nothing outside data/ changed → Netlify cancels the build.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)data'"
-
-[[headers]]
-  for = "/data/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+  ignore = "exit 0"

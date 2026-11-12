@@ -13,7 +13,7 @@ Los cron de GitHub Actions en cuentas gratuitas se retrasan. Medido entre el 26-
 Con eso, el CPI o el NFP de las 8:30 Nueva York aparecían en la terminal entre las 2 y las 6 pm.
 
 ## Solución
-Un servicio de cron externo y gratuito llama a la API de GitHub a la hora exacta y lanza el proceso (`workflow_dispatch`, que no se retrasa). Los cron de GitHub se quedan como respaldo. Costo: $0. Cada proceso solo publica si hay datos nuevos, y los commits de datos no gastan créditos de Netlify.
+Un servicio de cron externo y gratuito llama a la API de GitHub a la hora exacta y lanza el proceso (`workflow_dispatch`, que no se retrasa). Los cron de GitHub se quedan como respaldo. Costo: $0. Cada proceso solo publica si hay datos nuevos, y los commits de datos no generan builds del sitio.
 
 ## Configuración (una sola vez, la hace el propietario)
 

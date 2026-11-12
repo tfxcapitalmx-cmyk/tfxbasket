@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-12 — La terminal se muda a Cloudflare Pages
+- Producción: https://tfxmacrointelligence.pages.dev (Cloudflare Pages, plan gratuito). Configuración en `docs/architecture.md` → Hosting; `_headers` replica las cabeceras que tenía `netlify.toml`.
+- Netlify congelado desde el repo (`netlify.toml` → `ignore = "exit 0"`): no vuelve a construir ni a gastar créditos. tfxmacrointelligence.netlify.app y tfxterminal.netlify.app siguen en línea con su último deploy (leen los datos en vivo), sin cambios de código futuros.
+- Los procesos de datos, cron-job.org y el vigilante no cambian: escriben en el repo y la página lee de ahí.
+
+## 2026-11-11 — Componentes del ISM desde la captura manual; Netlify despliega solo cambios de la página
+- `data/manual.json` → `ism_componentes` (nuevas órdenes, empleo, precios, actividad de servicios): las tarjetas informativas del ISM se actualizan con el proceso del puntaje; al avanzar el periodo, la lectura anterior pasa a "previo".
+- Captura del 11-nov: ISM manufactura oct 55.5 (componentes 55.5 / 52.4 / 75.2), ISM servicios oct 54.5 (actividad 53.8), UMich preliminar nov 51.0 y expectativa 1 año 4.3 %.
+- `netlify.toml`: el deploy solo se hace si cambian `index.html`, `assets/` o `netlify.toml`. Antes también desplegaban los cambios de scripts, workflows y documentación (15 créditos cada uno); el 11-nov se agotaron los créditos del ciclo.
+
 ## 2026-11-11 — Fase 3: nowcast automático (Modelos y Escenarios)
 - Nuevo `scripts/nowcast/` → `data/nowcast.json` (→ `D.snap.nowcast`, `nc_order`, `evt`), paso "Nowcast" del workflow del puntaje, después de la agenda (de ella toma la hora de publicación y el consenso). Modelos y las pestañas Modelo y Escenarios del Catalizador dejan de depender de la carga manual del 16-oct.
 - Reconstruido en JavaScript sin dependencias (`stats.mjs`): regresión con las variantes guardadas, ARIMA(p,0,q) por mínimos cuadrados condicionales con orden por AIC, ensamble por inverso del error cuadrático, GARCH(1,1) con errores t cuando la prueba ARCH-LM lo justifica, Monte Carlo de 20,000 escenarios calibrado para que la banda del 90 % cubra el 90 % de los errores históricos, abanico a 6 meses y backtest mensual desde 2016.
