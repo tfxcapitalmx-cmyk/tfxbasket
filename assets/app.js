@@ -1866,12 +1866,175 @@ function renderDorSec(){
   if(typeof freshBadges==='function'&&document.querySelector('#distribucion > .sh .fresh'))freshBadges();
 }
 
+// ---------- Hoy · portada del trader ----------
+// One screen in the order a trader reads it: the macro picture in plain words, the next release that moves the
+// market (consensus vs TFX model, probabilities, scenarios), what changed this week, a checklist for the chosen pair
+// and what history says on CPI days. Simple shows plain language; Pro adds the numbers behind it.
+const isPro=()=>document.documentElement.dataset.nivel==='pro';
+const hesc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const IC={
+  up:'<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>',
+  dn:'<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>',
+  flat:'<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><path d="M5 12h14"></path></svg>',
+  warn:'<svg viewBox="0 0 24 24" role="img" aria-label="Atención" class="ic"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 17h.01"></path></svg>',
+  clock:'<svg viewBox="0 0 24 24" aria-hidden="true" class="ic"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5M9 2h6"></path></svg>'};
+const BLOQ={'Inflación':'la inflación','Empleo':'el empleo','Actividad':'la actividad','Precios y expectativas':'los precios y las expectativas','Tasas y liquidez':'las tasas y la liquidez'};
+const NIV=['Alivio claro','Alivio','Neutral','Restrictivo','Restrictivo fuerte'];
+const nivelDe=c=>c>=1?4:c>=0.4?3:c>-0.4?2:c>-1?1:0;
+function hoyLink(id,txt){return `<a class="hoylink" href="#${id}" data-go="${id}">${txt}</a>`;}
+
+function hoyRegimen(){
+  const c=S.composite,n=nivelDe(c),sb=S.sub,b=S.breadth,cy=S.cycle||{};
+  const sgn=c>=0?1:-1,motor=Object.keys(S.blocks).sort((x,y)=>S.blocks[y]*S.weights[y]*sgn-S.blocks[x]*S.weights[x]*sgn)[0];
+  const head=n>=3?`La economía se calienta y ${BLOQ[motor]} es el motor.`:n<=1?`La economía se enfría y ${BLOQ[motor]} es lo que más pesa.`:'La economía está en equilibrio: ningún bloque domina.';
+  const sub=n>=3?'Por eso la Fed no tiene prisa por bajar tasas. En este régimen el dólar suele estar del lado fuerte, pero solo si los próximos datos lo confirman.'
+    :n<=1?'Eso abre espacio a que la Fed relaje su política. En este régimen el dólar suele debilitarse, si los próximos datos lo confirman.'
+    :'Sin un sesgo macro claro, cada dato nuevo pesa más que el régimen: opera los catalizadores con sorpresa clara.';
+  const y2=S.rows.find(r=>r.name==='UST 2 años · cambio 6m');
+  const imp=[c>=0.4?[IC.up,'Dólar: sesgo alcista condicional']:c<=-0.4?[IC.dn,'Dólar: sesgo bajista condicional']:[IC.flat,'Dólar: sin sesgo macro'],
+    y2&&y2.pts>0?[IC.up,'Tasa 2 años: presión al alza']:y2&&y2.pts<0?[IC.dn,'Tasa 2 años: presión a la baja']:[IC.flat,'Tasa 2 años: estable'],
+    [IC.flat,`Ciclo: ${(PHN[cy.phase]||'—').toLowerCase()} · ${cy.run||'—'} meses`]];
+  const [pp,ppv]=projPhase();
+  $('hoyReg').innerHTML=`<span class="k">1 · El panorama macro de EE.UU.</span>
+    <h2 class="hoy-h2">${head}</h2><p class="hoy-p">${sub}</p>
+    <div class="lvl5" role="img" aria-label="Régimen: ${NIV[n]}">${NIV.map((x,i)=>`<i class="l${i}${i===n?' on':''}"></i>`).join('')}</div>
+    <div class="lvl5 lab">${NIV.map((x,i)=>`<span class="${i===n?'on':''}">${x}${i===n?' · hoy':''}</span>`).join('')}</div>
+    <div class="imps-w"><span class="hoy-small">Qué suele implicar (tendencia condicional, no una señal)</span>
+    <div class="imps">${imp.map(([i,t])=>`<span class="imp">${i}${t}</span>`).join('')}</div></div>
+    ${isPro()?`<div class="prow"><div><span>Compuesto</span><b>${sg(c)} de ±2</b></div><div><span>Líderes · catalizadores</span><b>${sg(sb.lead)} · ${sg(sb.coin)}</b></div><div><span>Calientan</span><b>${b.hot} de ${b.n}</b></div><div><span>Fase en 3 meses</span><b>${PHN[pp]} ${pct(ppv)}</b></div></div>`:''}
+    ${hoyLink('resumen','Ver el detalle en Contexto')}`;
+}
+
+function hoyProximo(){
+  const el=$('hoyNext'),nx=nextCat();
+  if(!nx){el.innerHTML='<span class="hk">2 · El próximo dato que mueve el mercado</span><p class="hoy-p">No hay datos de alto impacto en la agenda cargada.</p>';return;}
+  const nm=nextModeled(),tg=nm&&nm.t===nx.t&&nm.key===nx.key?evTargets(nm):[];
+  const refFull=MABR[nx.ref]?MESL[MABR[nx.ref]-1]:nx.ref;
+  const when=`${fShort(nx.t)} · ${fTime(nx.t)} ${TZN()}`;
+  let body='';
+  if(tg.length){
+    const t=tg[0],N=S.nowcast[t],M=N.mc,k=isK(t),ref=N.refv,step=k?10:0.1;
+    const fr=v=>k?sg(v,0)+'k':sg(v,1)+'%';
+    const d=N.cons!=null?N.pred-N.cons:null,tol=k?10:0.05;
+    const verb=d==null?'':d>tol?(k?'más fuerte':'más caliente'):d<-tol?(k?'más débil':'más frío'):'en línea con';
+    const lead=d==null?`Aún no hay consenso publicado: las probabilidades se miden contra el dato previo (${fr(ref)}).`
+      :verb==='en línea con'?'El modelo TFX espera un dato en línea con el consenso.':`El modelo TFX espera un dato ${verb} que el consenso.`;
+    const R=SCN[t]||['','',''];
+    body=`<p class="hoy-p">${lead}</p>
+      <div class="figs"><div class="fig"><span>Consenso</span><b>${N.cons==null?'—':fr(N.cons)}</b></div><div class="fig m"><span>Modelo TFX</span><b>${fx(t,N.pred)}</b></div><div class="fig"><span>Dato previo</span><b>${fr(N.prev)}</b></div></div>
+      <div class="pw"><span class="hoy-small">Probabilidad frente al ${N.consKind} (20,000 escenarios)</span>
+      <div class="pbar" role="img" aria-label="Arriba ${pct(M.above)}, en línea ${pct(M.inline)}, abajo ${pct(M.below)}"><i class="hot" style="flex:${M.above} 1 0"></i><i class="mid" style="flex:${M.inline} 1 0"></i><i class="cold" style="flex:${M.below} 1 0"></i></div>
+      <div class="plab"><span><b class="warm">▲ ${pct(M.above)} arriba</b> (${k?'>':'≥'} ${fr(ref+step)})</span><span class="c"><b>${pct(M.inline)} en línea</b></span><span class="r"><b class="coolc">▼ ${pct(M.below)} abajo</b> (${k?'<':'≤'} ${fr(ref-step)})</span></div></div>
+      <div class="scn"><div><b class="warm">Si sale arriba</b><span>${R[0]}</span></div><div><b>Si sale en línea</b><span>${R[1]}</span></div><div><b class="coolc">Si sale abajo</b><span>${R[2]}</span></div></div>
+      ${isPro()?`<p class="hoy-mono">Rango 90%: ${fx(t,M.p5)} a ${fx(t,M.p95)} · central: ${{reg:'regresión',arima:'ARIMA',ens:'ensamble'}[N.central]}${tg.slice(1).map(t2=>{const N2=S.nowcast[t2];return ` · ${NCN[t2]}: modelo ${fx(t2,N2.pred)} vs ${N2.consKind} ${isK(t2)?sg(N2.refv,0)+'k':sg(N2.refv,1)+'%'}`;}).join('')}</p>`:''}`;
+  }else{
+    body=`<div class="figs"><div class="fig"><span>Consenso</span><b>${hesc(nx.cons||'—')}</b></div><div class="fig"><span>Dato previo</span><b>${hesc(nx.prev||'—')}</b></div></div>
+      <p class="hoy-p">Este dato no tiene modelo TFX: se compara contra el consenso cuando se publica.</p>`;
+  }
+  el.innerHTML=`<div class="hoy-top"><span class="hk">2 · El próximo dato que mueve el mercado</span><span class="hoy-mono">${when}</span></div>
+    <h2 class="hoy-h2">${CATN[nx.key]||nx.name} de ${refFull}</h2>${body}${hoyLink('catalizador','Ver agenda y escenarios')}`;
+}
+
+function hoyCambio(){
+  const now=Date.now(),from=now-10*864e5,skip=/ a\/a$/;
+  const ev=S.calendar.filter(e=>e.actual&&Date.parse(e.t)<=now&&Date.parse(e.t)>=from&&!skip.test(e.name)).sort((a,b)=>Date.parse(b.t)-Date.parse(a.t)).slice(0,6);
+  const inv=k=>k==='un'||k==='claims';
+  const rows=ev.map(e=>{
+    const a=numOf(e.actual),hasC=numOf(e.cons)!=null,r=hasC?numOf(e.cons):numOf(e.prev),k=/k$/i.test(e.actual);
+    let cls='flat',txt='sin referencia';
+    if(a!=null&&r!=null){const d=a-r,tol=k?(e.key==='claims'?3:10):0.05;
+      if(Math.abs(d)<=tol){cls='flat';txt=hasC?'en línea':'sin cambio';}
+      else{const hot=(d>0)!==inv(e.key);cls=hot?'hot':'cold';txt=`${hot?'▲ más caliente':'▼ más frío'} (${k?sg(d,0)+'k':sg(d,1)})`;}}
+    const refTxt=hasC?`vs ${hesc(e.cons)} esperado`:(e.prev?`previo ${hesc(e.prev)}`:'');
+    return `<div class="chg"><span class="d">${fShort(e.t)}</span><span><b>${hesc(e.name)} ${hesc(e.ref)}</b> ${hesc(e.actual)} ${refTxt}</span><span class="badge ${cls}">${txt}</span></div>`;});
+  const H=S.hist,pc=H&&H.v.length?H.v[H.v.length-1]:null,pd=H&&H.d.length?H.d[H.d.length-1]:null;
+  const concl=pc==null?'':regime(pc)===regime(S.composite)
+    ?`El régimen no cambió: el compuesto pasó de ${sg(pc)} (${MESL[+pd.slice(5,7)-1]}) a ${sg(S.composite)} hoy.`
+    :`El régimen cambió de ${regime(pc).toLowerCase()} a ${regime(S.composite).toLowerCase()} (compuesto ${sg(pc)} → ${sg(S.composite)}).`;
+  $('hoyCambio').innerHTML=`<span class="hk">3 · Qué cambió en los últimos 10 días</span>
+    <div class="chgs">${rows.join('')||'<p class="hoy-p">Sin datos publicados en los últimos 10 días.</p>'}</div>
+    <p class="hoy-p small">${concl} Sorpresa: contra el consenso cuando existe, si no contra el dato previo. En desempleo y solicitudes, un dato más alto enfría.</p>`;
+}
+
+const HOY_PARES=['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD'];
+let hoyPar=store.get('hoypar','EURUSD');
+function hoyCheck(){
+  const pares=HOY_PARES.filter(p=>(S.carry&&S.carry.pairs||[]).some(x=>x.p===p));
+  if(!pares.includes(hoyPar))hoyPar=pares[0];
+  const P=S.carry.pairs.find(x=>x.p===hoyPar);if(!P){$('hoyCheck').innerHTML='';return;}
+  const usdBase=P.base==='USD',other=usdBase?P.quote:P.base,c=S.composite,items=[];
+  // 1. Macro de EE.UU.
+  if(Math.abs(c)>=0.4){const usdUp=c>0,dir=usdUp===usdBase?'compra':'venta';items.push({k:dir,t:`Macro EE.UU.: dólar ${usdUp?'fuerte':'débil'} condicional`,s:`Favorece la ${dir} de ${hoyPar} mientras los datos sigan ${usdUp?'calientes':'fríos'}.`});}
+  else items.push({k:'info',t:'Macro EE.UU.: sin sesgo claro',s:'El régimen no favorece ninguna dirección en este par.'});
+  // 2. Carry
+  if(Math.abs(P.diff)>=0.25)items.push({k:P.dir,t:`Carry: ${P.base} ${P.rb.toFixed(2)}% vs ${P.quote} ${P.rq.toFixed(2)}%`,s:`El swap paga por estar ${P.dir==='venta'?'vendido':'comprado'} en ${hoyPar}.`});
+  else items.push({k:'info',t:'Carry casi nulo',s:`Tasas de ${P.base} y ${P.quote} a menos de 0.25 pp.`});
+  // 3. Posicionamiento (CFTC, percentil del neto a 5 años)
+  const C=S.pos&&S.pos.ccy&&S.pos.ccy[other];
+  if(C&&C.st&&C.st['5']){const p5=C.st['5'].pct,np=C.now.npoi;
+    if(p5<=10||p5>=90){const corto=p5<=10;items.push({k:'warn',t:`Posicionamiento extremo: especuladores muy ${corto?'cortos':'largos'} en ${other}`,s:`Neto ${sg(np,2)}% del interés abierto, percentil ${Math.round(p5)} a 5 años: si un dato sorprende al revés, el movimiento contrario puede ser brusco.`});}
+    else items.push({k:'info',t:`Posicionamiento en ${other} sin extremos`,s:`Percentil ${Math.round(p5)} a 5 años (neto ${sg(np,2)}% del interés abierto).`});}
+  // 4. Catalizador próximo
+  const nx=nextCat();
+  if(nx&&Date.parse(nx.t)-Date.now()<48*36e5)items.push({k:'warn',t:'Dato de alto impacto en menos de 48 h',s:`${CATN[nx.key]||nx.name}, ${fShort(nx.t)} ${fTime(nx.t)}: considera el tamaño de la posición o esperar a la publicación.`});
+  else items.push({k:'info',t:'Sin datos de alto impacto en 48 h',s:nx?`El siguiente: ${CATN[nx.key]||nx.name}, ${fShort(nx.t)}.`:''});
+  // 5. Volatilidad
+  if(S.vol&&S.vol.vix!=null){const v=S.vol.vix,cl=v<20?'tranquila':v<25?'elevada':'alta',B=(S.vol.buckets||[]).find(x=>{const m=/^(\d+)-(\d+)$/.exec(x.lab);return m?v>=+m[1]&&v<+m[2]:x.lab[0]==='<'?v<+x.lab.slice(1):v>=+x.lab.slice(1);});
+    items.push({k:v>=25?'warn':'info',t:`Volatilidad ${cl}: VIX ${v.toFixed(1)}`,s:isPro()&&B?`Movimiento diario típico del S&P 500 en este tramo: ${B.med.toFixed(2)}% (p90 ${B.p90.toFixed(2)}%).`:v>=25?'Movimientos amplios: stops más holgados o posiciones más chicas.':'Condiciones normales de volatilidad.'});}
+  const ico=k=>k==='venta'?IC.dn:k==='compra'?IC.up:k==='warn'?IC.warn:IC.flat;
+  const lab=k=>k==='venta'?'Favorece vender':k==='compra'?'Favorece comprar':k==='warn'?'Atención':'Contexto';
+  const nv=items.filter(i=>i.k==='venta').length,nc=items.filter(i=>i.k==='compra').length,nw=items.filter(i=>i.k==='warn').length;
+  $('hoyCheck').innerHTML=`<span class="hk">4 · Antes de operar · mi par</span>
+    <div class="filters" role="group" aria-label="Mi par">${pares.map(p=>`<button type="button" class="chip sm" data-par="${p}" aria-pressed="${p===hoyPar}">${p}</button>`).join('')}</div>
+    <div class="cks">${items.map(i=>`<div class="ck ${i.k}">${ico(i.k)}<div><b>${i.t}</b><span>${i.s}</span><em>${lab(i.k)}</em></div></div>`).join('')}</div>
+    <p class="hoy-p small">${nv} a favor de vender · ${nc} a favor de comprar · ${nw} de atención. No es una señal de entrada: es una lista para revisar tu idea.</p>`;
+  $('hoyCheck').querySelectorAll('[data-par]').forEach(b=>b.onclick=()=>{hoyPar=b.dataset.par;store.set('hoypar',hoyPar);hoyCheck();});
+}
+
+function hoyHistoria(){
+  const E=S.evt&&S.evt.assets;if(!E){$('hoyHist').innerHTML='';return;}
+  const NM={dxy:'Dólar (índice amplio Fed)',d2:'Tasa 2 años',spx:'S&P 500',xau:'Oro'};
+  const f=(a,v)=>E[a].unit==='pb'?`${sg(v,1)} pb`:`${sg(v,2)}%`,T=a=>E[a].surp.cpi_surp.terc;
+  const simple=E.dxy&&E.spx?`<p class="hoy-p">Cuando el CPI sale <b class="warm">más caliente</b> que el modelo, el día del dato el dólar se movió en promedio ${f('dxy',T('dxy').caliente.mean)} y el S&amp;P 500 ${f('spx',T('spx').caliente.mean)}. Cuando sale <b class="coolc">más frío</b>: dólar ${f('dxy',T('dxy').fria.mean)}, S&amp;P 500 ${f('spx',T('spx').fria.mean)}. Son promedios: el dólar subió solo el ${pct(T('dxy').caliente.up)} de los días calientes.</p>`:'';
+  const tbl=`<div class="scroll"><table><thead><tr><th>Activo</th><th class="num">CPI más frío</th><th class="num">En línea</th><th class="num">CPI más caliente</th></tr></thead><tbody>${Object.keys(NM).filter(a=>E[a]).map(a=>`<tr><td>${NM[a]}</td>${['fria','media','caliente'].map(t=>`<td class="num">${f(a,T(a)[t].mean)}<span class="sub">sube ${pct(T(a)[t].up)} de los días</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  $('hoyHist').innerHTML=`<span class="hk">5 · Lo que dice la historia · día del CPI desde 2016</span>${isPro()?tbl:simple}${hoyLink('catalizador','Ver escenarios por dato')}`;
+}
+
+function renderHoy(){
+  try{$('hoyFecha').textContent=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',timeZone:TZ});}catch(e){}
+  for(const f of [hoyRegimen,hoyProximo,hoyCambio,hoyCheck,hoyHistoria]){try{f();}catch(e){console.error(e);}}
+  document.querySelectorAll('#hoy [data-go]').forEach(a=>a.onclick=ev=>{ev.preventDefault();show(a.dataset.go);});
+}
+
+// Next high-impact release, always visible in the header.
+function nextPill(){
+  const el=$('nextPill');if(!el||!S.calendar)return;
+  const nx=nextCat();if(!nx){el.hidden=true;return;}
+  const ms=Date.parse(nx.t)-Date.now(),d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);
+  el.hidden=false;el.innerHTML=`${IC.clock}<span>${CATN[nx.key]||nx.name} en ${d?`${d} d ${h} h`:h?`${h} h ${m} min`:`${m} min`}</span>`;
+  el.title=`${nx.name} · ${fDate(nx.t)}, ${fTime(nx.t)} ${TZN()}`;
+}
+
 // ---------- Navegación por secciones ----------
-const VIEWS={resumen:renderSummary,cuantitativo:renderScore,ciclo:renderCycle,catalizador:renderCatalyst,modelos:renderModels,distribucion:renderDorSec,graficos:renderCharts,carry:renderCarry,vol:renderVol,estacional:renderSeas,posicion:renderPos,tv:renderTV};
+const VIEWS={hoy:renderHoy,resumen:renderSummary,cuantitativo:renderScore,ciclo:renderCycle,catalizador:renderCatalyst,modelos:renderModels,distribucion:renderDorSec,graficos:renderCharts,carry:renderCarry,vol:renderVol,estacional:renderSeas,posicion:renderPos,tv:renderTV};
 let view=null;
+// Five groups in the header; the module bar below shows only the modules of the active group.
+const GROUPS={hoy:['hoy'],contexto:['resumen','cuantitativo','ciclo','graficos'],catalizadores:['catalizador','modelos'],mercado:['distribucion','posicion','carry','vol','estacional'],tv:['tv']};
+const groupOf=id=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(id))||'hoy';
+const lastIn=store.get('lastin',{});
+function syncGroups(id){
+  const g=groupOf(id);lastIn[g]=id;store.set('lastin',lastIn);
+  document.querySelectorAll('#groups [data-g]').forEach(b=>b.setAttribute('aria-current',String(b.dataset.g===g)));
+  const menu=$('menu');menu.classList.toggle('solo',GROUPS[g].length<2);
+  menu.querySelectorAll('a').forEach(a=>{a.hidden=!GROUPS[g].includes(a.getAttribute('href').slice(1));});
+}
+function setNivel(n){
+  document.documentElement.dataset.nivel=n;store.set('nivel',n);
+  document.querySelectorAll('#lvl [data-lvl]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lvl===n)));
+}
 function show(id,hash=true){
-  if(!VIEWS[id])id='resumen';
-  view=id;store.set('view',id);
+  if(!VIEWS[id])id='hoy';
+  view=id;store.set('view2',id);syncGroups(id);
   document.querySelectorAll('main>section').forEach(s=>{const on=s.id===id;s.classList.toggle('view',on);s.classList.toggle('on',on);});
   document.querySelectorAll('nav.menu a').forEach(a=>{const on=a.getAttribute('href')==='#'+id;a.classList.toggle('on',on);if(on)a.scrollIntoView({block:'nearest',inline:'center'});});
   if(hash){try{history.replaceState(null,'','#'+id);}catch(e){}}
@@ -1880,6 +2043,10 @@ function show(id,hash=true){
 }
 function wireNav(){
   document.querySelectorAll('nav.menu a').forEach(a=>{a.onclick=e=>{e.preventDefault();show(a.getAttribute('href').slice(1));};});
+  document.querySelectorAll('#groups [data-g]').forEach(b=>{b.onclick=()=>{const g=b.dataset.g;show(GROUPS[g].includes(lastIn[g])?lastIn[g]:GROUPS[g][0]);};});
+  document.querySelectorAll('#lvl [data-lvl]').forEach(b=>{b.onclick=()=>{setNivel(b.dataset.lvl);if(VIEWS[view])try{VIEWS[view]();}catch(e){console.error(e);}};});
+  const np=$('nextPill');if(np)np.onclick=e=>{e.preventDefault();show('catalizador');};
+  nextPill();setInterval(nextPill,60000);
   window.addEventListener('hashchange',()=>show((location.hash||'').slice(1),false));
   const top=$('top'),prog=$('prog'),totop=$('totop');
   const onScroll=()=>{const h=document.documentElement,max=h.scrollHeight-h.clientHeight,y=h.scrollTop;prog.style.width=(max>0?y/max*100:0)+'%';top.classList.toggle('scrolled',y>8);totop.classList.toggle('away',y<600);};
@@ -1898,7 +2065,7 @@ const freshLab=t=>{const d=new Date(t);return `${String(d.getUTCDate()).padStart
 // max = days after which the panel is flagged (weekends, holidays and each source's publication lag included).
 function freshSources(){
   const mac={auto:true,src:'FRED',date:S.asof_iso,max:5},man={auto:false,date:S.asof_manual,max:7};
-  return {resumen:mac,cuantitativo:mac,
+  return {hoy:mac,resumen:mac,cuantitativo:mac,
     posicion:{auto:true,src:'CFTC',date:S.pos&&S.pos.asof,max:13,lab:'informe del'},
     carry:{auto:true,src:'BIS',date:S.carry&&S.carry.datos,max:14},
     graficos:{auto:true,src:'FRED',date:S.charts_asof,max:5},
@@ -1928,8 +2095,8 @@ function staleInfo(name,date,now=Date.now()){
 const staleTag=r=>staleInfo(r.name,r.date)?' · <b style="color:var(--accent)">atrasado</b>':'';
 function staleInputs(id){
   const L=[],seen=new Set();const add=(n,d)=>{const k=n.replace(/[ ,·].*$/,'');if(seen.has(k)&&/^(LEI|Índice)/.test(n))return;seen.add(k);const w=staleInfo(n,d);if(w)L.push(`${n} (${d}): ${w}`);};
-  if(['resumen','cuantitativo'].includes(id)){(S.rows||[]).forEach(r=>add(r.name,r.date));(S.info||[]).forEach(r=>add(r.name,r.date));}
-  if(id==='resumen'||id==='ciclo'){const c=S.cycle||{};if(c.lei_periodo)add('LEI Conference Board, 6m',c.lei_periodo);if(c.cei_periodo)add('Índice coincidente, 6m',c.cei_periodo);}
+  if(['hoy','resumen','cuantitativo'].includes(id)){(S.rows||[]).forEach(r=>add(r.name,r.date));(S.info||[]).forEach(r=>add(r.name,r.date));}
+  if(id==='hoy'||id==='resumen'||id==='ciclo'){const c=S.cycle||{};if(c.lei_periodo)add('LEI Conference Board, 6m',c.lei_periodo);if(c.cei_periodo)add('Índice coincidente, 6m',c.cei_periodo);}
   if(id==='cuantitativo'&&S.curve&&S.curve.date)add('Curva del Tesoro',S.curve.date.slice(8)+'-'+Object.keys(FMES)[+S.curve.date.slice(5,7)-1]+'-'+S.curve.date.slice(0,4));
   return [...new Set(L)];
 }
@@ -1946,7 +2113,8 @@ function freshBadges(){
       :`Estos datos se cargan a mano.${old?` Tienen más de ${f.max} días.`:''}`;
   }
 }
-function renderAll(){show(view||(location.hash||'').slice(1)||store.get('view','resumen'),false);}
+setNivel(store.get('nivel','simple'));
+function renderAll(){show(view||(location.hash||'').slice(1)||store.get('view2','hoy'),false);}
 renderAll();wireNav();freshBadges();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
 autoRefresh();
 

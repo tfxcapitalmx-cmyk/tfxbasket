@@ -21,6 +21,7 @@ index.html ──fetch──> data/snapshot.json  (D.snap de los módulos manual
 ## Módulos
 | Vista (`#id`) | Datos que consume |
 |---|---|
+| hoy (vista inicial) | `snap.composite`, `snap.blocks`, `snap.rows`, `snap.cycle`/`cycproj`, `snap.calendar`, `snap.nowcast`, `snap.evt`, `snap.carry`, `snap.pos`, `snap.vol` |
 | resumen | `snap.composite`, `snap.hist`, `snap.rows` |
 | cuantitativo | `snap.rows`, `snap.blocks`, `snap.curve`, `snap.yields` |
 | ciclo | `snap.cycle`, `snap.cycproj` |
