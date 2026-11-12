@@ -5,12 +5,12 @@
 <meta name="description" content="Terminal macro de Estados Unidos y mesa de volatilidad de TFX Academy.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=Syncopate:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Syncopate:wght@700&display=swap">
 
 <script>try{var _t=localStorage.getItem('tfx-theme');if(_t==='light'||_t==='dark')document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <link rel="stylesheet" href="assets/app.css">
 
-</head><body><div class="progress" aria-hidden="true"><i id="prog"></i></div>
+</head><body><canvas id="fx" aria-hidden="true"></canvas><div class="progress" aria-hidden="true"><i id="prog"></i></div>
 <header class="top" id="top">
   <div class="top-in">
     <div class="brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b><span>Macro Intelligence</span></div>
@@ -30,6 +30,7 @@
     </nav>
     <button class="themebtn" id="themeBtn" type="button" aria-label="Cambiar a tema claro" title="Tema claro / oscuro"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg></button>
   </div>
+  <div class="tape" role="marquee"><div class="tape-in" id="tape"></div></div>
 </header>
 <script>
 (function(){var r=document.documentElement,b=document.getElementById('themeBtn'),mq=matchMedia('(prefers-color-scheme: dark)');
@@ -364,6 +365,7 @@ mq.addEventListener('change',sync);sync();})();
   </section>
 </main>
 <footer class="site-foot">
+  <p class="sf-big" aria-hidden="true">El mercado, <em>con contexto.</em></p>
   <div><div class="sf-brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b></div>
     <p>Terminal de inteligencia macro para el trader de divisas. Herramienta educativa de uso propio: no es asesoría de inversión. Prueba cualquier idea en demo antes de arriesgar capital.</p></div>
   <div class="sf-src" aria-label="Fuentes de datos"><span>FRED</span><span>CFTC</span><span>BIS</span><span>ISM</span><span>U. Michigan</span><span>Conference Board</span><span>OCDE</span><span>ForexFactory</span><span>Yahoo Finance</span></div>

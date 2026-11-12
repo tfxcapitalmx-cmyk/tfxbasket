@@ -1,15 +1,13 @@
 # Changelog
 
-## 2026-11-12 — Rediseño visual "Obsidiana y oro"
-- Nueva capa final en `assets/app.css` (v3) que redefine tokens, tipografía y componentes base sin tocar la lógica de los módulos:
-  - Tipografía: Inter (texto), Inter Tight (títulos y cifras grandes, con números tabulares), IBM Plex Mono (etiquetas). Syncopate queda solo para el logotipo. Los títulos dejan las mayúsculas forzadas.
-  - Color: fondo obsidiana con brillo dorado y rejilla tenue (oscuro) o marfil (claro); tarjetas con relieve, luz superior y sombra; estados seleccionados en oro (oscuro) o tinta (claro).
-  - Tarjeta insignia (régimen macro) en azul profundo con filo dorado en ambos temas.
-  - Tablas, pestañas, chips, sellos de frescura (con pulso cuando el dato es automático y vigente) y foco de teclado en oro.
-  - Entrada suave de cada sección (se desactiva con "reducir movimiento").
-  - Pie de página con marca, aviso educativo y fuentes de datos.
-- `chartTheme()` en `assets/app.js`: tema común para todos los gráficos (tipografía, leyendas con punto, tooltip oscuro con filo dorado); se recalcula al cambiar de tema.
-- En celular, la cabecera sigue sin desenfoque para que la barra inferior de grupos quede fija abajo.
+## 2026-11-12 — Rediseño visual editorial "Tinta y champán" con motion
+- Sustituye a la primera versión ("Obsidiana y oro"), que se veía genérica. Capa v4 al final de `assets/app.css`:
+  - Tipografía editorial: titulares en Instrument Serif con la última palabra en cursiva champán; Geist para texto y cifras (números tabulares); IBM Plex Mono para etiquetas y la cinta. Syncopate solo en el logotipo.
+  - Paleta tinta / marfil / champán (sin amarillo neón). Estados seleccionados monocromos (marfil sobre tinta o al revés).
+  - Sin rejilla de fondo: lienzo `#fx` con ondas de "seda" generativas (a 25 cuadros por segundo, se pausa con la pestaña oculta) y grano de película.
+  - Tarjeta insignia en tinta con un haz de luz que recorre el borde.
+- Motion (`assets/app.js`, bloque "Motion"): cinta de cotizaciones (pares mayores con su cambio diario y datos macro), logotipo que se dibuja, titulares que suben palabra por palabra, cifras que cuentan hasta su valor exacto, tarjetas que aparecen al hacer scroll (con red de seguridad) y barrido de revelado en los gráficos. Con "reducir movimiento" del sistema todo queda estático.
+- Pie de página con titular, aviso educativo y fuentes. Tooltip de los gráficos en tinta con filo champán.
 
 ## 2026-11-12 — Posicionamiento ordenado para el trader que está aprendiendo
 - Mercado → Posicionamiento se reorganiza en tres bloques, con los mismos datos y recursos que antes:

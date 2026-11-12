@@ -2072,6 +2072,7 @@ function show(id,hash=true){
   if(hash){try{history.replaceState(null,'','#'+id);}catch(e){}}
   try{VIEWS[id]();}catch(e){console.error(e);}
   try{window.scrollTo(0,0);}catch(e){}
+  motionShow(id);
 }
 function wireNav(){
   document.querySelectorAll('nav.menu a').forEach(a=>{a.onclick=e=>{e.preventDefault();show(a.getAttribute('href').slice(1));};});
@@ -2146,16 +2147,100 @@ function freshBadges(){
   }
 }
 setNivel(store.get('nivel','simple'));chartTheme();
+// ---------- Motion ----------
+// Generative background, quote tape, word-by-word titles, counting figures, scroll reveal and chart sweep.
+// Everything is skipped when the system asks for reduced motion (then the waves are drawn once, static).
+const MOTION=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(MOTION)document.documentElement.classList.add('motion');
+let fxCol={rgb:'217,179,108',a:.16},fxDraw=null;
+function fxTheme(){fxCol={rgb:css('--wave')||'217,179,108',a:+css('--wave-a')||.14};if(!MOTION&&fxDraw)fxDraw(0);}
+// Silk-like lines: each one is a sum of slow sine waves; the middle lines are brighter, the edges fade out.
+function fxWaves(){
+  const cv=$('fx');if(!cv||!cv.getContext)return;const ctx=cv.getContext('2d');let w=0,h=0,raf=0,last=0;
+  const N=20;
+  const size=()=>{const dpr=Math.min(1.5,window.devicePixelRatio||1);w=innerWidth;h=innerHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(!MOTION)fxDraw(0);};
+  fxDraw=s=>{
+    ctx.clearRect(0,0,w,h);const step=w<700?22:14;
+    for(let i=0;i<N;i++){
+      const p=i/(N-1),base=h*(.12+p*.62),amp=34+60*p;ctx.beginPath();
+      for(let x=-30;x<=w+30;x+=step){
+        const y=base+Math.sin(x*.0019+s*.30+i*.42)*amp*.6+Math.sin(x*.0043-s*.21+i*.85)*16+Math.sin(x*.0008+s*.11+p*2.2)*amp*.9;
+        if(x===-30)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+      const al=fxCol.a*(.18+.82*Math.pow(Math.sin(Math.PI*p),1.6));
+      ctx.strokeStyle=`rgba(${fxCol.rgb},${al.toFixed(3)})`;ctx.lineWidth=i%4===0?1.15:.6;ctx.stroke();}
+  };
+  const frame=now=>{raf=requestAnimationFrame(frame);if(now-last<40)return;last=now;fxDraw(now/1000);};
+  fxTheme();size();addEventListener('resize',size);
+  if(MOTION){raf=requestAnimationFrame(frame);
+    document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);if(!document.hidden)raf=requestAnimationFrame(frame);});}
+}
+// Quote tape: last close and daily change of the majors (stored candles) plus the macro dashboard figures.
+function tape(){
+  const el=$('tape');if(!el)return;const it=[],dp=v=>v>=20?2:v>=2?3:4;
+  const has=p=>typeof MKSEED!=='undefined'&&MKSEED.has&&MKSEED.has(p,'D');
+  ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','XAUUSD'].filter(has).forEach(p=>{
+    const r=MKSEED.get(p,'D');if(!r||r.length<2)return;const c=r[0][4],pv=r[1][4];
+    it.push([p,c.toFixed(dp(c)),(c/pv-1)*100]);});
+  const V=S.vol||{},m=(k,v)=>{if(v!=null&&v!=='')it.push([k,v,null]);};
+  m('FED FUNDS',S.ff!=null?S.ff.toFixed(2)+'%':null);m('UST 2A',S.d2!=null?S.d2.toFixed(2)+'%':null);m('UST 10A',S.d10!=null?S.d10.toFixed(2)+'%':null);
+  m('CPI A/A',S.cpi_yy!=null?S.cpi_yy.toFixed(1)+'%':null);m('DESEMPLEO',S.unrate!=null?S.unrate.toFixed(1)+'%':null);
+  m('ISM MANUF.',S.pmi!=null?S.pmi.toFixed(1):null);m('VIX',V.vix!=null?V.vix.toFixed(2):null);
+  m('S&P 500',V.spx!=null?V.spx.toLocaleString('es-MX',{maximumFractionDigits:0}):null);m('SESGO TFX',S.composite!=null?sg(S.composite)+' / ±2':null);
+  if(!it.length){el.parentNode.hidden=true;return;}
+  const one=it.map(([k,v,ch])=>`<span class="tk"><span class="tl">${k}</span><b>${v}</b>${ch==null?'':`<i class="${ch>=0?'u':'d'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}%</i>`}</span>`).join('');
+  el.innerHTML=one+one;el.style.setProperty('--tape-d',Math.max(40,it.length*5)+'s');
+  el.parentNode.setAttribute('aria-label','Cotizaciones y datos macro: '+it.map(([k,v])=>k+' '+v).join(', '));
+}
+// Section titles: words rise one by one; the last word goes in italic champagne (acronyms excluded).
+function splitHeads(){
+  document.querySelectorAll('.sh h1,.sh h2').forEach(h=>{
+    if(h.id==='gxTitle'||h.dataset.split)return;const txt=h.textContent.trim(),ws=txt.split(/\s+/);
+    h.dataset.split='1';h.setAttribute('aria-label',txt);
+    h.innerHTML=ws.map((w,i)=>{const last=i===ws.length-1&&!/^[A-Z0-9]+$/.test(w);
+      return `<span class="w" aria-hidden="true"><span style="--i:${i}">${last?`<em>${w}</em>`:w}</span></span>`;}).join(' ');});
+}
+// Big figures count up from zero keeping their format (sign, decimals, thousands, suffix).
+const CNT='.fact .v,.blk .v,.po-tv,.fig b,.prow b,.regime .num';
+function countUp(root){
+  if(!MOTION)return;
+  root.querySelectorAll(CNT).forEach(el=>{
+    const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())&&!/\d/.test(n.nodeValue));if(!n)return;
+    const m=/^(\s*[^\d+−-]*?)([+−-]?)(\d[\d,]*)(\.\d+)?([\s\S]*)$/.exec(n.nodeValue);if(!m||/^[-\/:]\d/.test(m[5]))return;
+    const intS=m[3],dec=m[4]||'',target=parseFloat(intS.replace(/,/g,'')+dec),dp=dec?dec.length-1:0,comma=intS.includes(',');
+    if(!isFinite(target)||target===0)return;
+    const fmt=v=>{let s=v.toFixed(dp);if(comma){const [a,b]=s.split('.');s=a.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(b?'.'+b:'');}return m[1]+m[2]+s+m[5];};
+    const node=n,t0=performance.now(),D=1200,fin=n.nodeValue;
+    const stepF=now=>{if(!node.isConnected)return;const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,4);node.nodeValue=k<1?fmt(target*e):fin;if(k<1)requestAnimationFrame(stepF);};
+    node.nodeValue=fmt(0);requestAnimationFrame(stepF);});
+}
+// Panels fade and rise as they enter the screen; charts reveal with a left-to-right sweep.
+let fxIO=null;
+function reveal(sec){
+  if(!MOTION||!('IntersectionObserver' in window))return;
+  fxIO=fxIO||new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const p=e.target;fxIO.unobserve(p);p.classList.add('in');
+    setTimeout(()=>{p.classList.remove('pre','in');p.style.transitionDelay='';},1400);}),{rootMargin:'0px 0px -6% 0px',threshold:.04});
+  let k=0;sec.querySelectorAll('.panel').forEach(p=>{if(p.parentNode.closest('.panel')||p.offsetParent===null)return;p.classList.remove('in');p.classList.add('pre');
+    p.style.transitionDelay=Math.min(k++,5)*70+'ms';fxIO.observe(p);});
+  // Safety net: anything on screen that is still hidden after 2.5 s is shown.
+  clearTimeout(reveal.t);reveal.t=setTimeout(()=>sec.querySelectorAll('.panel.pre').forEach(p=>{if(p.getBoundingClientRect().top<innerHeight)p.classList.add('in');}),2500);
+  sec.querySelectorAll('.chart').forEach(c=>{c.classList.remove('sweep');void c.offsetWidth;c.classList.add('sweep');});
+}
+function motionShow(id){
+  const sec=$(id);if(!sec)return;
+  try{reveal(sec);countUp(sec);}catch(e){console.error(e);}
+}
+try{fxWaves();tape();splitHeads();}catch(e){console.error(e);}
 // Tema común de los gráficos: tipografía, rejilla, leyendas con punto y tooltip oscuro. Se recalcula al cambiar de tema.
 function chartTheme(){
+  try{fxTheme();}catch(e){}
   if(!window.Chart)return;const d=Chart.defaults,dark=getComputedStyle(document.documentElement).colorScheme==='dark';
-  d.font.family='"Inter",system-ui,sans-serif';d.font.size=11.5;d.color=css('--muted');d.borderColor=css('--line');
+  d.font.family='"Geist",system-ui,sans-serif';d.font.size=11.5;d.color=css('--muted');d.borderColor=css('--line');
   d.elements.line.borderJoinStyle='round';d.elements.line.borderCapStyle='round';
   d.elements.point.hoverRadius=5;d.elements.point.hoverBorderWidth=2;d.elements.bar.borderRadius=2;
   const L=d.plugins.legend.labels;L.usePointStyle=true;L.pointStyle='circle';L.boxHeight=7;L.padding=16;L.font={size:12,weight:'500'};
-  Object.assign(d.plugins.tooltip,{backgroundColor:dark?'rgba(20,26,37,.96)':'rgba(11,15,23,.94)',titleColor:'#FFFFFF',bodyColor:'#C9CFD9',footerColor:'#C9CFD9',
-    borderColor:dark?'rgba(242,201,76,.28)':'rgba(255,255,255,.08)',borderWidth:1,padding:12,cornerRadius:10,caretSize:6,boxPadding:6,usePointStyle:true,
-    titleFont:{family:'"Inter Tight",system-ui,sans-serif',size:12.5,weight:'600'},bodyFont:{family:'"IBM Plex Mono",monospace',size:11.5}});
+  Object.assign(d.plugins.tooltip,{backgroundColor:dark?'rgba(22,20,17,.96)':'rgba(22,19,15,.95)',titleColor:'#FFFFFF',bodyColor:'#D2CABB',footerColor:'#D2CABB',
+    borderColor:dark?'rgba(217,179,108,.32)':'rgba(217,179,108,.22)',borderWidth:1,padding:12,cornerRadius:10,caretSize:6,boxPadding:6,usePointStyle:true,
+    titleFont:{family:'"Instrument Serif",serif',size:15,weight:'400'},bodyFont:{family:'"IBM Plex Mono",monospace',size:11.5}});
 }
 function renderAll(){chartTheme();show(view||(location.hash||'').slice(1)||store.get('view2','hoy'),false);}
 renderAll();wireNav();freshBadges();setInterval(()=>{if(view==='catalizador')renderCatalyst();},60000);
