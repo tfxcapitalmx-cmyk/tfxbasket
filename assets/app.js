@@ -708,10 +708,9 @@ function renderTV(){
     +`<p><b>Dónde se guarda.</b> En el navegador que estés usando, no en el archivo. Tu lista no viaja a otro equipo y nadie más la ve; si borras los datos del sitio, vuelve a la lista inicial. El recuadro necesita conexión: es lo único del dashboard que no funciona sin internet.</p>`;
 }
 // ---------- Posicionamiento (COT) ----------
-let po=Object.assign({p:'EURUSD',w:'5',nb:52,tf:'D',ix:52},store.get('po',{})),poC={};
+let po=Object.assign({p:'EURUSD',w:'5',nb:52,tf:'D',ix:52,tab:'rel',cmp:'mapa',cc:'b'},store.get('po',{})),poC={};
 const POIX=[[26,'26 sem'],[52,'52 sem'],[156,'3 años']];
 const POW=[['1','1 año'],['3','3 años'],['5','5 años'],['10','10 años'],['all','Todo']];
-const PONB=[[26,'26 sem'],[52,'1 año'],[104,'2 años'],[260,'5 años']];
 const POTF=[['D','Diario'],['W','Semanal'],['M','Mensual']];
 const PO50={id:'po50',afterDatasetsDraw(c){const y=c.scales.y,a=c.chartArea;if(!y||!a)return;
   const py=y.getPixelForValue(50),x=c.ctx;x.save();x.beginPath();x.setLineDash([5,4]);x.lineWidth=1.2;
@@ -775,243 +774,276 @@ const POQUAD={id:'poquad',beforeDatasetsDraw(c){const xs=c.scales.x,ys=c.scales.
   const z=ys.getPixelForValue(0);x.moveTo(a.left,z);x.lineTo(a.right,z);x.stroke();x.restore();},
   afterDatasetsDraw(c){const x=c.ctx,m=c.getDatasetMeta(0);x.save();x.font='600 11px '+(css('--f-mono')||'monospace');x.fillStyle=css('--ink');
     m.data.forEach((pt,i)=>{const d=c.data.datasets[0].data[i];x.fillText(d.c,pt.x+7,pt.y-6);});x.restore();}};
+// Pestañas del gráfico principal y de la comparación entre divisas.
+const POTABS=[['rel','Posición vs precio'],['ix','Índice COT'],['fl','Flujo semanal'],['am','Fondos vs gestores'],['ls','Largo / corto'],['net','Neto / OI'],['px','Precio'],['div','Fondos vs cuentas pequeñas']];
+const POCMP=[['mapa','Mapa de saturación'],['tabla','Todas las divisas'],['fw','Después de extremos']];
+let poOpen={main:false,cmp:false,guide:false};
+// Zoom y desplazamiento: rueda solo con Ctrl para no secuestrar el scroll de la página.
+function poZoom(mode){
+  const lim={x:{min:'original',max:'original'}};if(mode==='xy')lim.y={min:'original',max:'original'};
+  return {zoom:{wheel:{enabled:true,modifierKey:'ctrl'},pinch:{enabled:true},mode},pan:{enabled:true,mode},limits:lim};
+}
+// Mini gráfico de línea en SVG (últimos informes), con la línea de cero si cae dentro del rango.
+function poSpark(v){
+  const W=140,H=36,a=v.filter(x=>x!=null);if(a.length<2)return '';
+  const mn=Math.min(...a,0),mx=Math.max(...a,0),r=mx-mn||1,X=i=>(i/(v.length-1)*W).toFixed(1),Y=x=>(H-2-(x-mn)/r*(H-4)).toFixed(1);
+  const d=v.map((x,i)=>`${i?'L':'M'}${X(i)} ${Y(x)}`).join(' '),last=v[v.length-1];
+  return `<svg class="po-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" class="z"></line>`
+    +`<path d="${d}" class="${last>=0?'up':'dn'}"></path><circle cx="${X(v.length-1)}" cy="${Y(last)}" r="2.6" class="${last>=0?'up':'dn'}"></circle></svg>`;
+}
+// Barra partida largo/corto.
+const poSplit=(lab,shL)=>`<div class="po-srow"><span class="po-sc">${lab}</span><div class="po-split" role="img" aria-label="${lab}: ${shL.toFixed(0)}% largo, ${(100-shL).toFixed(0)}% corto"><i class="l" style="width:${shL.toFixed(1)}%"></i><i class="s"></i></div><span class="po-sp"><b class="gain">${shL.toFixed(0)}%</b> / <b class="loss">${(100-shL).toFixed(0)}%</b></span></div>`;
+// Medidor 0–100 con zonas de saturación.
+const poGauge=v=>`<div class="po-gauge" role="img" aria-label="Índice ${v==null?'sin dato':Math.round(v)} de 100"><i class="zl"></i><i class="zh"></i>${v==null?'':`<b style="left:${Math.max(0,Math.min(100,v))}%"></b>`}</div><div class="po-gl"><span>0</span><span>20</span><span>80</span><span>100</span></div>`;
+function poInfoWire(btn,box,key,html){
+  const b=$(btn),x=$(box);x.innerHTML=html;x.hidden=!poOpen[key];b.setAttribute('aria-expanded',String(poOpen[key]));
+  b.onclick=()=>{poOpen[key]=!poOpen[key];x.hidden=!poOpen[key];b.setAttribute('aria-expanded',String(poOpen[key]));};
+}
 function renderPos(){
   const Z=S.pos;if(!Z)return;
-  const C=Z.ccy,sv=()=>store.set('po',po),PL=poPairs();
+  const C=Z.ccy,sv=()=>store.set('po',po),PL=poPairs(),pro=isPro();
   if(!PL.length)return;
   if(PL.indexOf(po.p)<0)po.p=PL.indexOf('EURUSD')>=0?'EURUSD':PL[0];
   if(!POIX.some(x=>x[0]===po.ix))po.ix=52;
-  const b=po.p.slice(0,3),q=po.p.slice(3),B=C[b],Q=C[q];
-  // Report = Tuesday positions, released Friday; after a missed release (+holiday margin) the data is flagged.
+  if(!POTABS.some(t=>t[0]===po.tab))po.tab='rel';
+  if(!POCMP.some(t=>t[0]===po.cmp))po.cmp='mapa';
+  if(po.cc!=='q')po.cc='b';
+  const b=po.p.slice(0,3),q=po.p.slice(3),B=C[b],Q=C[q],re=()=>{sv();renderPos();};
+  const pickCcy=c=>{const hit=PL.find(p=>p.slice(0,3)===c&&p.slice(3)==='USD')||PL.find(p=>p.slice(0,3)===c)||PL.find(p=>p.slice(3)===c);if(hit){po.p=hit;re();}};
+  // El informe es del martes y se publica el viernes; tras un viernes sin publicar (+ margen de festivo) se marca.
   const Zm=Z.meta||{},age=Math.floor((Date.now()-Date.parse(Z.asof+'T00:00:00Z'))/864e5);
-  $('poStamp').innerHTML=`Leveraged Funds · informe del ${Z.asof}`+(Zm.next_publish_est?` · próximo ≈ ${Zm.next_publish_est}`:'')
+  $('poStamp').innerHTML=`Informe del ${Z.asof}`+(Zm.next_publish_est?` · próximo ≈ ${Zm.next_publish_est}`:'')
     +(age>13?' · <b style="color:var(--loss)">desactualizado</b>':'');
   $('poPair').innerHTML=PL.map(p=>`<option value="${p}"${p===po.p?' selected':''}>${p}</option>`).join('');
-  $('poPair').onchange=e=>{po.p=e.target.value;sv();renderPos();};
-  chipset($('poQuick'),['EURUSD','GBPUSD','AUDUSD','EURJPY','EURGBP'].filter(x=>PL.indexOf(x)>=0).map(x=>({id:x,label:x})),po.p,id=>{po.p=id;sv();renderPos();},'chip sm');
-  chipset($('poWin'),POW.map(([k,l])=>({id:k,label:l})),po.w,id=>{po.w=id;sv();renderPos();},'chip sm');
-  chipset($('poNb'),PONB.map(([k,l])=>({id:String(k),label:l})),String(po.nb),id=>{po.nb=+id;sv();renderPos();},'chip sm');
-  chipset($('poPxTf'),POTF.filter(([k])=>typeof MKSEED!=='undefined'&&MKSEED.has(po.p,k)).map(([k,l])=>({id:k,label:l})),po.tf,id=>{po.tf=id;sv();renderPos();},'chip sm');
+  $('poPair').onchange=e=>{po.p=e.target.value;re();};
+  chipset($('poQuick'),['EURUSD','GBPUSD','AUDUSD','USDJPY','EURJPY','EURGBP'].filter(x=>PL.indexOf(x)>=0).map(x=>({id:x,label:x})),po.p,id=>{po.p=id;re();},'chip sm');
+  chipset($('poWin'),POW.map(([k,l])=>({id:k,label:l})),po.w,id=>{po.w=id;re();},'chip sm');
 
-  const g=css('--gain'),l=css('--loss'),mu=css('--muted'),ac=css('--accent'),ln=css('--line'),ink=css('--ink'),fl=css('--flat');
+  const g=css('--gain'),l=css('--loss'),mu=css('--muted'),ac=css('--accent'),ln=css('--line'),ink=css('--ink');
   Object.values(poC).forEach(c=>c&&c.destroy());poC={};
 
-  // ---- donas ----
-  const donut=(cv,ti,le,X)=>{
-    const n=X.now;$(ti).textContent=`${X.ccy} · ${X.name}`;
-    $(le).innerHTML=`<div><span class="pl-k">Posiciones cortas</span><span class="pl-v sh">${poK(n.S)}</span><span class="pl-p">${(100-n.shL).toFixed(1)}%</span></div>`
-      +`<div><span class="pl-k">Posiciones largas</span><span class="pl-v lo">${poK(n.L)}</span><span class="pl-p">${n.shL.toFixed(1)}%</span></div>`;
-    if(!window.Chart)return;
-    poC[cv]=new Chart($(cv),{type:'doughnut',data:{labels:['Corto','Largo'],datasets:[{data:[n.S,n.L],backgroundColor:[l,g],borderWidth:0,hoverOffset:6}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:'62%',
-        plugins:{legend:{position:'top',labels:{color:mu,boxWidth:12,padding:14}},
-          tooltip:{callbacks:{label:i=>`${i.label}: ${i.raw.toLocaleString('es-MX')} contratos (${(i.raw/(n.L+n.S)*100).toFixed(1)}%)`}}}}});
-  };
-  donut('poD1','poT1','poL1',B);donut('poD2','poT2','poL2',Q);
-
-  // ---- kpis ----
-  const s5b=B.st[po.w]||B.st['5'],s5q=Q.st[po.w]||Q.st['5'],wl=(POW.find(w=>w[0]===po.w)||['','5 años'])[1].toLowerCase();
-  const exc=p=>p>=90||p<=10?'lo':p>=75||p<=25?'md':'';
-  $('poKpis').innerHTML=
-    factc(`${b} · neto sobre interés abierto`,(B.now.npoi>0?'+':'')+B.now.npoi.toFixed(2)+'%',
-      `Percentil ${Math.round(s5b.pct)} en ${wl} · z ${s5b.z>0?'+':''}${s5b.z}`,B.now.npoi>0?'gain':'loss')
-    +factc(`${q} · neto sobre interés abierto`,(Q.now.npoi>0?'+':'')+Q.now.npoi.toFixed(2)+'%',
-      `Percentil ${Math.round(s5q.pct)} en ${wl} · z ${s5q.z>0?'+':''}${s5q.z}`,Q.now.npoi>0?'gain':'loss')
-    +factc(`${b} · cambio en la semana`,poSg(B.now.dnet),
-      `Largos ${poSg(B.now.dL)} · cortos ${poSg(B.now.dS)} contratos`,B.now.dnet>0?'gain':B.now.dnet<0?'loss':'')
-    +(()=>{const d=B.now.shL-B.now.nshL;
-      return factc(`${b} · institucional menos minorista`,(d>0?'+':'')+d.toFixed(1)+' pts',
-        `Leveraged ${B.now.shL.toFixed(1)}% largo frente a ${B.now.nshL.toFixed(1)}% de las cuentas pequeñas`,Math.abs(d)>=20?'loss':'');})();
-
-  // ---- lectura swing del par ----
-  chipset($('poIxW'),POIX.map(([k,l])=>({id:String(k),label:l})),String(po.ix),id=>{po.ix=+id;sv();renderPos();},'chip sm');
+  // ---- cálculos del par ----
   const A=poAlign(B,Q),nA=A.d.length,ix=poIndex(A.rel,po.ix),ixw=POIX.find(x=>x[0]===po.ix)[1],P=poPx(po.p);
   const relNow=A.rel[nA-1],ixNow=ix[nA-1],fl4=+(relNow-A.rel[nA-5]).toFixed(2),fl1=+(relNow-A.rel[nA-2]).toFixed(2);
   const zone=ixNow>=80?'hi':ixNow<=20?'lo':'mid';
-  const read=zone==='hi'?(fl4<0?['lo','Largo saturado y saliendo','Los especuladores reducen compras desde un extremo: es la fase en la que los cierres pueden acelerar una caída del par.']
-                                :['md','Largo saturado, aún comprando','La tendencia sigue alimentada, pero queda poco comprador nuevo: el giro, si llega, suele ser brusco. Tamaño menor.'])
-    :zone==='lo'?(fl4>0?['hi','Corto saturado y cubriendo','Los especuladores recompran desde un extremo vendedor: es la fase en la que la cobertura de cortos puede impulsar al par.']
-                        :['md','Corto saturado, aún vendiendo','La presión vendedora sigue, pero queda poco vendedor nuevo: atención a rebotes violentos. Tamaño menor.'])
+  const read=zone==='hi'?(fl4<0?['lo','Compra saturada y saliendo',`Los fondos venden ${b} desde un extremo comprador: los cierres pueden acelerar una caída del par.`]
+                                :['md','Compra saturada, aún comprando','La tendencia sigue alimentada, pero queda poco comprador nuevo: si gira, suele ser brusco. Tamaño menor.'])
+    :zone==='lo'?(fl4>0?['hi','Venta saturada y cubriendo',`Los fondos recompran ${b} desde un extremo vendedor: la cobertura de cortos puede impulsar al par.`]
+                        :['md','Venta saturada, aún vendiendo','La presión vendedora sigue, pero queda poco vendedor nuevo: cuidado con rebotes violentos. Tamaño menor.'])
     :['md','Sin extremo','El posicionamiento no limita al par en ninguna dirección: manda el flujo y el resto del análisis macro.'];
-  $('poSwT').textContent=`Lectura swing · ${po.p}`;
-  $('poSwK').innerHTML=
-    factc('Posicionamiento del par',(relNow>0?'+':'')+relNow.toFixed(2)+' pp',
-      A.mode==='cross'?`Neto/OI de ${b} (${B.now.npoi>0?'+':''}${B.now.npoi.toFixed(2)}%) menos el de ${q} (${Q.now.npoi>0?'+':''}${Q.now.npoi.toFixed(2)}%); ambos contratos cotizan contra el dólar`
-        :`El contrato de ${A.mode==='base'?b:q} en CME ya cotiza contra el dólar, así que su neto/OI es el posicionamiento del par`,relNow>0?'gain':'loss')
-    +factc(`Índice COT · ${ixw}`,ixNow==null?'—':String(Math.round(ixNow)),
-      zone==='hi'?'Saturación compradora (≥ 80)':zone==='lo'?'Saturación vendedora (≤ 20)':'Dentro del rango (20–80)',zone==='hi'?'gain':zone==='lo'?'loss':'')
-    +factc('Flujo de 4 semanas',(fl4>0?'+':'')+fl4.toFixed(2)+' pp',
-      `Última semana ${fl1>0?'+':''}${fl1.toFixed(2)} pp · ${fl4>0?'entran compras del par':fl4<0?'entran ventas del par':'sin cambio'}`,fl4>0?'gain':fl4<0?'loss':'')
-    +factc('Lectura',`<span class="poex ${read[0]}">${read[1]}</span>`,read[2],'');
+  const fav=v=>v>0?b:v<0?q:'nadie',wl=(POW.find(w=>w[0]===po.w)||['','5 años'])[1].toLowerCase(),wlab=po.w==='all'?'toda la muestra':wl;
+  const sgp=(v,d=1)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d);
 
-  const yrsW=po.w==='all'?0:+po.w,kW=yrsW?Math.min(yrsW*52,nA):nA,w0=nA-kW,lbW=A.d.slice(w0).map(poFmtW);
-  if(window.Chart){
-    // diferencial vs precio (cierre del martes del informe)
-    const pxW=A.d.slice(w0).map(d=>{if(!P)return null;const e=P.at(poMs(d));return e<0||P.t[e]-poMs(d)>4*864e5?null:P.px[e][4];});
-    const rv=A.rel.slice(w0);
-    $('poRelT').textContent=`${po.p} · ${po.w==='all'?'toda la muestra':wl}`;
-    poC.poRel=new Chart($('poRel'),{type:'bar',data:{labels:lbW,datasets:[
-      {type:'bar',label:poRelLab(A,b,q),data:rv,backgroundColor:rv.map(x=>x>=0?g:l),borderWidth:0,barPercentage:1,categoryPercentage:.92,yAxisID:'y',order:2},
-      {type:'line',label:po.p,data:pxW,borderColor:ink,borderWidth:1.6,pointRadius:0,spanGaps:true,yAxisID:'y2',order:1}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{labels:{color:mu,boxWidth:12}},tooltip:{callbacks:{label:i=>i.dataset.type==='bar'?`${i.dataset.label} ${i.raw>0?'+':''}${i.raw} pp`:`${po.p} ${i.raw}`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true}},
-          y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}},y2:{position:'right',grid:{display:false},ticks:{color:mu}}}}});
-    const lastPx=P?P.px[P.px.length-1][0]:null;
-    $('poRelCap').textContent=(A.mode==='cross'?`Barras: neto/OI de Leveraged Funds en ${b} menos el de ${q}.`:`Barras: neto/OI de Leveraged Funds en el contrato de ${A.mode==='base'?b:q}${A.mode==='quote'?', con el signo invertido para leerlo en el sentido del par':''}.`)
-      +` Positivo significa que el dinero especulativo favorece a ${b} frente a ${q}. Lo útil es la divergencia: un posicionamiento que se estira mientras el precio deja de avanzar suele anticipar agotamiento.`
-      +(lastPx?` El precio llega hasta ${poFmtD(lastPx)}, la última serie cargada en la mesa.`:' No hay serie de precios cargada para este par.');
+  // ---- resumen en 10 segundos ----
+  const amNow=A.am[nA-1],hasAm=amNow!=null;
+  const t4=hasAm
+    ?(()=>{const same=Math.sign(amNow)===Math.sign(relNow)&&relNow!==0;
+      return `<div class="po-tile"><span class="po-tk">¿Fondos y gestores coinciden?</span><div class="po-tv ${same?'':'warm'}">${same?'Coinciden':'Divergen'}</div>`
+        +`<div class="po-vs"><span><i class="dot ac"></i>Fondos rápidos → <b>${fav(relNow)}</b></span><span><i class="dot mu"></i>Gestores de largo plazo → <b>${fav(amNow)}</b></span></div>`
+        +`<span class="po-tn">${same?'Ambos empujan hacia el mismo lado.':'Cada grupo apuesta a un lado distinto.'}</span></div>`;})()
+    :(()=>{const d=B.now.shL-B.now.nshL;
+      return `<div class="po-tile"><span class="po-tk">Fondos vs cuentas pequeñas · ${b}</span><div class="po-tv">${sgp(d,0)} pts</div>`
+        +poSplit('Fondos',B.now.shL)+poSplit('Peq.',B.now.nshL)+`<span class="po-tn">Diferencia en % largo.</span></div>`;})();
+  const sp=A.rel.slice(Math.max(0,nA-13));
+  $('poHero').innerHTML=
+    `<div class="po-verdict"><span class="poex ${read[0]}">${read[1]}</span><p><b>${po.p}.</b> ${read[2]}</p>`
+    +`<button type="button" class="po-ib" id="poGuideBtn" aria-expanded="false" aria-controls="poGuide"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>¿Qué es el COT?</span></button></div>`
+    +`<div class="po-info" id="poGuide" hidden></div>`
+    +`<div class="po-tiles">`
+    +`<div class="po-tile"><span class="po-tk">¿A qué apuestan los fondos?</span><div class="po-tv ${relNow>0?'gain':relNow<0?'loss':''}">${fav(relNow)}</div>`
+      +poSplit(b,B.now.shL)+poSplit(q,Q.now.shL)+`<span class="po-tn">% de contratos largos / cortos de cada divisa.</span></div>`
+    +`<div class="po-tile"><span class="po-tk">¿Qué tan extremo? · ${ixw}</span><div class="po-tv">${ixNow==null?'—':Math.round(ixNow)}<small>/100</small></div>${poGauge(ixNow)}`
+      +`<span class="po-tn">${zone==='hi'?'Compra saturada (≥ 80).':zone==='lo'?'Venta saturada (≤ 20).':'Dentro del rango normal (20–80).'}</span></div>`
+    +`<div class="po-tile"><span class="po-tk">¿Entran o salen? · 4 semanas</span><div class="po-tv ${fl4>0?'gain':fl4<0?'loss':''}">${fl4>0?'▲':fl4<0?'▼':'■'} ${sgp(fl4,2)}<small> pp</small></div>${poSpark(sp)}`
+      +`<span class="po-tn">${fl4>0?`Entran compras de ${b}`:fl4<0?`Entran ventas de ${b}`:'Sin cambio'} · última semana ${sgp(fl1,2)} pp.</span></div>`
+    +t4+`</div>`;
+  poInfoWire('poGuideBtn','poGuide','guide',
+    `<ul><li><b>Qué es.</b> El informe COT de la CFTC: cuántos contratos de futuros tiene cada tipo de participante. Posiciones del martes, publicadas el viernes 15:30 (Nueva York).</li>`
+    +`<li><b>A quién seguimos.</b> <i>Leveraged Funds</i>: hedge funds y CTA, el dinero especulativo.</li>`
+    +`<li><b>Cómo se mide.</b> Neto (largos − cortos) ÷ contratos abiertos, para comparar divisas de distinto tamaño. El dólar usa el contrato USD Index.</li>`
+    +`<li><b>Cómo usarlo.</b> Un extremo no es una señal de entrada: avisa que queda poco combustible de ese lado. Cambia el tamaño de la posición, no la dirección.</li></ul>`);
 
-    // índice COT
-    const ixv=ix.slice(w0);
-    $('poIxT').textContent=`${po.p} · ventana ${ixw} · hoy ${ixNow==null?'—':Math.round(ixNow)}`;
-    poC.poIx=new Chart($('poIx'),{type:'line',data:{labels:lbW,datasets:[{label:'Índice COT',data:ixv,borderColor:ac,borderWidth:1.8,pointRadius:0,fill:false,spanGaps:false}]},
-      plugins:[POBANDS],
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`Índice COT ${i.raw}`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true}},y:{min:0,max:100,grid:{color:ln},ticks:{color:mu,stepSize:20}}}}});
-
-    // flujo semanal (últimas 26 semanas)
-    const k0=Math.max(5,nA-26),fd=[],fs=[];
-    for(let j=k0;j<nA;j++){fd.push(+(A.rel[j]-A.rel[j-1]).toFixed(2));fs.push(+(A.rel[j]-A.rel[j-4]).toFixed(2));}
-    $('poFlT').textContent=`${po.p} · últimos ${nA-k0} informes`;
-    poC.poFl=new Chart($('poFl'),{type:'bar',data:{labels:A.d.slice(k0).map(poFmtW),datasets:[
-      {type:'bar',label:'Cambio semanal',data:fd,backgroundColor:fd.map(x=>x>=0?g:l),borderWidth:0,order:2},
-      {type:'line',label:'Acumulado 4 semanas',data:fs,borderColor:ink,borderWidth:1.6,pointRadius:2,order:1}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{labels:{color:mu,boxWidth:12}},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw>0?'+':''}${i.raw} pp`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true}},y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}}}}});
-
-    // dinero rápido vs dinero real
-    if(A.am[nA-1]!=null){
-      $('poAmT').textContent=`${po.p} · ${poRelLab(A,b,q).toLowerCase()} · ${po.w==='all'?'toda la muestra':wl}`;
-      poC.poAm=new Chart($('poAm'),{type:'line',data:{labels:lbW,datasets:[
+  // ---- gráfico principal en pestañas ----
+  $('poTabs').innerHTML=POTABS.map(([id,lb])=>`<button class="tab" role="tab" type="button" data-t="${id}" aria-selected="${po.tab===id}"${id==='am'&&!hasAm?' disabled title="Sin datos de Asset Managers"':''}>${lb}</button>`).join('');
+  $('poTabs').querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>{po.tab=x.dataset.t;re();});
+  const yrsW=po.w==='all'?0:+po.w,kW=yrsW?Math.min(yrsW*52,nA):nA,w0=nA-kW,lbW=A.d.slice(w0).map(poFmtD);
+  const X=po.cc==='q'?Q:B,cc=X.ccy,ccOpts=()=>chipset($('poOpts'),[{id:'b',label:b},{id:'q',label:q}],po.cc,id=>{po.cc=id;re();},'chip sm');
+  const xs={grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true,maxRotation:0}};
+  const opt=(o,mode='x')=>Object.assign({responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false}},o,
+    {plugins:Object.assign({legend:{labels:{color:mu,boxWidth:12}}},o.plugins||{},{zoom:poZoom(mode)})});
+  $('poOpts').innerHTML='';$('poExtra').innerHTML='';
+  let T='',Sb='',I='',cfg=null;
+  switch(po.tab){
+    case 'rel':{
+      const pxW=A.d.slice(w0).map(d=>{if(!P)return null;const e=P.at(poMs(d));return e<0||P.t[e]-poMs(d)>4*864e5?null:P.px[e][4];});
+      const rv=A.rel.slice(w0);
+      T='Posición de los fondos vs precio';Sb=`${po.p} · ${wlab} · hoy ${sgp(relNow,2)} pp a favor de ${fav(relNow)}`;
+      I=`<p><b>Barras verdes:</b> los fondos apuestan a favor de ${b}. <b>Rojas:</b> a favor de ${q}. La línea es el precio (eje derecho).</p>`
+        +`<p><b>Lo que buscas:</b> barras que se estiran mientras el precio ya no avanza. Suele anticipar agotamiento.</p>`
+        +(A.mode==='cross'?`<p class="po-mut">En cruces es la diferencia: neto/OI de ${b} menos el de ${q}.</p>`:A.mode==='quote'?`<p class="po-mut">Usa el contrato de ${q} con el signo invertido para leerlo en el sentido del par.</p>`:'');
+      cfg={type:'bar',data:{labels:lbW,datasets:[
+        {type:'bar',label:poRelLab(A,b,q),data:rv,backgroundColor:rv.map(x=>x>=0?g:l),borderWidth:0,barPercentage:1,categoryPercentage:.92,yAxisID:'y',order:2},
+        {type:'line',label:po.p,data:pxW,borderColor:ink,borderWidth:1.6,pointRadius:0,spanGaps:true,yAxisID:'y2',order:1}]},
+        options:opt({plugins:{tooltip:{callbacks:{label:i=>i.dataset.type==='bar'?`${i.dataset.label} ${i.raw>0?'+':''}${i.raw} pp`:`${po.p} ${i.raw}`}}},
+          scales:{x:xs,y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}},y2:{position:'right',grid:{display:false},ticks:{color:mu}}}})};
+      if(!P)Sb+=' · sin serie de precios';
+      break;}
+    case 'ix':{
+      chipset($('poOpts'),POIX.map(([k,lb])=>({id:String(k),label:'Ventana '+lb})),String(po.ix),id=>{po.ix=+id;re();},'chip sm');
+      T='Índice COT (0–100)';Sb=`${po.p} · ventana ${ixw} · hoy ${ixNow==null?'—':Math.round(ixNow)}`;
+      I=`<p>Ubica la posición de hoy dentro de su rango de la ventana elegida: 0 = la más vendida, 100 = la más comprada.</p>`
+        +`<p><b>Zona verde (≥ 80):</b> compra saturada. <b>Zona roja (≤ 20):</b> venta saturada. Un extremo no da el momento: avisa que queda poco combustible de ese lado.</p>`;
+      cfg={type:'line',data:{labels:lbW,datasets:[{label:'Índice COT',data:ix.slice(w0),borderColor:ac,borderWidth:1.8,pointRadius:0,fill:false,spanGaps:false}]},
+        plugins:[POBANDS],options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`Índice COT ${i.raw}`}}},
+          scales:{x:xs,y:{min:0,max:100,grid:{color:ln},ticks:{color:mu,stepSize:20}}}})};
+      break;}
+    case 'fl':{
+      const k0=Math.max(5,w0),fd=[],fs=[];
+      for(let j=k0;j<nA;j++){fd.push(+(A.rel[j]-A.rel[j-1]).toFixed(2));fs.push(+(A.rel[j]-A.rel[j-4]).toFixed(2));}
+      T='Flujo semanal';Sb=`${po.p} · ${wlab} · 4 semanas ${sgp(fl4,2)} pp`;
+      I=`<p><b>Barras:</b> cuánto cambió la posición cada semana (verde = compran ${b}, rojo = venden).</p>`
+        +`<p><b>Línea:</b> suma de 4 semanas, la tendencia del flujo. Importa la dirección reciente, no una semana suelta.</p>`;
+      cfg={type:'bar',data:{labels:A.d.slice(k0).map(poFmtD),datasets:[
+        {type:'bar',label:'Cambio semanal',data:fd,backgroundColor:fd.map(x=>x>=0?g:l),borderWidth:0,order:2},
+        {type:'line',label:'Acumulado 4 semanas',data:fs,borderColor:ink,borderWidth:1.6,pointRadius:0,order:1}]},
+        options:opt({plugins:{tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw>0?'+':''}${i.raw} pp`}}},
+          scales:{x:xs,y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}}}})};
+      break;}
+    case 'am':{
+      T='Fondos rápidos vs gestores de largo plazo';Sb=`${po.p} · ${wlab}`;
+      I=`<p><b>Leveraged Funds</b> (hedge funds, CTA): dinero rápido. <b>Asset Managers</b> (fondos de inversión, pensiones): dinero de largo plazo.</p>`
+        +`<p>Si las dos líneas van hacia el mismo lado, el flujo es más amplio. Arriba de cero = a favor de ${b}.</p>`;
+      if(hasAm)cfg={type:'line',data:{labels:lbW,datasets:[
         {label:'Leveraged Funds',data:A.rel.slice(w0),borderColor:ac,borderWidth:1.8,pointRadius:0,fill:false},
         {label:'Asset Managers',data:A.am.slice(w0),borderColor:mu,borderWidth:1.6,borderDash:[5,3],pointRadius:0,fill:false}]},
-        options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-          plugins:{legend:{labels:{color:mu,boxWidth:12}},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw>0?'+':''}${i.raw} pp`}}},
-          scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true}},y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}}}}});
-    }else $('poAmT').textContent='Sin datos de Asset Managers en este archivo.';
-
-    // mapa de saturación
-    const pts=Object.values(C).map(X=>{const iv=poIndex(X.npoi,156);return {x:iv[iv.length-1],y:X.now.d4,c:X.ccy};});
-    poC.poCr=new Chart($('poCr'),{type:'scatter',data:{datasets:[{data:pts,pointRadius:6,pointHoverRadius:8,
-      backgroundColor:pts.map(p=>p.x>=80?g:p.x<=20?l:mu),borderWidth:0}]},plugins:[POQUAD],
-      options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{right:24}},
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.raw.c}: índice ${Math.round(i.raw.x)} · 4 sem ${i.raw.y>0?'+':''}${i.raw.y} pp`}}},
-        scales:{x:{min:0,max:100,grid:{color:ln},ticks:{color:mu,stepSize:20},title:{display:true,text:'Índice COT 3 años',color:mu}},
-          y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'},title:{display:true,text:'Cambio 4 semanas (neto/OI)',color:mu}}}}});
+        options:opt({plugins:{tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw>0?'+':''}${i.raw} pp`}}},
+          scales:{x:xs,y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'}}}})};
+      else Sb='Sin datos de Asset Managers en este archivo.';
+      break;}
+    case 'ls':{
+      ccOpts();
+      const k=Math.min(kW,X.d.length),i0=X.d.length-k,sl=X.shL.slice(i0);
+      T=`Largos vs cortos · ${cc}`;Sb=`${X.name} · ${wlab} · hoy ${X.now.shL.toFixed(0)}% largo`;
+      I=`<p>Cada barra suma 100%: <b>verde</b> = % de contratos largos, <b>rojo</b> = cortos. La línea punteada marca el 50%.</p>`
+        +`<p>Mientras más lejos del 50%, más cargado está un lado.</p>`;
+      cfg={type:'bar',data:{labels:X.d.slice(i0).map(poFmtD),datasets:[
+        {label:'Largo',data:sl,backgroundColor:g,borderWidth:0,stack:'a',barPercentage:1,categoryPercentage:1},
+        {label:'Corto',data:sl.map(v=>+(100-v).toFixed(2)),backgroundColor:l,borderWidth:0,stack:'a',barPercentage:1,categoryPercentage:1}]},
+        plugins:[PO50],options:opt({plugins:{tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`}}},
+          scales:{x:Object.assign({stacked:true},xs),y:{stacked:true,min:0,max:100,grid:{color:ln},ticks:{color:mu,callback:v=>v+'%'}}}})};
+      break;}
+    case 'net':{
+      ccOpts();
+      const k=Math.min(kW,X.d.length),i0=X.d.length-k,v=X.npoi.slice(i0),st=X.st[po.w]||X.st['5'];
+      T=`Neto sobre interés abierto · ${cc}`;Sb=`${X.name} · ${wlab} · mín ${st.mn}% · máx ${st.mx}% · hoy ${sgp(X.now.npoi,1)}%`;
+      I=`<p>Neto (largos − cortos) dividido entre todos los contratos abiertos. Permite comparar divisas de distinto tamaño.</p>`
+        +`<p><b>Positivo:</b> los fondos apuestan a que ${cc} sube. <b>Negativo:</b> a que baja.</p>`;
+      cfg={type:'bar',data:{labels:X.d.slice(i0).map(poFmtD),datasets:[{label:'Neto / OI',data:v,backgroundColor:v.map(x=>x>=0?g:l),borderWidth:0,barPercentage:1,categoryPercentage:.92}]},
+        options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.raw>0?'+':''}${i.raw}% del interés abierto`}}},
+          scales:{x:xs,y:{grid:{color:ln},ticks:{color:mu,callback:x=>x+'%'}}}})};
+      break;}
+    case 'px':{
+      const tfs=POTF.filter(([k])=>typeof MKSEED!=='undefined'&&MKSEED.has(po.p,k));
+      if(tfs.length&&!tfs.some(t=>t[0]===po.tf))po.tf=tfs[0][0];
+      chipset($('poOpts'),tfs.map(([k,lb])=>({id:k,label:lb})),po.tf,id=>{po.tf=id;re();},'chip sm');
+      const raw=(typeof MKSEED!=='undefined'&&MKSEED.get(po.p,po.tf))||null,rows=raw?raw.slice().reverse():null;
+      T=`Precio · ${po.p}`;
+      I=`<p>Cierre del par en el mismo horizonte que el posicionamiento.</p><p>Compáralo con <b>Posición vs precio</b>: ¿el precio confirma lo que hacen los fondos?</p>`;
+      if(rows&&rows.length){
+        const lim=yrsW?{D:yrsW*260,W:yrsW*52,M:yrsW*12}[po.tf]:rows.length,r=rows.slice(Math.max(0,rows.length-lim)),a=r[0][4],z=r[r.length-1][4];
+        Sb=`${poFmtD(r[0][0])} a ${poFmtD(r[r.length-1][0])} · ${a} → ${z} (${sgp((z/a-1)*100,1)}%)`;
+        cfg={type:'line',data:{labels:r.map(x=>poFmtD(x[0])),datasets:[{label:po.p,data:r.map(x=>x[4]),borderColor:ac,borderWidth:1.8,pointRadius:0,fill:false,tension:.02}]},
+          options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${po.p} ${i.raw}`}}},
+            scales:{x:xs,y:{position:'right',grid:{color:ln},ticks:{color:mu}}}})};
+      }else Sb=`No hay serie de precios cargada para ${po.p}.`;
+      break;}
+    case 'div':{
+      const kk=Math.min(kW,B.d.length),j0=B.d.length-kk,dv=B.now.shL-B.now.nshL;
+      T=`Fondos vs cuentas pequeñas · ${b}`;Sb=`Hoy: fondos ${B.now.shL.toFixed(0)}% largos · cuentas pequeñas ${B.now.nshL.toFixed(0)}% · diferencia ${sgp(dv,0)} pts`;
+      I=`<p><b>Cuentas pequeñas:</b> las que quedan bajo el umbral de reporte de la CFTC. No es el sentimiento de un bróker, pero es lo más cercano al trader minorista dentro del informe.</p>`
+        +`<p>Una separación grande indica que cada grupo apuesta a un lado distinto.</p>`;
+      cfg={type:'line',data:{labels:B.d.slice(j0).map(poFmtD),datasets:[
+        {label:`Leveraged Funds · % largo`,data:B.shL.slice(j0),borderColor:ac,borderWidth:2,pointRadius:0,fill:false},
+        {label:`Cuentas pequeñas · % largo`,data:B.nshL.slice(j0),borderColor:mu,borderWidth:1.6,borderDash:[5,3],pointRadius:0,fill:false}]},
+        plugins:[PO50],options:opt({plugins:{tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`}}},
+          scales:{x:xs,y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+'%'}}}})};
+      const row=(n,L,S2,sh,net,npoi,dn)=>`<tr><td><b>${n}</b></td>${pro?`<td class="num pop">${L.toLocaleString('es-MX')}</td><td class="num pop">${S2.toLocaleString('es-MX')}</td>`:''}<td class="num pop">${sh.toFixed(1)}%</td>`
+        +`${pro?`<td class="num pop ${net>0?'gain':'loss'}">${net.toLocaleString('es-MX')}</td>`:''}<td class="num pop ${npoi>0?'gain':'loss'}">${npoi.toFixed(2)}%</td><td class="num pop">${poSg(dn)}</td></tr>`;
+      $('poExtra').innerHTML=`<div class="scroll"><table id="poDivT"><thead><tr><th>${b} · categoría</th>${pro?'<th class="num">Largos</th><th class="num">Cortos</th>':''}<th class="num">% largo</th>${pro?'<th class="num">Neto</th>':''}<th class="num">Neto / OI</th><th class="num">Cambio semanal</th></tr></thead><tbody>`
+        +row('Leveraged Funds',B.now.L,B.now.S,B.now.shL,B.now.net,B.now.npoi,B.now.dnet)
+        +row('Cuentas pequeñas',B.now.nL,B.now.nS,B.now.nshL,B.now.nnet,B.now.nnpoi,B.now.dnnet)+'</tbody></table></div>';
+      break;}
   }
+  $('poChT').textContent=T;$('poChS').textContent=Sb;
+  poInfoWire('poInfoBtn','poInfo','main',I);
+  const big=$('poCv').parentNode;big.hidden=!cfg;
+  if(cfg&&window.Chart)poC.main=new Chart($('poCv'),cfg);
+  const zb=(f)=>()=>{const c=poC.main;if(c&&c.zoom)f(c);};
+  $('poZin').onclick=zb(c=>c.zoom(1.3));$('poZout').onclick=zb(c=>{
+    // Con todo el rango a la vista, alejar amplía la ventana de tiempo.
+    const wi=POW.findIndex(w=>w[0]===po.w);
+    if(!(c.isZoomedOrPanned&&c.isZoomedOrPanned())&&wi>=0&&wi<POW.length-1){po.w=POW[wi+1][0];re();}else c.zoom(0.77);});$('poZreset').onclick=zb(c=>c.resetZoom());
+  ['poZin','poZout','poZreset'].forEach(id=>$(id).disabled=!cfg);
 
-  // qué hizo el par después de los extremos
-  const FW=poForward(A,ix,P);
-  $('poFwT').textContent=`${po.p} · índice COT ${ixw} · cierre del viernes de publicación`;
-  if(FW&&FW.G.all[4].length){
-    const st=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return {n:a.length,m,up:a.filter(x=>x>0).length/a.length};};
-    const cell=a=>{const s=st(a);return s?`<td class="num pop ${s.m>0?'gain':'loss'}">${s.m>0?'+':''}${s.m.toFixed(2)}%</td><td class="num pop">${Math.round(s.up*100)}%</td><td class="num pop">${s.n}</td>`:'<td class="num">—</td><td class="num">—</td><td class="num">0</td>';};
-    const lab={hi:'Índice ≥ 80 (saturación compradora)',lo:'Índice ≤ 20 (saturación vendedora)',all:'Todas las semanas (referencia)'};
-    $('poFw').innerHTML=`<thead><tr><th rowspan="2">Situación</th>${FW.H.map(h=>`<th colspan="3" class="num">${h} semanas</th>`).join('')}</tr>`
-      +`<tr>${FW.H.map(()=>'<th class="num">Media</th><th class="num">% al alza</th><th class="num">n</th>').join('')}</tr></thead><tbody>`
-      +['hi','lo','all'].map(gk=>`<tr${gk===zone?' class="sel"':''}><td><b>${lab[gk]}</b></td>${FW.H.map(h=>cell(FW.G[gk][h])).join('')}</tr>`).join('')+'</tbody>';
-    $('poFwCap').textContent=`Retorno de ${po.p} desde el cierre del viernes en que se publicó cada informe hasta 4, 8 y 13 semanas después, según dónde estaba el índice COT ese día. La fila resaltada es la situación actual. Compara siempre contra la fila de referencia: una media parecida a la de todas las semanas significa que el extremo no aportó ventaja en este par. Las semanas consecutivas se solapan, así que n exagera el número de episodios independientes; es estadística descriptiva, no una señal.`;
-  }else{$('poFw').innerHTML='';$('poFwCap').textContent=`No hay serie diaria de precios para ${po.p} en la mesa, así que no se puede medir el comportamiento posterior.`;}
-
-  // ---- barras apiladas 100% ----
-  const stk=(cv,ti,X)=>{
-    $(ti).textContent=`${X.ccy} · últimos ${po.nb} informes`;
-    if(!window.Chart)return;
-    const k=Math.min(po.nb,X.d.length),i0=X.d.length-k;
-    const lb=X.d.slice(i0).map(poFmtW),sl=X.shL.slice(i0),ss=sl.map(v=>100-v);
-    poC[cv]=new Chart($(cv),{type:'bar',data:{labels:lb,datasets:[
-      {label:'Largo',data:sl,backgroundColor:g,borderWidth:0,stack:'a',barPercentage:1,categoryPercentage:1},
-      {label:'Corto',data:ss,backgroundColor:l,borderWidth:0,stack:'a',barPercentage:1,categoryPercentage:1}]},
-      plugins:[PO50],
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{labels:{color:mu,boxWidth:12}},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`}}},
-        scales:{x:{stacked:true,grid:{display:false},ticks:{color:mu,maxTicksLimit:10,autoSkip:true}},
-          y:{stacked:true,min:0,max:100,grid:{color:ln},ticks:{color:mu,callback:v=>v+'%'}}}}});
-  };
-  stk('poS1','poS1T',B);stk('poS2','poS2T',Q);
-
-  // ---- neto sobre interés abierto ----
-  const net=(cv,ti,X)=>{
-    const yrs=po.w==='all'?0:+po.w,k=yrs?Math.min(yrs*52,X.d.length):X.d.length,i0=X.d.length-k;
-    const st=X.st[po.w]||X.st['5'];
-    $(ti).textContent=`${X.ccy} · ${po.w==='all'?'toda la muestra':wl} · mín ${st.mn}% máx ${st.mx}%`;
-    if(!window.Chart)return;
-    const lb=X.d.slice(i0).map(poFmtW),v=X.npoi.slice(i0);
-    poC[cv]=new Chart($(cv),{type:'bar',data:{labels:lb,datasets:[{label:'Neto / OI',data:v,
-      backgroundColor:v.map(x=>x>=0?g:l),borderWidth:0,barPercentage:1,categoryPercentage:.92}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.raw>0?'+':''}${i.raw}% del interés abierto`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:9,autoSkip:true}},
-          y:{grid:{color:ln},ticks:{color:mu,callback:x=>x+'%'}}}}});
-  };
-  net('poN1','poN1T',B);net('poN2','poN2T',Q);
-
-  // ---- precio ----
-  const raw=(typeof MKSEED!=='undefined'&&MKSEED.get(po.p,po.tf))||null;
-  const rows=raw?raw.slice().reverse():null;   // el seed se guarda del más reciente al más antiguo
-  $('poPxT').textContent=`${po.p} · precio`;
-  if(rows&&window.Chart){
-    const yrs=po.w==='all'?0:+po.w;
-    const lim=yrs?{D:yrs*260,W:yrs*52,M:yrs*12}[po.tf]:rows.length;
-    const r=rows.slice(Math.max(0,rows.length-lim));
-    poC.poPx=new Chart($('poPx'),{type:'line',data:{labels:r.map(x=>poFmtD(x[0])),
-      datasets:[{label:po.p,data:r.map(x=>x[4]),borderColor:ac,borderWidth:1.8,pointRadius:0,fill:false,tension:.02}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${po.p} ${i.raw}`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:10,autoSkip:true}},
-          y:{position:'right',grid:{color:ln},ticks:{color:mu}}}}});
-    const a=r[0][4],z=r[r.length-1][4];
-    $('poPxCap').textContent=`Cierre de ${po.p} en el mismo horizonte que los gráficos de posicionamiento: ${poFmtD(r[0][0])} a ${poFmtD(r[r.length-1][0])}, de ${a} a ${z} (${((z/a-1)*100).toFixed(1)}%). Comparar la forma del neto con la del precio es la lectura útil: un neto que se estira mientras el precio ya no avanza es la señal de agotamiento, no el nivel del neto por sí solo.`;
-  }else{$('poPxCap').textContent=`No hay serie de precios cargada para ${po.p} en el seed de la mesa.`;}
-
-  // ---- institucional vs cuentas pequeñas ----
-  const kk=Math.min(po.w==='all'?B.d.length:+po.w*52,B.d.length),j0=B.d.length-kk;
-  if(window.Chart){
-    poC.poDiv=new Chart($('poDiv'),{type:'line',data:{labels:B.d.slice(j0).map(poFmtW),datasets:[
-      {label:`Leveraged Funds · % largo de ${b}`,data:B.shL.slice(j0),borderColor:ac,borderWidth:2,pointRadius:0,fill:false},
-      {label:`Cuentas pequeñas · % largo de ${b}`,data:B.nshL.slice(j0),borderColor:mu,borderWidth:1.6,borderDash:[5,3],pointRadius:0,fill:false}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{labels:{color:mu,boxWidth:12}},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`}}},
-        scales:{x:{grid:{display:false},ticks:{color:mu,maxTicksLimit:10,autoSkip:true}},
-          y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+'%'},title:{display:true,text:'% del total largo',color:mu}}}}});
+  // ---- comparar divisas ----
+  $('poCmpTabs').innerHTML=POCMP.map(([id,lb])=>`<button class="tab" role="tab" type="button" data-t="${id}" aria-selected="${po.cmp===id}">${lb}</button>`).join('');
+  $('poCmpTabs').querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>{po.cmp=x.dataset.t;re();});
+  const body=$('poCmpBody');let CT='',CS='',CI='';
+  if(po.cmp==='mapa'){
+    CT='Mapa de saturación';CS=`${Object.keys(C).length} divisas · índice COT de 3 años · toca un punto para abrir esa divisa`;
+    CI=`<p>Cada punto es una divisa. <b>Derecha:</b> compra saturada. <b>Izquierda:</b> venta saturada.</p>`
+      +`<p><b>Arriba:</b> los fondos compraron en las últimas 4 semanas. <b>Abajo:</b> vendieron. Las esquinas (extremo + flujo en contra) son las más interesantes.</p>`;
+    body.innerHTML=`<div class="po-zoom po-zoom-r" role="group" aria-label="Zoom del mapa"><button type="button" id="poMzo" aria-label="Alejar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button><button type="button" id="poMzi" aria-label="Acercar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button><button type="button" id="poMzr" aria-label="Restablecer vista"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"></path></svg></button></div>`
+      +`<div class="chart po-big"><canvas id="poCr"></canvas></div><div class="po-qlab"><span class="loss">← Venta saturada</span><span class="gain">Compra saturada →</span></div>`;
+    const pts=Object.values(C).map(Y=>{const iv=poIndex(Y.npoi,156);return {x:iv[iv.length-1],y:Y.now.d4,c:Y.ccy};});
+    if(window.Chart){
+      poC.cr=new Chart($('poCr'),{type:'scatter',data:{datasets:[{data:pts,pointRadius:pts.map(p=>p.c===b||p.c===q?9:6),pointHoverRadius:10,
+        backgroundColor:pts.map(p=>p.x>=80?g:p.x<=20?l:mu),borderColor:pts.map(p=>p.c===b||p.c===q?ink:'transparent'),borderWidth:2}]},plugins:[POQUAD],
+        options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{right:24}},
+          onClick:(e,els)=>{if(els.length)pickCcy(pts[els[0].index].c);},
+          onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+          plugins:{legend:{display:false},zoom:poZoom('xy'),tooltip:{callbacks:{label:i=>`${i.raw.c}: índice ${Math.round(i.raw.x)} · 4 sem ${i.raw.y>0?'+':''}${i.raw.y} pp`}}},
+          scales:{x:{min:0,max:100,grid:{color:ln},ticks:{color:mu,stepSize:20},title:{display:true,text:'Índice COT 3 años',color:mu}},
+            y:{grid:{color:ln},ticks:{color:mu,callback:v=>v+' pp'},title:{display:true,text:'Flujo 4 semanas',color:mu}}}}});
+      const mz=f=>()=>{const c=poC.cr;if(c&&c.zoom)f(c);};
+      $('poMzi').onclick=mz(c=>c.zoom(1.3));$('poMzo').onclick=mz(c=>c.zoom(0.77));$('poMzr').onclick=mz(c=>c.resetZoom());
+    }
+  }else if(po.cmp==='tabla'){
+    CT='Todas las divisas';CS='De la más comprada a la más vendida (percentil de 5 años) · toca una fila para abrirla';
+    CI=`<p><b>Fondos:</b> % largo / corto de cada divisa. <b>Extremo:</b> dónde está hoy el neto frente a los últimos 5 años (0 = lo más vendido, 100 = lo más comprado).</p>`
+      +`<p>Las etiquetas marcan los extremos: arriba de 90 o debajo de 10.</p>`;
+    const all=Object.values(C).sort((a,c2)=>c2.st['5'].pct-a.st['5'].pct);
+    body.innerHTML=`<div class="scroll"><table id="poMap"><thead><tr><th>Divisa</th><th>Fondos · largo / corto</th><th class="num">Neto / OI</th><th>Extremo · 5 años</th><th class="num">Semana</th><th>Lectura</th>`
+      +(pro?'<th class="num">Largos</th><th class="num">Cortos</th><th class="num">z 5a</th>':'')+`</tr></thead><tbody>`
+      +all.map(x=>{const p5=x.st['5'],lec=x.now.net>=0
+          ?(p5.pct>=90?['lo','Largo extremo']:p5.pct>=75?['md','Largo cargado']:['','Largo en rango'])
+          :(p5.pct<=10?['lo','Corto extremo']:p5.pct<=25?['md','Corto cargado']:['','Corto en rango']);
+        return `<tr data-c="${x.ccy}"${x.ccy===b||x.ccy===q?' class="sel"':''}><td><b>${x.ccy}</b><span class="po-cn">${x.name}</span></td>`
+          +`<td><div class="po-split sm"><i class="l" style="width:${x.now.shL.toFixed(1)}%"></i><i class="s"></i></div><span class="po-sp"><b class="gain">${x.now.shL.toFixed(0)}%</b> / <b class="loss">${(100-x.now.shL).toFixed(0)}%</b></span></td>`
+          +`<td class="num pop ${x.now.npoi>0?'gain':'loss'}"><b>${x.now.npoi>0?'+':''}${x.now.npoi.toFixed(1)}%</b></td>`
+          +`<td><div class="po-gauge sm"><i class="zl"></i><i class="zh"></i><b style="left:${p5.pct}%"></b></div><span class="po-sp">${Math.round(p5.pct)}</span></td>`
+          +`<td class="num pop ${x.now.dnet>0?'gain':x.now.dnet<0?'loss':''}">${x.now.dnet>0?'▲':x.now.dnet<0?'▼':''} ${poK(Math.abs(x.now.dnet))}</td>`
+          +`<td><span class="poex ${lec[0]||'md'}">${lec[1]}</span></td>`
+          +(pro?`<td class="num pop">${x.now.L.toLocaleString('es-MX')}</td><td class="num pop">${x.now.S.toLocaleString('es-MX')}</td><td class="num pop">${p5.z>0?'+':''}${p5.z}</td>`:'')+`</tr>`;}).join('')+'</tbody></table></div>';
+    body.querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>pickCcy(tr.dataset.c));
+  }else{
+    const FW=poForward(A,ix,P);
+    CT=`Qué hizo ${po.p} después de un extremo`;CS=`Índice COT ${ixw} · retorno desde el viernes de publicación`;
+    CI=`<p>Retorno promedio del par 4, 8 y 13 semanas después, según dónde estaba el índice COT. La fila resaltada es la situación de hoy.</p>`
+      +`<p>Compárala con <b>Todas las semanas</b>: si se parecen, el extremo no dio ventaja en este par. Es historia, no una señal.</p>`;
+    if(FW&&FW.G.all[4].length){
+      const st=a=>a.length?{n:a.length,m:a.reduce((x,y)=>x+y,0)/a.length,up:a.filter(x=>x>0).length/a.length}:null;
+      const cell=a=>{const s=st(a);return s?`<td class="num pop ${s.m>0?'gain':'loss'}"><b>${s.m>0?'+':''}${s.m.toFixed(2)}%</b></td><td class="num pop">${Math.round(s.up*100)}%</td>${pro?`<td class="num pop">${s.n}</td>`:''}`
+        :`<td class="num">—</td><td class="num">—</td>${pro?'<td class="num">0</td>':''}`;};
+      const lab={hi:'Compra saturada (≥ 80)',lo:'Venta saturada (≤ 20)',all:'Todas las semanas'};
+      body.innerHTML=`<div class="scroll"><table id="poFw"><thead><tr><th rowspan="2">Situación</th>${FW.H.map(h=>`<th colspan="${pro?3:2}" class="num">${h} semanas</th>`).join('')}</tr>`
+        +`<tr>${FW.H.map(()=>`<th class="num">Promedio</th><th class="num">Veces al alza</th>${pro?'<th class="num">n</th>':''}`).join('')}</tr></thead><tbody>`
+        +['hi','lo','all'].map(gk=>`<tr${gk===zone?' class="sel"':''}><td><b>${lab[gk]}</b>${gk===zone?' <span class="poex md">hoy</span>':''}</td>${FW.H.map(h=>cell(FW.G[gk][h])).join('')}</tr>`).join('')+'</tbody></table></div>'
+        +(pro?`<p class="po-mut">Las semanas consecutivas se solapan: n exagera el número de episodios independientes.</p>`:'');
+    }else body.innerHTML=`<p class="po-mut">No hay serie diaria de precios para ${po.p}, así que no se puede medir qué pasó después.</p>`;
   }
-  const dv=B.now.shL-B.now.nshL;
-  $('poDivCap').textContent=`Las cuentas no reportables son las que quedan por debajo del umbral de reporte del CFTC: no son el sentimiento minorista de un bróker, pero son el único proxy público de ese lado del mercado y vienen en el mismo informe. Hoy, en ${b}, los Leveraged Funds están ${B.now.shL.toFixed(1)}% largos y las cuentas pequeñas ${B.now.nshL.toFixed(1)}%: una diferencia de ${Math.abs(dv).toFixed(1)} puntos ${dv>0?'a favor del institucional':'en contra del institucional'}.`;
-  $('poDivT').innerHTML=`<thead><tr><th>Categoría</th><th class="num">Largos</th><th class="num">Cortos</th><th class="num">% largo</th><th class="num">Neto</th><th class="num">Neto / OI</th><th class="num">Cambio semanal</th></tr></thead><tbody>`
-    +`<tr><td><b>Leveraged Funds</b></td><td class="num pop">${B.now.L.toLocaleString('es-MX')}</td><td class="num pop">${B.now.S.toLocaleString('es-MX')}</td>
-       <td class="num pop">${B.now.shL.toFixed(1)}%</td><td class="num pop ${B.now.net>0?'gain':'loss'}">${B.now.net.toLocaleString('es-MX')}</td>
-       <td class="num pop ${B.now.npoi>0?'gain':'loss'}">${B.now.npoi.toFixed(2)}%</td><td class="num pop">${poSg(B.now.dnet)}</td></tr>`
-    +`<tr><td><b>Cuentas no reportables</b></td><td class="num pop">${B.now.nL.toLocaleString('es-MX')}</td><td class="num pop">${B.now.nS.toLocaleString('es-MX')}</td>
-       <td class="num pop">${B.now.nshL.toFixed(1)}%</td><td class="num pop ${B.now.nnet>0?'gain':'loss'}">${B.now.nnet.toLocaleString('es-MX')}</td>
-       <td class="num pop ${B.now.nnpoi>0?'gain':'loss'}">${B.now.nnpoi.toFixed(2)}%</td><td class="num pop">${poSg(B.now.dnnet)}</td></tr></tbody>`;
-
-  // ---- mapa de divisas ----
-  const all=Object.values(C).sort((a,b2)=>b2.st['5'].pct-a.st['5'].pct);
-  const amx=Math.max(...all.map(x=>Math.abs(x.now.npoi)))||1;
-  $('poMap').innerHTML=`<thead><tr><th>Divisa</th><th>Contrato</th><th class="num">Largos</th><th class="num">Cortos</th><th class="num">% largo</th><th class="num">Neto / OI</th><th>Magnitud</th><th class="num">Percentil 5a</th><th class="num">z 5a</th><th class="num">Δ semana</th><th>Lectura</th></tr></thead><tbody>`
-    +all.map(x=>{const p5=x.st['5'],e=exc(p5.pct),w=(Math.abs(x.now.npoi)/amx*64).toFixed(0);
-      const lec=x.now.net>=0
-        ?(p5.pct>=90?['lo','Largo extremo']:p5.pct>=75?['md','Largo cargado']:['','Largo en rango'])
-        :(p5.pct<=10?['lo','Corto extremo']:p5.pct<=25?['md','Corto cargado']:['','Corto en rango']);
-      return `<tr data-c="${x.ccy}"${x.ccy===b?' class="sel"':''}><td><b>${x.ccy}</b></td><td>${x.name}</td>
-        <td class="num pop">${x.now.L.toLocaleString('es-MX')}</td><td class="num pop">${x.now.S.toLocaleString('es-MX')}</td>
-        <td class="num pop">${x.now.shL.toFixed(1)}%</td><td class="num pop ${x.now.npoi>0?'gain':'loss'}"><b>${x.now.npoi>0?'+':''}${x.now.npoi.toFixed(2)}%</b></td>
-        <td><span class="pobar" style="width:${w}px;background:${x.now.npoi>0?g:l}"></span></td>
-        <td class="num pop">${Math.round(p5.pct)}</td><td class="num pop">${p5.z>0?'+':''}${p5.z}</td><td class="num pop">${poSg(x.now.dnet)}</td>
-        <td><span class="poex ${lec[0]||'md'}">${lec[1]}</span></td></tr>`;}).join('')+'</tbody>';
-  $('poMap').querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>{
-    const c=tr.dataset.c,hit=PL.find(p=>p.slice(0,3)===c)||PL.find(p=>p.slice(3)===c);
-    if(hit){po.p=hit;sv();renderPos();}});
-
-  $('poHelp').innerHTML=
-    `<p><b>De dónde sale.</b> Informe <i>Traders in Financial Futures</i> de la CFTC, futuros únicamente. El corte es el martes y la publicación el viernes a las 15:30 hora de Nueva York, así que lo que ves siempre tiene tres días de retraso: es posicionamiento declarado, no órdenes vivas. La serie arranca en junio de 2006.</p>`
-    +`<p><b>Qué es Leveraged Funds.</b> La categoría que agrupa hedge funds, CTAs y gestores que operan con apalancamiento por cuenta propia. Es el dinero especulativo institucional, no el de cobertura comercial ni el de los gestores de activos, que van en categorías aparte. El lado dólar usa el contrato USD INDEX de ICE, igual que la terminal.</p>`
-    +`<p><b>Por qué el neto sobre interés abierto.</b> Comparar contratos en bruto entre divisas no dice nada: el euro mueve ocho veces más contratos que el dólar neozelandés. Dividir entre el interés abierto normaliza y permite poner a todas en la misma tabla. Es la misma definición que usan los gráficos de la terminal.</p>`
-    +`<p><b>El percentil es la parte accionable.</b> Un 61% corto en euro no significa nada por sí solo. Que ese neto esté en el percentil 2 de los últimos cinco años sí: dice que el posicionamiento está en un extremo histórico y que el margen para seguir vendiendo sin que alguien tenga que cerrar es estrecho. El extremo no da la dirección ni el momento, solo mide cuánto combustible queda del lado que ya está lleno.</p>`
-    +`<p><b>Qué no es.</b> No es una señal contraria automática. El posicionamiento extremo puede estirarse meses y los grandes movimientos de tendencia ocurren con el neto cargado, no plano. Sirve para dimensionar: cuando entras del lado donde ya está todo el mundo, el escenario adverso es más violento y el tamaño debería ser menor. Esa es la decisión que cambia, no la dirección.</p>`;
+  $('poCmpT').textContent=CT;$('poCmpS').textContent=CS;
+  poInfoWire('poCmpInfoBtn','poCmpInfo','cmp',CI);
 }
 // ---------- Estacionalidad ----------
 let es=Object.assign({p:'EURUSD',w:'10'},store.get('es',{})),esC;

@@ -201,101 +201,49 @@ mq.addEventListener('change',sync);sync();})();
 
   <section id="posicion">
     <div class="sh">
-      <div class="sh-t"><h2>Posicionamiento</h2></div>
+      <div class="sh-t"><span class="eyebrow">Mercado · COT</span><h2>Posicionamiento</h2></div>
       <span class="stamp" id="poStamp"></span>
     </div>
-    <div class="panel">
-      <div class="gxbar">
-        <div class="row"><span class="lab">Par</span><select id="poPair" class="gsel" aria-label="Par"></select><div class="filters" id="poQuick"></div></div>
+    <div class="panel po-bar">
+      <div class="row"><span class="lab">Par</span><select id="poPair" class="gsel" aria-label="Par"></select><div class="filters" id="poQuick"></div></div>
+      <div class="row"><span class="lab">Ventana</span><div class="filters" id="poWin"></div></div>
+    </div>
+
+    <div class="panel po-hero" id="poHero"></div>
+
+    <div class="panel po-main">
+      <div class="tabs po-tabs" role="tablist" aria-label="Gráficos de posicionamiento" id="poTabs"></div>
+      <div class="po-head">
+        <div class="po-head-t"><h3 id="poChT"></h3><p class="po-sub" id="poChS"></p></div>
+        <div class="po-tools">
+          <button type="button" class="po-ib" id="poInfoBtn" aria-expanded="false" aria-controls="poInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>Cómo leerlo</span></button>
+          <div class="po-zoom" role="group" aria-label="Zoom del gráfico">
+            <button type="button" id="poZout" aria-label="Alejar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+            <button type="button" id="poZin" aria-label="Acercar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            <button type="button" id="poZreset" aria-label="Restablecer vista"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"></path></svg></button>
+          </div>
+        </div>
       </div>
+      <div class="po-info" id="poInfo" hidden></div>
+      <div class="filters po-opts" id="poOpts"></div>
+      <div class="chart po-big"><canvas id="poCv"></canvas></div>
+      <p class="po-hint">Arrastra para moverte · pellizca o Ctrl + rueda para hacer zoom · toca la leyenda para ocultar o mostrar una serie</p>
+      <div id="poExtra"></div>
     </div>
-    <div class="po-duo">
-      <div class="panel po-don"><h3 id="poT1"></h3><div class="chart"><canvas id="poD1"></canvas></div><div class="po-legs" id="poL1"></div></div>
-      <div class="panel po-don"><h3 id="poT2"></h3><div class="chart"><canvas id="poD2"></canvas></div><div class="po-legs" id="poL2"></div></div>
-    </div>
-    <div class="kpis" id="poKpis"></div>
-    <div class="panel po-sw">
-      <div class="sh-row"><h3 id="poSwT">Lectura swing del par</h3><div class="filters" id="poIxW"></div></div>
-      <div class="kpis" id="poSwK"></div>
-    </div>
-    <div class="po-duo">
-      <div class="panel">
-        <h3>Posicionamiento del par frente al precio</h3>
-        <p class="po-cap" id="poRelT"></p>
-        <div class="chart" style="height:280px"><canvas id="poRel"></canvas></div>
-        <p class="cap" id="poRelCap"></p>
+
+    <div class="panel po-main">
+      <div class="tabs po-tabs" role="tablist" aria-label="Comparar divisas" id="poCmpTabs"></div>
+      <div class="po-head">
+        <div class="po-head-t"><h3 id="poCmpT"></h3><p class="po-sub" id="poCmpS"></p></div>
+        <div class="po-tools">
+          <button type="button" class="po-ib" id="poCmpInfoBtn" aria-expanded="false" aria-controls="poCmpInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>Cómo leerlo</span></button>
+        </div>
       </div>
-      <div class="panel">
-        <h3>Índice COT del par</h3>
-        <p class="po-cap" id="poIxT"></p>
-        <div class="chart" style="height:280px"><canvas id="poIx"></canvas></div>
-        <p class="cap">Dónde está el posicionamiento del par hoy dentro de su propio rango de la ventana elegida: 100 es el máximo y 0 el mínimo de ese periodo. Por encima de 80 el par está saturado de compradores especulativos; por debajo de 20, de vendedores.</p>
-      </div>
-    </div>
-    <div class="po-duo">
-      <div class="panel">
-        <h3>Flujo semanal</h3>
-        <p class="po-cap" id="poFlT"></p>
-        <div class="chart" style="height:260px"><canvas id="poFl"></canvas></div>
-        <p class="cap">Barras: cambio del posicionamiento del par en cada informe, en puntos de interés abierto. Línea: suma de las últimas cuatro semanas. Muestra si el dinero rápido está entrando o saliendo del par ahora, que es lo que mueve un swing de semanas, más que el nivel acumulado.</p>
-      </div>
-      <div class="panel">
-        <h3>Dinero rápido frente a dinero real</h3>
-        <p class="po-cap" id="poAmT"></p>
-        <div class="chart" style="height:260px"><canvas id="poAm"></canvas></div>
-        <p class="cap">Leveraged Funds (hedge funds y CTAs, horizonte corto) frente a Asset Managers (fondos de inversión y pensiones, horizonte largo), ambos como neto sobre interés abierto. Cuando el dinero real sostiene una dirección y el rápido se le suma, la tendencia tiene respaldo; cuando el rápido va solo contra el real, sus giros suelen ser bruscos.</p>
-      </div>
-    </div>
-    <div class="po-duo">
-      <div class="panel">
-        <h3>Mapa de saturación</h3>
-        <div class="chart" style="height:300px"><canvas id="poCr"></canvas></div>
-        <p class="cap">Cada divisa según su índice COT de tres años (eje horizontal) y el cambio de su neto en las últimas cuatro semanas (eje vertical). Arriba a la derecha: saturada y todavía comprando. Abajo a la derecha: saturada y empezando a vender, la zona donde los cierres forzados aceleran el precio. Lo simétrico vale a la izquierda para las posiciones cortas.</p>
-      </div>
-      <div class="panel">
-        <h3>Qué hizo el par después de los extremos</h3>
-        <p class="po-cap" id="poFwT"></p>
-        <div class="scroll"><table id="poFw"></table></div>
-        <p class="cap" id="poFwCap"></p>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="sh-row"><h3>Reparto largo / corto semana a semana</h3><div class="filters" id="poNb"></div></div>
-      <div class="po-duo">
-        <div><p class="po-cap" id="poS1T"></p><div class="chart" style="height:250px"><canvas id="poS1"></canvas></div></div>
-        <div><p class="po-cap" id="poS2T"></p><div class="chart" style="height:250px"><canvas id="poS2"></canvas></div></div>
-      </div>
-      <p class="cap">Participación de los contratos largos y cortos de Leveraged Funds sobre el total de esa categoría, informe a informe. La línea del 50% marca el equilibrio: cuanto más se aleja una barra, más unilateral está el dinero institucional especulativo.</p>
-    </div>
-    <div class="panel">
-      <div class="sh-row"><h3>Posicionamiento neto sobre interés abierto</h3><div class="filters" id="poWin"></div></div>
-      <div class="po-duo">
-        <div><p class="po-cap" id="poN1T"></p><div class="chart" style="height:250px"><canvas id="poN1"></canvas></div></div>
-        <div><p class="po-cap" id="poN2T"></p><div class="chart" style="height:250px"><canvas id="poN2"></canvas></div></div>
-      </div>
-      <p class="cap">Neto de Leveraged Funds dividido entre el interés abierto del contrato. Es la misma métrica que usa la terminal y permite comparar divisas con tamaños de contrato muy distintos. Verde es neto largo, rojo neto corto.</p>
-    </div>
-    <div class="panel">
-      <div class="sh-row"><h3 id="poPxT">Precio</h3><div class="filters" id="poPxTf"></div></div>
-      <div class="chart" style="height:300px"><canvas id="poPx"></canvas></div>
-      <p class="cap" id="poPxCap"></p>
-    </div>
-    <div class="panel">
-      <h3>Dinero institucional frente a cuentas pequeñas</h3>
-      <div class="chart" style="height:290px"><canvas id="poDiv"></canvas></div>
-      <p class="cap" id="poDivCap"></p>
-      <div class="scroll"><table id="poDivT"></table></div>
-    </div>
-    <div class="panel">
-      <h3>Mapa de divisas</h3>
-      <div class="scroll"><table id="poMap"></table></div>
-      <p class="cap">Todas las divisas con contrato en el CFTC, ordenadas por percentil del neto a cinco años. Haz clic en una fila para llevar el par más cercano al panel de arriba.</p>
-    </div>
-    <div class="panel">
-      <h3>Cómo se lee</h3>
-      <div class="note" id="poHelp"></div>
+      <div class="po-info" id="poCmpInfo" hidden></div>
+      <div id="poCmpBody"></div>
     </div>
   </section>
+
   <section id="carry">
     <div class="sh">
       <div class="sh-t"><h2>Carry</h2></div>
