@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-12 — Posicionamiento ordenado para el trader que está aprendiendo
+- Mercado → Posicionamiento se reorganiza en tres bloques, con los mismos datos y recursos que antes:
+  1. **Resumen en 10 segundos**: la lectura del par en una frase y cuatro tarjetas con números grandes y un dibujo cada una — a qué apuestan los fondos (barras largo/corto de cada divisa), qué tan extremo (medidor 0–100 con zonas ≤ 20 y ≥ 80), si entran o salen (flecha + minigráfico de 13 semanas) y si fondos y gestores coinciden. Botón "¿Qué es el COT?" con la guía resumida.
+  2. **Un gráfico grande con pestañas**: posición vs precio, índice COT, flujo semanal, fondos vs gestores, largo/corto, neto/OI, precio y fondos vs cuentas pequeñas. Todos con zoom (botones +/−, pellizco o Ctrl + rueda), arrastre para moverse y leyenda que oculta o muestra series. Con todo el rango a la vista, "alejar" amplía la ventana de tiempo.
+  3. **Comparar divisas** con pestañas: mapa de saturación (con zoom; un clic en un punto abre esa divisa), tabla de todas las divisas y qué hizo el par después de un extremo.
+- Las explicaciones ya no van debajo de cada gráfico: cada uno tiene un botón "Cómo leerlo" con dos o tres líneas.
+- Las donas se sustituyen por barras largo/corto. El modo Pro agrega contratos, z y n a las tablas.
+- Estado nuevo en el navegador (`po.tab`, `po.cmp`, `po.cc`).
+
 ## 2026-11-12 — CPI general en Cuantitativo y a/a con el mes base faltante
 - Cuantitativo → Indicadores coincidentes → Inflación: nueva tarjeta **CPI general · a/a** (FRED CPIAUCSL), con el m/m y el a/a del mes previo. Es informativa: no pondera, porque el core CPI ya está en el puntaje.
 - Corrección: octubre de 2025 no existe en FRED (cierre del gobierno). El cálculo tomaba el mes anterior como base, así que el "a/a" de octubre de 2026 era en realidad una variación de 13 meses (CPI 4.1 %, core 2.9 %). Ahora la base que falta se interpola geométricamente entre septiembre y noviembre de 2025 (CPI 3.9 %, core 2.8 %), el mismo criterio que ya usaba el nowcast, y la tarjeta lo indica. Solo se rellenan meses base de series mensuales; nunca un dato publicado. Los puntos del core no cambian (sigue en el tramo 2.5–3.0).
