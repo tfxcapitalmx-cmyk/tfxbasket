@@ -364,29 +364,24 @@ mq.addEventListener('change',sync);sync();})();
 
   <section id="tv">
     <div class="sh">
-      <div class="sh-t"><h2>TV</h2></div>
+      <div class="sh-t"><span class="eyebrow">En vivo</span><h2>TV</h2></div>
       <span class="stamp" id="tvStamp"></span>
     </div>
-    <div class="panel">
-      <div class="tvbar">
-        <div class="filters" id="tvTabs"></div>
-        <button type="button" class="chip sm tvedit" id="tvCfgBtn">Editar fuentes</button>
+    <div class="tv-top"><div class="filters" id="tvCats"></div></div>
+    <div class="tv-rail" id="tvRail" aria-label="Canales de televisión"></div>
+    <div class="tv-grid" id="tvGrid">
+      <div class="tv-main">
+        <div class="tv-stage" id="tvStage" aria-label="Reproductor"></div>
+        <div id="tvBar"></div>
+        <div class="po-info" id="tvInfo" hidden></div>
       </div>
-    </div>
-    <div class="panel tvwrap">
-      <div class="tvframe" id="tvFrame"></div>
-      <div class="tvfoot"><p class="cap" id="tvCap"></p><div class="tvacts"><button type="button" class="chip sm" id="tvMode" hidden></button><a class="chip sm" id="tvOpen" href="#" target="_blank" rel="noopener">Abrir en YouTube</a></div></div>
-    </div>
-    <div class="panel" id="tvCfg" hidden>
-      <h3>Fuentes de video</h3>
-      <div class="tvadj" id="tvAdj" hidden><span class="lab">Encuadre del video</span><button type="button" class="chip sm" data-a="l" aria-label="Mover a la izquierda">←</button><button type="button" class="chip sm" data-a="r" aria-label="Mover a la derecha">→</button><button type="button" class="chip sm" data-a="u" aria-label="Mover arriba">↑</button><button type="button" class="chip sm" data-a="d" aria-label="Mover abajo">↓</button><button type="button" class="chip sm" data-a="in" aria-label="Acercar">Acercar</button><button type="button" class="chip sm" data-a="out" aria-label="Alejar">Alejar</button><button type="button" class="chip sm" data-a="reset" aria-label="Restablecer el encuadre">Restablecer</button></div>
-      <div class="scroll"><table id="tvList"></table></div>
-      <div class="rp-form tvform">
-        <label><span>Nombre del canal</span><input type="text" id="tvNm" placeholder="Bloomberg TV" autocomplete="off"></label>
-        <label><span>Enlace de YouTube o de una página con video</span><input type="text" id="tvUrl" placeholder="https://www.youtube.com/watch?v=… o https://sitio.com/en-vivo" autocomplete="off"></label>
-        <div class="tvbtns"><button type="button" class="chip sm" id="tvAdd">Guardar canal</button><button type="button" class="chip sm" id="tvReset">Restablecer lista</button></div>
-      </div>
-      <p class="note" id="tvHelp"></p>
+      <aside class="panel tv-side" aria-label="Notas">
+        <h3 class="tvs-h">Mis notas <span class="rep-n" id="tvnCount" hidden></span></h3>
+        <div class="tv-side-b" id="tvSideBody"></div>
+      </aside>
+      <section class="panel tv-ctx" aria-label="Contexto de mercado">
+        <div class="tv-side-b" id="tvCtxBody"></div>
+      </section>
     </div>
   </section>
 </main>
@@ -414,7 +409,9 @@ mq.addEventListener('change',sync);sync();})();
   const one=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
   const get=p=>local?one(p):one(REMOTE+p).catch(e=>{console.warn('Repo no disponible, uso la copia publicada:',e.message);return one(p);});
   window.TFX_DATA={get,remote:!local,file:p=>(local?'':REMOTE)+p};   // used by the auto-refresh in app.js
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null),get('data/reports.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc,reps])=>{
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null),get('data/reports.json').catch(()=>null),get('data/tv.json').catch(()=>null),get('data/tv-config.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc,reps,tvl,tvc])=>{
+    snap.snap.tvcfg=tvc&&Array.isArray(tvc.canales)?tvc.canales:null;   // fixed channel list, edited only by the administrator
+    snap.snap.tvlive=tvl&&tvl.channels?tvl.channels:{};   // live video of each TV channel, refreshed by .github/workflows/tv.yml
     snap.snap.reports=reps&&Array.isArray(reps.items)?reps:{items:[]};   // report library, rebuilt by .github/workflows/reports.yml
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     snap.snap.asof_manual=snap.snap.asof;   // date of the hand-loaded modules, before macro.json overrides asof
