@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 20
       - name: Buscar los videos en vivo
-        run: node scripts/tv/diag.mjs; node scripts/tv/update.mjs
+        run: node scripts/tv/update.mjs
       - name: Publicar si cambió
         run: |
           if git diff --quiet -- data/tv.json; then echo "Sin cambios"; exit 0; fi
