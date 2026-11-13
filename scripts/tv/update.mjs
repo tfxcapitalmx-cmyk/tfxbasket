@@ -23,7 +23,7 @@ export function parseLive(html, channelId) {
     const v = (/"likeEndpoint":\{"status":"LIKE","target":\{"videoId":"([\w-]{11})"/.exec(html) || [])[1] || '';
     const live = !!v && /"isLive":true/.test(html) && html.includes('"browseId":"' + channelId + '"');
     const t = (/"playerOverlayVideoDetailsRenderer":{"title":{"simpleText":"([^"]{0,80})/.exec(html) || [])[1] || '';
-    return { ok: true, live, v: live ? v : '', t: live ? t.replace(/\u0026/g, '&') : '', blocked: true };
+    return { ok: true, live, v: live ? v : '', t: live ? t.replace(/\\u0026/g, '&') : '', blocked: true };
   }
   const i = html.indexOf('"videoDetails"');
   if (i < 0) return { ok: true, live: false };
@@ -31,7 +31,7 @@ export function parseLive(html, channelId) {
   const v = get(/"videoId":"([\w-]{11})"/), ch = get(/"channelId":"(UC[\w-]{22})"/);
   const embed = (/"playableInEmbed":(true|false)/.exec(html) || [])[1] !== 'false';
   const live = /"isLive":true/.test(seg) && !!v && ch === channelId && embed;
-  return { ok: true, live, v: live ? v : '', t: live ? get(/"title":"([^"]{0,80})/).replace(/\u0026/g, '&') : '' };
+  return { ok: true, live, v: live ? v : '', t: live ? get(/"title":"([^"]{0,80})/).replace(/\\u0026/g, '&') : '' };
 }
 
 async function one([h, id, name]) {
