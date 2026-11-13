@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-13 — Más canales en TV
+- La sección TV pasa de 1 a 12 canales: Bloomberg TV, Yahoo Finance, Schwab Network, Fox Business, Reuters, Sky News, CNA, Euronews, DW News, France 24, Al Jazeera y Negocios TV (en español). Se eligieron entre candidatos comprobados en YouTube el 2026-11-13: con directo activo y que permiten incrustarse. Quedaron fuera CNBC (su YouTube no emite el canal en vivo en este momento) y Bloomberg en YouTube (sin directo).
+- Hallazgo: para Yahoo Finance, Fox Business, Reuters, Schwab y Negocios TV el incrustado "por canal" de YouTube responde "video no disponible"; por identificador de video sí funciona, y ese identificador cambia con cada programa. Por eso `scripts/tv/update.mjs` (`.github/workflows/tv.yml`, cada 30 minutos) averigua el video en vivo de cada canal y lo guarda en `data/tv.json` (`D.snap.tvlive`). Sin dato, la página cae al incrustado por canal.
+- Las listas que el usuario ya tenía guardadas en su navegador se actualizan solas: se agregan los canales nuevos y se conservan los que añadió a mano.
+
 ## 2026-11-12 — Reportes, Bloomberg TV, gráfico de TradingView y gráficos que se amplían
 - **Reportes** (grupo nuevo en el menú): biblioteca con tres secciones — Diarios, Semanales y Bancarios — con buscador, lector dentro de la página (HTML en marco aislado, PDF, Markdown, texto e imágenes; Word, Excel y PowerPoint se descargan), "Ampliar" y "Descargar".
   - Subida: el archivo se deja en `reports/entrada/` (botón "Subir reporte" → GitHub). `.github/workflows/reports.yml` ejecuta `scripts/reports/update.mjs`, que lo clasifica por nombre, título y contenido (`scripts/reports/core.mjs`), le pone la fecha, lo mueve a su carpeta y reconstruye `data/reports.json`. Reglas y casos de prueba: `node scripts/reports/check.mjs`.

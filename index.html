@@ -414,7 +414,8 @@ mq.addEventListener('change',sync);sync();})();
   const one=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
   const get=p=>local?one(p):one(REMOTE+p).catch(e=>{console.warn('Repo no disponible, uso la copia publicada:',e.message);return one(p);});
   window.TFX_DATA={get,remote:!local,file:p=>(local?'':REMOTE)+p};   // used by the auto-refresh in app.js
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null),get('data/reports.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc,reps])=>{
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null),get('data/reports.json').catch(()=>null),get('data/tv.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc,reps,tvl])=>{
+    snap.snap.tvlive=tvl&&tvl.channels?tvl.channels:{};   // live video of each TV channel, refreshed by .github/workflows/tv.yml
     snap.snap.reports=reps&&Array.isArray(reps.items)?reps:{items:[]};   // report library, rebuilt by .github/workflows/reports.yml
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     snap.snap.asof_manual=snap.snap.asof;   // date of the hand-loaded modules, before macro.json overrides asof

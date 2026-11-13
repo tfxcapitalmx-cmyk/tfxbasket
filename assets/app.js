@@ -646,7 +646,13 @@ function spxGdpRead(h){
 // (the player's rectangle inside the page, measured at a fixed page width): the page is embedded larger than
 // the frame and shifted so that only the video shows. The crop can be nudged from "Editar fuentes".
 const TVBB={n:'Bloomberg TV',k:'web',v:'https://www.bloomberg.com/live/us-btv',crop:{w:1521,x:134,y:236,vw:814,vh:458}};
-const TVDEF=[TVBB];
+// Channels with a public 24/7 YouTube live, checked on 2026-11-13 (live now and embeddable). They load by channel id,
+// so a stream that restarts under a new video id keeps working. Business first, then global news, then Spanish.
+const TVCH=[['Yahoo Finance','UCEAZeUIeJs0IjQiqTCdVSIg'],['Schwab Network','UCqoSrYgusd8ZddtMoWhjHYA'],['Fox Business','UCCXoCcu9Rp7NPbTzIvogpZg'],
+  ['Reuters','UChqUTb7kYRX8-EiaN3XFrSQ'],['Sky News','UCoMdktPbSTixAyNGwb-UYkQ'],['CNA (Asia)','UC83jt4dlz1Gjl58fzQrrKZg'],
+  ['Euronews','UCSrZ3UV4jOidv8ppoVuvW9Q'],['DW News','UCknLrEdhRCp1aegoMqRaCZg'],['France 24','UCQfwfsi5VrQ8yKZ-UWmAEFg'],
+  ['Al Jazeera','UCNye-wNBqNL5ZzHSJj3l8Bg'],['Negocios TV','UCwd8Byi93KbnsYmCcKLExvQ']];
+const TVDEF=[TVBB,...TVCH.map(([n,v])=>({n,k:'channel',v}))];
 const tvClone=x=>JSON.parse(JSON.stringify(x));
 let tv=Object.assign({i:0,list:null,cfg:false,full:false,m:0},store.get('tv',{})),tvRO=null,tvFit=null;
 function tvParse(s){
@@ -663,17 +669,22 @@ function tvParse(s){
   if(/^https:\/\/[^\s]+$/i.test(s)&&!/youtu\.?be/i.test(s))return /bloomberg\.com\/live/i.test(s)?{k:'web',v:s,crop:tvClone(TVBB.crop)}:{k:'web',v:s};
   return null;
 }
-const tvSrc=c=>c.k==='channel'
+// A channel plays through the live video found by .github/workflows/tv.yml (data/tv.json); without it, through the
+// channel's own live embed, which not every channel answers (Yahoo Finance, Fox Business and Reuters do not).
+const tvLiveId=c=>c.k==='channel'&&S.tvlive&&S.tvlive[c.v]?S.tvlive[c.v].v:'';
+const tvSrc=c=>{const L=tvLiveId(c);return c.k==='channel'&&!L
   ?`https://www.youtube.com/embed/live_stream?channel=${c.v}&rel=0&modestbranding=1`
-  :`https://www.youtube.com/embed/${c.v}?rel=0&modestbranding=1`;
+  :`https://www.youtube.com/embed/${L||c.v}?rel=0&modestbranding=1`;};
 const tvLink=c=>c.k==='web'?c.v:c.k==='channel'?`https://www.youtube.com/channel/${c.v}/live`
   :c.k==='handle'?`https://www.youtube.com/@${c.v}/live`:`https://www.youtube.com/watch?v=${c.v}`;
 const tvHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}};
 function renderTV(){
   const sv=()=>store.set('tv',{i:tv.i,list:tv.list,cfg:tv.cfg,full:tv.full,m:tv.m});
-  if(!Array.isArray(tv.list)||!tv.list.length){tv.list=TVDEF.map(tvClone);tv.m=2;}
-  // One-time update of lists saved before Bloomberg's own page was supported: its dead YouTube link goes out.
-  if(tv.m!==2){tv.list=tv.list.filter(c=>c.v!=='QB5BNdBFujE'&&c.v!==TVBB.v);tv.list.unshift(tvClone(TVBB));tv.i=0;tv.m=2;sv();}
+  if(!Array.isArray(tv.list)||!tv.list.length){tv.list=TVDEF.map(tvClone);tv.m=3;}
+  // One-time update of lists saved earlier: Bloomberg's own page goes first (its dead YouTube link is dropped) and the
+  // channels added since are appended; whatever the user added by hand stays.
+  if(tv.m!==3){const had=tv.list.filter(c=>c.v!=='QB5BNdBFujE'&&c.v!==TVBB.v),vs=new Set(had.map(c=>c.v));
+    tv.list=[tvClone(TVBB),...had,...TVDEF.slice(1).filter(c=>!vs.has(c.v)).map(tvClone)];tv.i=0;tv.m=3;sv();}
   if(tv.i>=tv.list.length)tv.i=0;
   const C=tv.list[tv.i],web=C.k==='web',crop=web&&C.crop&&!tv.full;
   $('tvStamp').textContent=`${tv.list.length} canal${tv.list.length===1?'':'es'} · en vivo`;
@@ -704,7 +715,8 @@ function renderTV(){
     ? (C.crop?`<b>${C.n}</b> · ${tv.full?'página completa':'solo el video'}. Si ${tvHost(C.v)} pide comprobar que no eres un robot, cambia a <b>Página completa</b>, complétalo y vuelve a <b>Solo el video</b>.`
              :`<b>${C.n}</b> · página de ${tvHost(C.v)} incrustada completa. Si queda en blanco, ese sitio no permite mostrarse dentro de otra página: usa <b>Abrir en ventana aparte</b>.`)
     : C.k==='channel'
-    ? `<b>${C.n}</b> · se intenta cargar la transmisión en vivo del canal <span class="pop">${C.v}</span>. Si el recuadro aparece en negro o dice que el video no está disponible, ese canal no tiene un directo público ahora mismo o su dueño bloqueó la incrustación. Cambia la fuente en Editar fuentes.`
+    ? (tvLiveId(C)?`<b>${C.n}</b> · en vivo: ${repEsc(S.tvlive[C.v].t||'transmisión')}. El proceso automático busca cada 30 minutos qué está transmitiendo el canal; si cambia de programa y el recuadro dice que el video no está disponible, recarga en unos minutos.`
+      :`<b>${C.n}</b> · se intenta cargar la transmisión en vivo del canal <span class="pop">${C.v}</span>. Si el recuadro aparece en negro o dice que el video no está disponible, ese canal no tiene un directo público ahora mismo o su dueño bloqueó la incrustación. Cambia la fuente en Editar fuentes.`)
     : `<b>${C.n}</b> · video <span class="pop">${C.v}</span>. Si la transmisión termina, el enlace deja de servir: pega el nuevo en Editar fuentes.`;
 
   $('tvCfgBtn').onclick=()=>{tv.cfg=!tv.cfg;sv();renderTV();};
@@ -734,10 +746,11 @@ function renderTV(){
     if(!p){$('tvUrl').focus();$('tvCap').innerHTML='<b>No reconocí ese enlace.</b> Sirve el enlace de un video de YouTube, el de un canal con /channel/UC…, el identificador suelto, o el enlace https de una página con video en vivo.';return;}
     tv.list.push(Object.assign({n:n||('Canal '+(tv.list.length+1))},p));tv.i=tv.list.length-1;tv.full=false;
     $('tvNm').value='';$('tvUrl').value='';sv();renderTV();};
-  $('tvReset').onclick=()=>{tv.list=TVDEF.map(tvClone);tv.i=0;tv.full=false;sv();renderTV();};
+  $('tvReset').onclick=()=>{tv.list=TVDEF.map(tvClone);tv.i=0;tv.full=false;tv.m=3;sv();renderTV();};
 
   $('tvHelp').innerHTML=
     `<p><b>Bloomberg TV.</b> Se incrusta la página en vivo de Bloomberg y se encuadra para mostrar solo el video. Bloomberg puede pedir una comprobación ("pulsar y mantener") la primera vez; se hace en <b>Página completa</b>. El navegador aísla ese recuadro del resto de tus pestañas, así que tu sesión de Bloomberg no se aplica dentro de él. Si Bloomberg cambia el diseño de su página, ajusta el encuadre con las flechas de arriba.</p>`
+    +`<p><b>Canales incluidos.</b> Bloomberg TV, Yahoo Finance, Schwab Network, Fox Business, Reuters, Sky News, CNA, Euronews, DW News, France 24, Al Jazeera y Negocios TV (en español). Se cargan por canal de YouTube, así que siguen funcionando aunque el directo se reinicie; si uno no transmite en ese momento, el recuadro sale en negro. Puedes quitar los que no uses y agregar los tuyos.</p>`
     +`<p><b>Qué pegar.</b> De YouTube, lo más estable es el enlace del video en vivo; también acepta el enlace del canal con <span class="pop">/channel/UC…</span> y el identificador suelto. La arroba del canal no sirve: YouTube no la admite para incrustar. De otros sitios, el enlace https de la página con el reproductor: se muestra completa, salvo que el sitio prohíba incrustarse.</p>`
     +`<p><b>Dónde se guarda.</b> En el navegador que estés usando, no en el archivo. Tu lista no viaja a otro equipo y nadie más la ve; si borras los datos del sitio, vuelve a la lista inicial. El recuadro necesita conexión: es lo único del dashboard que no funciona sin internet.</p>`;
 }
