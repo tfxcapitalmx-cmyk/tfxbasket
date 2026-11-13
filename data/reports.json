@@ -1,4 +1,14 @@
 {
- "asof": "2026-11-13T00:43:23.886Z",
- "items": []
+ "asof": "2026-11-13T00:52:04.147Z",
+ "items": [
+  {
+   "id": "diarios/2026-11-12-gmt-nov-09-sem-2-de4-ideas-de-trading.pdf",
+   "cat": "diarios",
+   "title": "Gmt nov 09 sem 2 de4 ideas de trading",
+   "date": "2026-11-12",
+   "file": "reports/diarios/2026-11-12-gmt-nov-09-sem-2-de4-ideas-de-trading.pdf",
+   "type": "pdf",
+   "kb": 275
+  }
+ ]
 }
