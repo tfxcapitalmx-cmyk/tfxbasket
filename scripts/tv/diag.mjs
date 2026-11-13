@@ -1,9 +1,12 @@
-// Temporal: muestra qué responde YouTube a este equipo.
+// Temporal: muestra qué datos del directo siguen en la página que YouTube devuelve a este equipo.
 const HDR = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36', 'accept-language': 'en-US,en;q=0.9', cookie: 'CONSENT=YES+1; SOCS=CAI' };
-for (const u of ['https://www.youtube.com/@YahooFinance/live', 'https://www.youtube.com/channel/UCEAZeUIeJs0IjQiqTCdVSIg/live', 'https://www.youtube.com/watch?v=QB5BNdBFujE']) {
+for (const [h, id] of [['YahooFinance', 'UCEAZeUIeJs0IjQiqTCdVSIg'], ['SkyNews', 'UCoMdktPbSTixAyNGwb-UYkQ'], ['CNBCtelevision', 'UCrp_UI8XtuYfpiqluWLD7Lw'], ['NewsNation', 'UCCjG8NtOig0USdrT5D1FpxQ']]) {
   try {
-    const r = await fetch(u, { headers: HDR, redirect: 'follow' }), t = await r.text();
-    const pr = /"playabilityStatus":\{"status":"(\w+)"(?:,"reason":"([^"]{0,120})")?/.exec(t) || [];
-    console.log(JSON.stringify({ u: u.slice(24), status: r.status, final: r.url.slice(24, 90), len: t.length, title: (/<title>([^<]{0,70})/.exec(t) || [])[1], ipr: t.includes('ytInitialPlayerResponse'), vd: t.includes('"videoDetails"'), isLive: /"isLive":true/.test(t), play: pr[1], reason: pr[2], bot: /confirm you.re not a bot|unusual traffic|consent\.youtube/i.test(t) }));
-  } catch (e) { console.log(u, 'ERR', e.message); }
+    const r = await fetch(`https://www.youtube.com/@${h}/live`, { headers: HDR }), t = await r.text();
+    const m = re => (re.exec(t) || [])[1] || '';
+    const vdi = t.indexOf('"videoDetails"');
+    console.log(JSON.stringify({ h, canon: m(/<link rel="canonical" href="([^"]+)"/), liveNow: /"isLiveNow":true/.test(t), liveBcast: /"liveBroadcastDetails"/.test(t), ldLive: /"isLiveBroadcast"\s*:\s*true|"isLiveBroadcast":"True"/i.test(t),
+      vdAt: vdi, vdSeg: vdi >= 0 ? t.slice(vdi, vdi + 160) : '', extId: m(/"externalId":"(UC[\w-]{22})"/), ogUrl: m(/<meta property="og:url" content="([^"]+)"/), ogTitle: m(/<meta property="og:title" content="([^"]{0,60})/),
+      vidCount: (t.match(/"videoId":"[\w-]{11}"/g) || []).slice(0, 4), play: m(/"playabilityStatus":\{"status":"(\w+)"/) }));
+  } catch (e) { console.log(h, 'ERR', e.message); }
 }
