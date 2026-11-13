@@ -642,45 +642,68 @@ function spxGdpRead(h){
 
 
 // ---------- TV ----------
-const TVDEF=[{n:'Bloomberg TV',k:'video',v:'QB5BNdBFujE'}];
-let tv=Object.assign({i:0,list:null,cfg:false},store.get('tv',{}));
+// Sources are YouTube videos or channels, or a web page with a live player. A web source may carry a crop
+// (the player's rectangle inside the page, measured at a fixed page width): the page is embedded larger than
+// the frame and shifted so that only the video shows. The crop can be nudged from "Editar fuentes".
+const TVBB={n:'Bloomberg TV',k:'web',v:'https://www.bloomberg.com/live/us-btv',crop:{w:1521,x:134,y:236,vw:814,vh:458}};
+const TVDEF=[TVBB];
+const tvClone=x=>JSON.parse(JSON.stringify(x));
+let tv=Object.assign({i:0,list:null,cfg:false,full:false,m:0},store.get('tv',{})),tvRO=null,tvFit=null;
 function tvParse(s){
   s=(s||'').trim();if(!s)return null;
   let m=s.match(/[?&]v=([A-Za-z0-9_-]{11})/)||s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/)
        ||s.match(/\/(?:live|embed|shorts)\/([A-Za-z0-9_-]{11})/);
-  if(m)return{k:'video',v:m[1]};
+  if(m&&/youtu/i.test(s))return{k:'video',v:m[1]};
   m=s.match(/[?&]channel=(UC[A-Za-z0-9_-]{22})/)||s.match(/\/channel\/(UC[A-Za-z0-9_-]{22})/);
   if(m)return{k:'channel',v:m[1]};
   if(/^UC[A-Za-z0-9_-]{22}$/.test(s))return{k:'channel',v:s};
   if(/^[A-Za-z0-9_-]{11}$/.test(s))return{k:'video',v:s};
   m=s.match(/youtube\.com\/@([A-Za-z0-9._-]+)/)||s.match(/^@([A-Za-z0-9._-]+)$/);
   if(m)return{k:'handle',v:m[1]};
+  if(/^https:\/\/[^\s]+$/i.test(s)&&!/youtu\.?be/i.test(s))return /bloomberg\.com\/live/i.test(s)?{k:'web',v:s,crop:tvClone(TVBB.crop)}:{k:'web',v:s};
   return null;
 }
 const tvSrc=c=>c.k==='channel'
   ?`https://www.youtube.com/embed/live_stream?channel=${c.v}&rel=0&modestbranding=1`
   :`https://www.youtube.com/embed/${c.v}?rel=0&modestbranding=1`;
-const tvLink=c=>c.k==='channel'?`https://www.youtube.com/channel/${c.v}/live`
+const tvLink=c=>c.k==='web'?c.v:c.k==='channel'?`https://www.youtube.com/channel/${c.v}/live`
   :c.k==='handle'?`https://www.youtube.com/@${c.v}/live`:`https://www.youtube.com/watch?v=${c.v}`;
+const tvHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}};
 function renderTV(){
-  const sv=()=>store.set('tv',{i:tv.i,list:tv.list,cfg:tv.cfg});
-  if(!Array.isArray(tv.list)||!tv.list.length)tv.list=TVDEF.map(x=>Object.assign({},x));
+  const sv=()=>store.set('tv',{i:tv.i,list:tv.list,cfg:tv.cfg,full:tv.full,m:tv.m});
+  if(!Array.isArray(tv.list)||!tv.list.length){tv.list=TVDEF.map(tvClone);tv.m=2;}
+  // One-time update of lists saved before Bloomberg's own page was supported: its dead YouTube link goes out.
+  if(tv.m!==2){tv.list=tv.list.filter(c=>c.v!=='QB5BNdBFujE'&&c.v!==TVBB.v);tv.list.unshift(tvClone(TVBB));tv.i=0;tv.m=2;sv();}
   if(tv.i>=tv.list.length)tv.i=0;
-  const C=tv.list[tv.i];
-  $('tvStamp').textContent=`${tv.list.length} canal${tv.list.length===1?'':'es'} · se reproduce en vivo desde YouTube`;
-  chipset($('tvTabs'),tv.list.map((c,i)=>({id:String(i),label:c.n})),String(tv.i),id=>{tv.i=+id;sv();renderTV();},'chip sm');
+  const C=tv.list[tv.i],web=C.k==='web',crop=web&&C.crop&&!tv.full;
+  $('tvStamp').textContent=`${tv.list.length} canal${tv.list.length===1?'':'es'} · en vivo`;
+  chipset($('tvTabs'),tv.list.map((c,i)=>({id:String(i),label:c.n})),String(tv.i),id=>{tv.i=+id;tv.full=false;sv();renderTV();},'chip sm');
 
-  const F=$('tvFrame');F.innerHTML='';
+  const F=$('tvFrame');F.innerHTML='';F.style.aspectRatio='';F.classList.toggle('tvfull',web&&!crop);
+  if(tvRO){tvRO.disconnect();tvRO=null;}tvFit=null;
   if(C.k==='handle'){
     F.innerHTML=`<div class="tvempty"><b>${C.n}</b><span>YouTube no permite incrustar un canal por su arroba. Abre el canal, entra al video en vivo y pega aquí ese enlace, o pega el identificador del canal que empieza con UC.</span></div>`;
   }else{
     const f=document.createElement('iframe');
-    f.src=tvSrc(C);f.title=C.n;f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
-    f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';f.loading='lazy';
+    f.src=web?C.v:tvSrc(C);f.title=C.n;f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';
+    if(crop){
+      f.className='tvcrop';f.setAttribute('scrolling','no');
+      tvFit=()=>{const k=C.crop,s=F.clientWidth/k.vw;F.style.aspectRatio=`${k.vw}/${k.vh}`;f.style.width=k.w+'px';f.style.height=Math.round(k.y+k.vh+60)+'px';
+        f.style.transform=`scale(${s.toFixed(4)}) translate(${-k.x}px,${-k.y}px)`;};
+      tvFit();if(window.ResizeObserver){tvRO=new ResizeObserver(tvFit);tvRO.observe(F);}
+    }else f.loading='lazy';
     F.appendChild(f);
   }
-  $('tvOpen').href=tvLink(C);
-  $('tvCap').innerHTML=C.k==='channel'
+  const op=$('tvOpen'),md=$('tvMode');
+  op.href=tvLink(C);op.textContent=web?'Abrir en ventana aparte':'Abrir en YouTube';
+  op.onclick=web?e=>{e.preventDefault();window.open(C.v,'tfx-tv','popup=yes,width=1180,height=700');}:null;
+  md.hidden=!(web&&C.crop);md.textContent=tv.full?'Solo el video':'Página completa';
+  md.onclick=()=>{tv.full=!tv.full;sv();renderTV();};
+  $('tvCap').innerHTML=web
+    ? (C.crop?`<b>${C.n}</b> · ${tv.full?'página completa':'solo el video'}. Si ${tvHost(C.v)} pide comprobar que no eres un robot, cambia a <b>Página completa</b>, complétalo y vuelve a <b>Solo el video</b>.`
+             :`<b>${C.n}</b> · página de ${tvHost(C.v)} incrustada completa. Si queda en blanco, ese sitio no permite mostrarse dentro de otra página: usa <b>Abrir en ventana aparte</b>.`)
+    : C.k==='channel'
     ? `<b>${C.n}</b> · se intenta cargar la transmisión en vivo del canal <span class="pop">${C.v}</span>. Si el recuadro aparece en negro o dice que el video no está disponible, ese canal no tiene un directo público ahora mismo o su dueño bloqueó la incrustación. Cambia la fuente en Editar fuentes.`
     : `<b>${C.n}</b> · video <span class="pop">${C.v}</span>. Si la transmisión termina, el enlace deja de servir: pega el nuevo en Editar fuentes.`;
 
@@ -689,24 +712,33 @@ function renderTV(){
   $('tvCfg').hidden=!tv.cfg;
   if(!tv.cfg)return;
 
-  const KN={channel:'Canal en vivo',video:'Video',handle:'Arroba sin resolver'};
+  // Crop nudging: moves or scales the visible window without reloading the embedded page.
+  const adj=$('tvAdj');adj.hidden=!crop;
+  adj.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const k=C.crop,a=b.dataset.a,r=k.vh/k.vw;
+    if(a==='l')k.x+=6;else if(a==='r')k.x-=6;else if(a==='u')k.y+=6;else if(a==='d')k.y-=6;
+    else if(a==='in'&&k.vw>320){k.vw-=24;k.vh=Math.round(k.vw*r);k.x+=12;k.y+=Math.round(12*r);}
+    else if(a==='out'){k.vw+=24;k.vh=Math.round(k.vw*r);k.x-=12;k.y-=Math.round(12*r);}
+    else if(a==='reset')Object.assign(k,tvClone(TVBB.crop));
+    sv();if(tvFit)tvFit();});
+
+  const KN={channel:'Canal en vivo',video:'Video',handle:'Arroba sin resolver',web:'Página web'};
   $('tvList').innerHTML=`<thead><tr><th>Canal</th><th>Tipo</th><th>Identificador</th><th></th><th></th></tr></thead><tbody>`
     +tv.list.map((c,i)=>`<tr${i===tv.i?' class="on"':''}><td>${c.n}</td><td>${KN[c.k]||c.k}</td>
-      <td class="pop">${c.v}</td><td><button type="button" class="tvuse" data-u="${i}">Ver</button></td>
+      <td class="pop">${c.k==='web'?tvHost(c.v):c.v}</td><td><button type="button" class="tvuse" data-u="${i}">Ver</button></td>
       <td><button type="button" class="tvx" data-d="${i}">Quitar</button></td></tr>`).join('')+'</tbody>';
-  $('tvList').querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{tv.i=+b.dataset.u;sv();renderTV();});
+  $('tvList').querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{tv.i=+b.dataset.u;tv.full=false;sv();renderTV();});
   $('tvList').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.d;tv.list.splice(i,1);if(tv.i>=tv.list.length)tv.i=Math.max(0,tv.list.length-1);sv();renderTV();});
   $('tvAdd').onclick=()=>{
     const n=$('tvNm').value.trim(),p=tvParse($('tvUrl').value);
-    if(!p){$('tvUrl').focus();$('tvCap').innerHTML='<b>No reconocí ese enlace.</b> Sirve el enlace de un video de YouTube, el de un canal con /channel/UC…, o el identificador suelto.';return;}
-    tv.list.push({n:n||('Canal '+(tv.list.length+1)),k:p.k,v:p.v});tv.i=tv.list.length-1;
+    if(!p){$('tvUrl').focus();$('tvCap').innerHTML='<b>No reconocí ese enlace.</b> Sirve el enlace de un video de YouTube, el de un canal con /channel/UC…, el identificador suelto, o el enlace https de una página con video en vivo.';return;}
+    tv.list.push(Object.assign({n:n||('Canal '+(tv.list.length+1))},p));tv.i=tv.list.length-1;tv.full=false;
     $('tvNm').value='';$('tvUrl').value='';sv();renderTV();};
-  $('tvReset').onclick=()=>{tv.list=TVDEF.map(x=>Object.assign({},x));tv.i=0;sv();renderTV();};
+  $('tvReset').onclick=()=>{tv.list=TVDEF.map(tvClone);tv.i=0;tv.full=false;sv();renderTV();};
 
   $('tvHelp').innerHTML=
-    `<p><b>Qué pegar.</b> Lo más estable es el enlace del video en vivo: entra al canal en YouTube, abre el directo y copia la barra de direcciones. También acepta el enlace del canal con <span class="pop">/channel/UC…</span>, que carga lo que ese canal tenga en vivo en ese momento, y el identificador suelto de cualquiera de los dos. La arroba del canal no sirve: YouTube no la admite para incrustar.</p>`
-    +`<p><b>Por qué es editable.</b> Los directos gratuitos de los canales financieros cambian de identificador y se caen sin aviso. En concreto, Bloomberg movió sus señales de televisión a YouTube TV de suscripción en octubre de 2025, así que el directo libre puede no existir. Dejar la fuente abierta significa que lo arreglas pegando un enlace, sin esperar una versión nueva del dashboard.</p>`
+    `<p><b>Bloomberg TV.</b> Se incrusta la página en vivo de Bloomberg y se encuadra para mostrar solo el video. Bloomberg puede pedir una comprobación ("pulsar y mantener") la primera vez; se hace en <b>Página completa</b>. El navegador aísla ese recuadro del resto de tus pestañas, así que tu sesión de Bloomberg no se aplica dentro de él. Si Bloomberg cambia el diseño de su página, ajusta el encuadre con las flechas de arriba.</p>`
+    +`<p><b>Qué pegar.</b> De YouTube, lo más estable es el enlace del video en vivo; también acepta el enlace del canal con <span class="pop">/channel/UC…</span> y el identificador suelto. La arroba del canal no sirve: YouTube no la admite para incrustar. De otros sitios, el enlace https de la página con el reproductor: se muestra completa, salvo que el sitio prohíba incrustarse.</p>`
     +`<p><b>Dónde se guarda.</b> En el navegador que estés usando, no en el archivo. Tu lista no viaja a otro equipo y nadie más la ve; si borras los datos del sitio, vuelve a la lista inicial. El recuadro necesita conexión: es lo único del dashboard que no funciona sin internet.</p>`;
 }
 // ---------- Posicionamiento (COT) ----------
@@ -2050,10 +2082,10 @@ function nextPill(){
 }
 
 // ---------- Navegación por secciones ----------
-const VIEWS={hoy:renderHoy,resumen:renderSummary,cuantitativo:renderScore,ciclo:renderCycle,catalizador:renderCatalyst,modelos:renderModels,distribucion:renderDorSec,graficos:renderCharts,carry:renderCarry,vol:renderVol,estacional:renderSeas,posicion:renderPos,tv:renderTV};
+const VIEWS={hoy:renderHoy,resumen:renderSummary,cuantitativo:renderScore,ciclo:renderCycle,catalizador:renderCatalyst,modelos:renderModels,distribucion:renderDorSec,graficos:renderCharts,carry:renderCarry,vol:renderVol,estacional:renderSeas,posicion:renderPos,reportes:renderReports,tv:renderTV};
 let view=null;
 // Five groups in the header; the module bar below shows only the modules of the active group.
-const GROUPS={hoy:['hoy'],contexto:['resumen','cuantitativo','ciclo','graficos'],catalizadores:['catalizador','modelos'],mercado:['distribucion','posicion','carry','vol','estacional'],tv:['tv']};
+const GROUPS={hoy:['hoy'],contexto:['resumen','cuantitativo','ciclo','graficos'],catalizadores:['catalizador','modelos'],mercado:['distribucion','posicion','carry','vol','estacional'],reportes:['reportes'],tv:['tv']};
 const groupOf=id=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(id))||'hoy';
 const lastIn=store.get('lastin',{});
 function syncGroups(id){
@@ -2061,6 +2093,7 @@ function syncGroups(id){
   document.querySelectorAll('#groups [data-g]').forEach(b=>b.setAttribute('aria-current',String(b.dataset.g===g)));
   const menu=$('menu');menu.classList.toggle('solo',GROUPS[g].length<2);
   menu.querySelectorAll('a').forEach(a=>{a.hidden=!GROUPS[g].includes(a.getAttribute('href').slice(1));});
+  const tb=$('tvwBtn');if(tb)tb.hidden=g!=='mercado';
 }
 function setNivel(n){
   document.documentElement.dataset.nivel=n;store.set('nivel',n);
@@ -2080,6 +2113,7 @@ function wireNav(){
   document.querySelectorAll('nav.menu a').forEach(a=>{a.onclick=e=>{e.preventDefault();go(a.getAttribute('href').slice(1));};});
   document.querySelectorAll('#groups [data-g]').forEach(b=>{b.onclick=()=>{const g=b.dataset.g;go(GROUPS[g].includes(lastIn[g])?lastIn[g]:GROUPS[g][0]);};});
   document.querySelectorAll('#lvl [data-lvl]').forEach(b=>{b.onclick=()=>{setNivel(b.dataset.lvl);if(VIEWS[view])try{VIEWS[view]();}catch(e){console.error(e);}};});
+  const tb=$('tvwBtn');if(tb)tb.onclick=()=>tvwOpen();
   const np=$('nextPill');if(np)np.onclick=e=>{e.preventDefault();go('catalizador');};
   nextPill();setInterval(nextPill,60000);
   window.addEventListener('hashchange',()=>show((location.hash||'').slice(1),false));
@@ -2149,6 +2183,184 @@ function freshBadges(){
   }
 }
 setNivel(store.get('nivel','simple'));chartTheme();
+// ---------- Ventana flotante ----------
+// One <dialog> shared by the enlarged charts, the enlarged report and the TradingView chart. With restore:true the
+// node is borrowed from the page (a placeholder keeps its place) and goes back when the window closes.
+let dlgEl=null,dlgBack=null;
+function openDlg(title,node,opt={}){
+  if(!window.HTMLDialogElement)return false;
+  if(!dlgEl){
+    dlgEl=document.createElement('dialog');dlgEl.id='dlg';
+    dlgEl.innerHTML='<div class="dlg-bar"><b id="dlgT"></b><button type="button" class="po-ib" id="dlgC">Cerrar ✕</button></div><div class="dlg-body" id="dlgB"></div>';
+    document.body.appendChild(dlgEl);
+    $('dlgC').onclick=()=>dlgEl.close();
+    dlgEl.addEventListener('click',e=>{if(e.target===dlgEl)dlgEl.close();});
+    dlgEl.addEventListener('close',()=>{const b=dlgBack;dlgBack=null;const c=$('cur');if(c)document.body.appendChild(c);if(b)b();$('dlgB').innerHTML='';});
+  }
+  if(dlgEl.open)dlgEl.close();
+  $('dlgT').textContent=title;dlgEl.className=opt.cls||'';
+  let ph=null;
+  if(opt.restore&&node.parentNode){ph=document.createElement('div');ph.className='dlg-ph';ph.style.height=node.offsetHeight+'px';node.before(ph);}
+  $('dlgB').appendChild(node);
+  dlgBack=()=>{const ok=!ph||ph.isConnected;if(ph){if(ph.isConnected)ph.replaceWith(node);else node.remove();}if(opt.onClose)opt.onClose(ok);};
+  dlgEl.showModal();const c=$('cur');if(c)dlgEl.appendChild(c);
+  return true;
+}
+// ---------- Gráficos: barra de herramientas, ampliar y cambiar la altura ----------
+const CHI={out:'<path d="M5 12h14"></path>',in:'<path d="M12 5v14M5 12h14"></path>',re:'<path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"></path>',
+  max:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path>'};
+function chMax(host){
+  const cv=host.querySelector('canvas'),p=host.closest('.panel'),h=p&&p.querySelector('h3'),sec=host.closest('section'),h2=sec&&sec.querySelector('.sh h1,.sh h2');
+  const title=(h&&h.textContent.trim())||(h2&&(h2.getAttribute('aria-label')||h2.textContent.trim()))||'Gráfico';
+  host.classList.add('max');
+  const ok=openDlg(title,host,{restore:true,cls:'dlg-chart',onClose:back=>{host.classList.remove('max');
+    const k=cv&&window.Chart&&Chart.getChart(cv);if(k){k.$pin=null;if(back)k.draw();else k.destroy();}
+    if(!back){try{VIEWS[view]&&VIEWS[view]();}catch(e){console.error(e);}}}});
+  if(!ok)host.classList.remove('max');
+}
+function chTools(c){
+  const host=c.canvas.parentNode;if(!host||!host.classList||host.id==='dlgB')return;
+  if(!(chX(c)||c.config.type==='scatter'))return;
+  host.classList.add('ch-host');if(host.querySelector(':scope>.ch-tools'))return;
+  if(host.dataset.h0===undefined)host.dataset.h0=host.style.height||'';
+  const b=(a,l)=>`<button type="button" data-a="${a}" aria-label="${l}" title="${l}"><svg viewBox="0 0 24 24" aria-hidden="true">${CHI[a]}</svg></button>`;
+  const t=document.createElement('div');t.className='ch-tools';t.setAttribute('role','group');t.setAttribute('aria-label','Herramientas del gráfico');
+  t.innerHTML=b('out','Alejar')+b('in','Acercar')+b('re','Restablecer vista y tamaño')+(window.HTMLDialogElement?b('max','Ampliar el gráfico'):'');
+  host.appendChild(t);
+  t.onclick=e=>{const btn=e.target.closest('button');if(!btn)return;const k=Chart.getChart(host.querySelector('canvas'));if(!k)return;const a=btn.dataset.a;
+    if(a==='in'&&k.zoom)k.zoom(1.35);else if(a==='out'&&k.zoom)k.zoom(0.74);
+    else if(a==='re'){if(k.resetZoom)k.resetZoom();k.$pin=null;pinRead(k);if(!host.classList.contains('max'))host.style.height=host.dataset.h0;}
+    else if(a==='max'){if(host.classList.contains('max'))dlgEl.close();else chMax(host);}};
+  const g=document.createElement('div');g.className='ch-grip';g.title='Arrastra para hacer el gráfico más alto o más bajo';host.appendChild(g);
+  g.addEventListener('pointerdown',e=>{e.preventDefault();g.setPointerCapture(e.pointerId);const y0=e.clientY,h0=host.offsetHeight;g.classList.add('on');
+    const mv=ev=>{host.style.height=Math.max(160,Math.min(1100,h0+ev.clientY-y0))+'px';};
+    const up=()=>{g.classList.remove('on');g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up);};
+    g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);});
+}
+// Every chart: drag across it to zoom into that range, Ctrl + wheel or pinch to zoom, Shift + drag to move.
+function chartZoomDefaults(){
+  if(!window.Chart||!Chart.registry.plugins.get('zoom'))return;
+  Chart.defaults.set('plugins.zoom',{zoom:{drag:{enabled:true,backgroundColor:'rgba(255,210,72,.16)',borderColor:'#FFD248',borderWidth:1,threshold:12},
+    wheel:{enabled:true,modifierKey:'ctrl'},pinch:{enabled:true},mode:'x'},pan:{enabled:true,mode:'x',modifierKey:'shift'},limits:{x:{min:'original',max:'original'}}});
+  const o=Chart.overrides.scatter;o.plugins=o.plugins||{};o.plugins.zoom={zoom:{mode:'xy'},pan:{mode:'xy'}};
+}
+// ---------- Gráfico rápido de TradingView ----------
+const TVW=[['EURUSD','FX:EURUSD'],['GBPUSD','FX:GBPUSD'],['USDJPY','FX:USDJPY'],['AUDUSD','FX:AUDUSD'],['USDCAD','FX:USDCAD'],['USDCHF','FX:USDCHF'],['NZDUSD','FX:NZDUSD'],
+  ['Oro','OANDA:XAUUSD'],['DXY','TVC:DXY'],['S&P 500','OANDA:SPX500USD'],['Bono 10A','TVC:US10Y'],['Bitcoin','BITSTAMP:BTCUSD']];
+const TVI=[['15','15 min'],['60','1 h'],['240','4 h'],['D','Diario'],['W','Semanal']];
+let tvw=Object.assign({s:'',i:'D'},store.get('tvw',{}));
+const tvwSym=p=>/^[A-Z]{6}$/.test(p)?(p==='XAUUSD'?'OANDA:XAUUSD':'FX:'+p):p;
+function tvwOpen(sym){
+  // In Posicionamiento the chart opens on the pair being studied; elsewhere, on the last one used.
+  tvw.s=sym||(view==='posicion'?tvwSym(po.p):'')||tvw.s||'FX:EURUSD';
+  if(!TVI.some(x=>x[0]===tvw.i))tvw.i='D';
+  const wrap=document.createElement('div');wrap.className='tvw';
+  wrap.innerHTML='<div class="tvw-bar"><div class="filters" id="tvwS"></div><div class="filters" id="tvwI"></div></div><div class="tvw-box" id="tvwBox"></div>'
+    +'<p class="po-mut">Gráfico de TradingView con datos de su proveedor; pueden diferir de los de tu bróker. Dentro del gráfico puedes buscar cualquier otro símbolo.</p>';
+  if(!openDlg('Gráfico rápido · TradingView',wrap,{cls:'dlg-tvw'})){window.open('https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tvw.s),'_blank','noopener');return;}
+  const draw=()=>{
+    store.set('tvw',tvw);
+    const syms=TVW.some(x=>x[1]===tvw.s)?TVW:[[tvw.s.split(':').pop(),tvw.s],...TVW];
+    chipset($('tvwS'),syms.map(([l,s])=>({id:s,label:l})),tvw.s,id=>{tvw.s=id;draw();},'chip sm');
+    chipset($('tvwI'),TVI.map(([k,l])=>({id:k,label:l})),tvw.i,id=>{tvw.i=id;draw();},'chip sm');
+    const box=$('tvwBox');box.innerHTML='<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div></div>';
+    const sc=document.createElement('script');sc.type='text/javascript';sc.async=true;sc.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    sc.innerHTML=JSON.stringify({autosize:true,symbol:tvw.s,interval:tvw.i,timezone:'America/Mexico_City',
+      theme:getComputedStyle(document.documentElement).colorScheme==='dark'?'dark':'light',style:'1',locale:'es',allow_symbol_change:true,
+      hide_side_toolbar:false,calendar:false,support_host:'https://www.tradingview.com'});
+    box.firstChild.appendChild(sc);};
+  draw();
+}
+// ---------- Reportes ----------
+// The index (data/reports.json) is rebuilt by scripts/reports/update.mjs every time a file reaches reports/.
+// Documents are read straight from the repository: HTML goes into a sandboxed frame, PDF and images through a
+// blob address, Markdown and text are rendered here; office files are offered as a download.
+let rep=Object.assign({cat:'diarios',id:null},store.get('rep',{})),repQ='',repUrl=null,repTok=0;
+const REPC=[['diarios','Diarios'],['semanales','Semanales'],['bancarios','Bancarios']];
+const REPT={html:'HTML',pdf:'PDF',md:'Markdown',txt:'Texto',docx:'Word',xlsx:'Excel',pptx:'PowerPoint',img:'Imagen'};
+const REPM={pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
+const repEsc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const repNorm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const repDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');
+  return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3])).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):(d||'');};
+// Small Markdown reader (headings, lists, bold, italics, code, links). The text is escaped first.
+function repMd(t){
+  const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  const out=[];let ul=false,pre=false;
+  for(const l of repEsc(t).split(/\r?\n/)){
+    if(/^```/.test(l)){out.push(pre?'</pre>':'<pre>');pre=!pre;continue;}
+    if(pre){out.push(l);continue;}
+    const li=/^\s*(?:[-*]|\d+\.)\s+(.*)$/.exec(l);
+    if(li){if(!ul){out.push('<ul>');ul=true;}out.push('<li>'+inl(li[1])+'</li>');continue;}
+    if(ul){out.push('</ul>');ul=false;}
+    const h=/^(#{1,4})\s+(.*)$/.exec(l);
+    if(h){const n=Math.min(6,h[1].length+2);out.push(`<h${n}>${inl(h[2])}</h${n}>`);continue;}
+    if(/^\s*(-{3,}|\*{3,})\s*$/.test(l)){out.push('<hr>');continue;}
+    if(l.trim())out.push('<p>'+inl(l)+'</p>');
+  }
+  if(ul)out.push('</ul>');if(pre)out.push('</pre>');
+  return out.join('\n');
+}
+async function repOpen(x,scroll){
+  const V=$('repView'),tok=++repTok;if(repUrl){URL.revokeObjectURL(repUrl);repUrl=null;}
+  if(!x){V.innerHTML=`<div class="rep-empty"><b>Ningún reporte abierto</b><span>Elige uno de la lista para leerlo aquí.</span></div>`;return;}
+  const cl=(REPC.find(c=>c[0]===x.cat)||['',''])[1];
+  V.innerHTML=`<div class="rep-head"><div><span class="rep-d">${cl} · ${repDate(x.date)} · ${REPT[x.type]||x.type}</span><h3>${repEsc(x.title)}</h3></div>`
+    +`<div class="rep-acts"><button type="button" class="po-ib" id="repMax">Ampliar</button><a class="po-ib" id="repDl" href="#">Descargar</a></div></div>`
+    +`<div class="rep-body" id="repBody"><div class="rep-empty"><span>Cargando…</span></div></div>`;
+  const B=$('repBody'),path=x.file.split('/').map(encodeURIComponent).join('/'),url=window.TFX_DATA&&TFX_DATA.file?TFX_DATA.file(path):path;
+  $('repMax').onclick=()=>{B.classList.add('max');if(!openDlg(x.title,B,{restore:true,cls:'dlg-rep',onClose:()=>B.classList.remove('max')}))B.classList.remove('max');};
+  if(scroll&&innerWidth<1000)V.scrollIntoView({behavior:MOTION?'smooth':'auto',block:'start'});
+  try{
+    const r=await fetch(url,{cache:'no-cache'});if(!r.ok)throw new Error('HTTP '+r.status);
+    if(x.type==='html'||x.type==='md'||x.type==='txt'){
+      const t=await r.text();if(tok!==repTok)return;
+      repUrl=URL.createObjectURL(new Blob([t],{type:(x.type==='html'?'text/html':'text/plain')+';charset=utf-8'}));
+      if(x.type==='html'){const f=document.createElement('iframe');f.className='rep-frame';f.title=x.title;
+        f.setAttribute('sandbox','allow-scripts allow-popups allow-popups-to-escape-sandbox');f.srcdoc=t;B.innerHTML='';B.appendChild(f);}
+      else B.innerHTML=`<div class="rep-md">${x.type==='md'?repMd(t):'<pre>'+repEsc(t)+'</pre>'}</div>`;
+    }else{
+      const b=await r.blob();if(tok!==repTok)return;
+      repUrl=URL.createObjectURL(REPM[x.type]?new Blob([b],{type:REPM[x.type]}):b);
+      if(x.type==='pdf'){const f=document.createElement('iframe');f.className='rep-frame';f.title=x.title;f.src=repUrl;B.innerHTML='';B.appendChild(f);}
+      else if(x.type==='img')B.innerHTML=`<img class="rep-img" src="${repUrl}" alt="${repEsc(x.title)}">`;
+      else B.innerHTML=`<div class="rep-empty"><b>${REPT[x.type]||'Este formato'} no se puede leer dentro de la terminal</b><span>Descárgalo para abrirlo en su programa.</span></div>`;
+    }
+    const dl=$('repDl');if(dl){dl.href=repUrl;dl.download=x.file.split('/').pop();}
+  }catch(e){
+    if(tok!==repTok)return;
+    B.innerHTML=`<div class="rep-empty"><b>No se pudo abrir el reporte</b><span>${repEsc(e.message)}. Si lo acabas de subir, espera un par de minutos y recarga la página.</span></div>`;
+  }
+}
+function renderReports(){
+  const R=(S.reports&&S.reports.items)||[],sv=()=>store.set('rep',{cat:rep.cat,id:rep.id});
+  if(!REPC.some(c=>c[0]===rep.cat))rep.cat='diarios';
+  const cnt=c=>R.filter(x=>x.cat===c).length;
+  $('repStamp').textContent=R.length?`${R.length} reporte${R.length===1?'':'s'} · el más reciente, ${repDate(R[0].date)}`:'Biblioteca vacía';
+  $('repTabs').innerHTML=REPC.map(([id,l])=>`<button class="tab" role="tab" type="button" data-c="${id}" aria-selected="${rep.cat===id}">${l}<span class="rep-n">${cnt(id)}</span></button>`).join('');
+  $('repTabs').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{rep.cat=b.dataset.c;rep.id=null;sv();renderReports();});
+  poInfoWire('repInfoBtn','repInfo','rep',
+    `<ul><li><b>Subir.</b> Pulsa <b>Subir reporte</b>: se abre GitHub en la carpeta de entrada. Arrastra el archivo y confirma con "Commit changes".</li>`
+    +`<li><b>Clasificación automática.</b> En uno o dos minutos pasa a Diarios, Semanales o Bancarios según su nombre (diario / briefing, semanal / weekly, o un banco / research) y, si el nombre no lo dice, según su título y contenido.</li>`
+    +`<li><b>Elegir tú la sección.</b> Empieza el nombre con <span class="pop">diario-</span>, <span class="pop">semanal-</span> o <span class="pop">banco-</span>.</li>`
+    +`<li><b>Formatos.</b> HTML, PDF, Markdown e imágenes se leen aquí; Word, Excel y PowerPoint se descargan.</li>`
+    +`<li><b>Privacidad.</b> El repositorio es público: lo que subas puede verlo cualquiera que tenga el enlace.</li></ul>`);
+  const q=$('repQ');q.value=repQ;
+  const list=()=>{
+    const s=repNorm(repQ.trim()),L=R.filter(x=>x.cat===rep.cat&&(!s||repNorm(x.title+' '+x.date+' '+repDate(x.date)).includes(s)));
+    const name=(REPC.find(c=>c[0]===rep.cat)||['',''])[1].toLowerCase();
+    $('repList').innerHTML=L.length?L.map(x=>`<button type="button" class="rep-it${x.id===rep.id?' on':''}" data-id="${repEsc(x.id)}"><span class="rep-d">${repDate(x.date)}</span><b>${repEsc(x.title)}</b><span class="rep-m">${REPT[x.type]||x.type} · ${x.kb>=1024?(x.kb/1024).toFixed(1)+' MB':x.kb+' KB'}</span></button>`).join('')
+      :`<div class="rep-empty"><b>${s?'Sin coincidencias':`Aún no hay reportes ${name}`}</b><span>${s?'Prueba con otra palabra o con la fecha.':'Súbelos con el botón «Subir reporte»; se acomodan solos en su sección.'}</span></div>`;
+    $('repList').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=R.find(y=>y.id===b.dataset.id);if(!x)return;rep.id=x.id;sv();
+      $('repList').querySelectorAll('.rep-it').forEach(e=>e.classList.toggle('on',e===b));repOpen(x,true);});
+    return L;};
+  q.oninput=()=>{repQ=q.value;list();};
+  const L=list(),cur=L.find(x=>x.id===rep.id)||L[0]||null;
+  if(cur){rep.id=cur.id;$('repList').querySelectorAll('.rep-it').forEach(e=>e.classList.toggle('on',e.dataset.id===cur.id));}
+  repOpen(cur,false);
+}
 // ---------- Motion ----------
 // Generative background, quote tape, word-by-word titles, counting figures, scroll reveal and chart sweep.
 // Everything is skipped when the system asks for reduced motion (then the waves are drawn once, static).
@@ -2265,6 +2477,8 @@ function chartFx(){
       if(cv.$tfx)return;cv.$tfx=1;
       cv.addEventListener('pointerdown',e=>{cv.$dn=[e.clientX,e.clientY];});
       cv.addEventListener('dblclick',()=>{const k=Chart.getChart(cv);if(!k)return;if(k.resetZoom)k.resetZoom();k.$pin=null;pinRead(k);});},
+    // The scales exist only after the first update, so the toolbar is added then.
+    afterUpdate(c){if(c.$tl)return;c.$tl=1;try{chTools(c);}catch(e){console.error(e);}},
     afterEvent(c,a){const e=a.event;if(e.type!=='click'||!chX(c))return;const cv=c.canvas,n=e.native;
       if(cv.$dn&&n&&Math.hypot(n.clientX-cv.$dn[0],n.clientY-cv.$dn[1])>6)return;   // it was a drag (pan), not a click
       const A=c.chartArea;if(e.x<A.left||e.x>A.right||e.y<A.top||e.y>A.bottom)return;
@@ -2317,12 +2531,13 @@ function palette(){
   box.innerHTML=`<div class="cmd-box"><input type="text" id="cmdQ" placeholder="Busca un módulo, un par o una acción…" autocomplete="off" spellcheck="false" aria-label="Buscar"><div class="cmd-list" id="cmdL" role="listbox"></div><div class="cmd-foot"><span>↑↓ moverse</span><span>Enter abrir</span><span>Esc cerrar</span></div></div>`;
   document.body.appendChild(box);
   const q=$('cmdQ'),L=$('cmdL'),norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  const GN={hoy:'Hoy',contexto:'Contexto',catalizadores:'Catalizadores',mercado:'Mercado',tv:'TV'};
+  const GN={hoy:'Hoy',contexto:'Contexto',catalizadores:'Catalizadores',mercado:'Mercado',reportes:'Reportes',tv:'TV'};
   let items=[],sel=0,back=null;
   const build=()=>{
     const A=[];document.querySelectorAll('nav.menu a').forEach(a=>{const id=a.getAttribute('href').slice(1),g=Object.keys(GROUPS).find(k=>GROUPS[k].includes(id));
       A.push({t:a.textContent,k:'Módulo · '+(GN[g]||''),run:()=>go(id)});});
     poPairs().forEach(p=>A.push({t:p+' · posicionamiento',k:'Par',run:()=>{po.p=p;store.set('po',po);go('posicion');}}));
+    A.push({t:'Abrir gráfico de TradingView',k:'Acción',run:()=>tvwOpen()});
     A.push({t:'Cambiar tema claro / oscuro',k:'Acción',run:()=>$('themeBtn').click()});
     A.push({t:'Nivel Simple',k:'Acción',run:()=>document.querySelector('#lvl [data-lvl="simple"]').click()});
     A.push({t:'Nivel Pro',k:'Acción',run:()=>document.querySelector('#lvl [data-lvl="pro"]').click()});
@@ -2349,7 +2564,7 @@ function introOut(){
   const it=$('intro');if(!it)return;const wait=MOTION&&getComputedStyle(it).display!=='none'?Math.max(0,1700-performance.now()):0;
   setTimeout(()=>{it.classList.add('out');setTimeout(()=>it.remove(),950);},wait);
 }
-try{chartFx();pointerFx();palette();}catch(e){console.error(e);}
+try{chartZoomDefaults();chartFx();pointerFx();palette();}catch(e){console.error(e);}
 // Tema común de los gráficos: tipografía, rejilla, leyendas con punto y tooltip oscuro. Se recalcula al cambiar de tema.
 function chartTheme(){
   try{fxTheme();}catch(e){}
@@ -2371,7 +2586,7 @@ autoRefresh();
 // files are compared with the ones loaded; if any changed, the page reloads itself keeping the section and scroll.
 function autoRefresh(){
   const T=window.TFX_DATA;if(!T||!window.fetch)return;
-  const SMALL=['macro','carry','vol','mkt-live','calendar','nowcast'],ALL=[...SMALL,'cot'];
+  const SMALL=['macro','carry','vol','mkt-live','calendar','nowcast','reports'],ALL=[...SMALL,'cot'];
   const hash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return s.length+':'+h;};
   const sig=async fs=>{const o={};for(const f of fs){try{o[f]=hash(JSON.stringify(await T.get('data/'+f+'.json')));}catch(e){o[f]=null;}}return o;};
   try{const y=sessionStorage.getItem('tfx-scroll');if(y!=null){sessionStorage.removeItem('tfx-scroll');setTimeout(()=>scrollTo(0,+y),300);}}catch(e){}

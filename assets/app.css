@@ -864,3 +864,105 @@ html.motion .chart.sweep canvas{animation:sweep 1.3s var(--ease) both}
 }
 @media (hover:none),(pointer:coarse){#cur{display:none}.chart canvas{cursor:default}}
 @media (prefers-reduced-motion:reduce){body::after{animation:none}.tape-in{animation:none}#cur,#intro{display:none}}
+
+/* ---- TV: página incrustada y encuadrada al video ---- */
+.tvframe iframe.tvcrop{inset:auto;left:0;top:0;max-width:none;transform-origin:0 0}
+.tvframe.tvfull{aspect-ratio:auto;height:min(78vh,860px)}
+.tvfoot .tvacts{display:flex;gap:8px;flex-wrap:wrap}
+.tvadj{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tvadj[hidden]{display:none}
+.tvadj .lab{font:11.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+
+/* ---- gráficos: herramientas, altura a mano y ampliación ---- */
+.ch-host{position:relative}
+.ch-tools{position:absolute;right:6px;top:-4px;z-index:3;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s var(--ease)}
+.ch-host:hover>.ch-tools,.ch-host:focus-within>.ch-tools,.ch-host.max>.ch-tools{opacity:1;transform:none}
+.ch-tools button{display:grid;place-items:center;width:30px;height:28px;border:0;background:none;color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
+.ch-tools button+button{border-left:1px solid var(--line)}
+.ch-tools button:hover{background:var(--sel-bg);color:var(--sel-ink)}
+.ch-tools svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ch-grip{position:absolute;left:50%;bottom:-9px;width:64px;height:12px;margin-left:-32px;cursor:ns-resize;z-index:3;touch-action:none;opacity:0;transition:opacity .25s}
+.ch-grip::after{content:"";position:absolute;left:12px;right:12px;top:5px;height:3px;border-radius:2px;background:var(--gold)}
+.ch-host:hover>.ch-grip,.ch-grip.on{opacity:.9}
+.ch-host.max>.ch-grip{display:none}
+.dlg-ph{border:1px dashed var(--line);border-radius:10px}
+dialog#dlg{width:min(96vw,1560px);height:min(92vh,980px);max-width:none;max-height:none;padding:0;border:1px solid color-mix(in srgb,var(--gold) 50%,var(--line));border-radius:16px;background:var(--panel);color:var(--ink);box-shadow:0 50px 120px -30px rgba(0,0,0,.85);overflow:hidden}
+dialog#dlg[open]{display:grid;grid-template-rows:auto minmax(0,1fr);animation:pop .4s var(--ease) both}
+dialog#dlg::backdrop{background:color-mix(in srgb,#000 62%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.dlg-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px 12px 22px;border-bottom:1px solid var(--line)}
+.dlg-bar b{font:700 13px var(--f-head);letter-spacing:.06em;text-transform:uppercase;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlg-body{min-height:0;padding:18px 22px 22px;overflow:auto;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px}
+.dlg-chart .dlg-body>.chart,.dlg-chart .dlg-body>.ch-host{height:100%!important;min-height:0}
+.dlg-body .pinread{margin-top:0}
+
+/* ---- gráfico rápido de TradingView ---- */
+.tvwbtn{grid-area:menu;justify-self:end;align-self:center;display:inline-flex;align-items:center;gap:8px;font:600 12.5px var(--f-body);color:var(--accent);background:none;border:1px solid color-mix(in srgb,var(--gold) 55%,var(--line));border-radius:999px;padding:8px 14px;cursor:pointer;min-height:36px;position:relative;overflow:hidden;isolation:isolate;transition:background .25s,color .25s,box-shadow .25s}
+.tvwbtn[hidden]{display:none}
+.tvwbtn:hover{background:var(--sel-bg);color:var(--sel-ink);box-shadow:0 8px 24px -10px rgba(var(--wave),.7)}
+.tvwbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.tvw{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:12px;height:100%;min-height:0}
+.tvw-bar{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between}
+.tvw-box{min-height:320px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
+.dlg-tvw .dlg-body{grid-template-rows:minmax(0,1fr)}
+
+/* ---- reportes ---- */
+.rep-bar{gap:14px}
+.rep-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.rep-tools input{flex:1 1 220px;min-width:0;font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:9px 16px}
+.rep-up{display:inline-flex;align-items:center;gap:8px;font:600 13px var(--f-body);text-decoration:none;color:var(--sel-ink);background:var(--sel-bg);border-radius:999px;padding:9px 16px;transition:transform .25s var(--ease),box-shadow .25s}
+.rep-up:hover{transform:translateY(-2px);box-shadow:0 10px 26px -10px rgba(var(--wave),.8)}
+.rep-up svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.rep-n{display:inline-block;margin-left:8px;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--soft);font:700 12px var(--f-num);text-align:center;color:var(--muted)}
+.tab[aria-selected="true"] .rep-n{background:var(--accent-soft);color:var(--accent)}
+.rep-grid{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:20px;align-items:start}
+.rep-grid>*{min-width:0}
+.rep-list{padding:10px;gap:4px;max-height:82vh;overflow:auto}
+.rep-it{display:grid;gap:3px;width:100%;text-align:left;border:1px solid transparent;border-radius:10px;background:none;color:var(--ink);padding:12px 14px;cursor:pointer;position:relative;transition:background .25s,border-color .25s,transform .3s var(--ease)}
+.rep-it:hover{background:var(--soft);transform:translateX(3px)}
+.rep-it.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--gold) 55%,transparent)}
+.rep-it.on::before{content:"";position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--gold)}
+.rep-it b{font:600 14px/1.35 var(--f-body)}
+.rep-d{font:11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.rep-m{font-size:12px;color:var(--muted)}
+.rep-view{padding:22px;gap:16px}
+.rep-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.rep-head h3{margin:6px 0 0;font-size:14px;line-height:1.4}
+.rep-acts{display:flex;gap:8px}
+.rep-acts a{text-decoration:none}
+.rep-body{min-height:0}
+.rep-frame{display:block;width:100%;height:78vh;border:1px solid var(--line);border-radius:10px;background:#fff}
+.rep-body.max .rep-frame{height:100%}
+.dlg-rep .dlg-body{grid-template-rows:minmax(0,1fr)}
+.dlg-rep .rep-body{height:100%}
+.rep-img{display:block;max-width:100%;border-radius:10px;border:1px solid var(--line)}
+.rep-md{max-width:76ch;font-size:15px;line-height:1.7}
+.rep-md h3,.rep-md h4,.rep-md h5,.rep-md h6{font-family:var(--f-head);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 8px}
+.rep-md h3{font-size:17px}.rep-md h4{font-size:14px}.rep-md h5,.rep-md h6{font-size:12px}
+.rep-md p{margin:0 0 10px}.rep-md ul{margin:0 0 12px;padding-left:20px}
+.rep-md pre{overflow:auto;background:var(--soft);border-radius:8px;padding:12px;font:12.5px var(--f-mono);white-space:pre-wrap}
+.rep-md code{font:13px var(--f-mono);background:var(--soft);padding:1px 5px;border-radius:4px}
+.rep-md a{color:var(--accent)}
+.rep-empty{display:grid;gap:6px;justify-items:center;text-align:center;padding:44px 18px;color:var(--muted);font-size:13.5px;line-height:1.55}
+.rep-empty b{color:var(--ink);font-size:14.5px}
+
+@media (max-width:1000px){.rep-grid{grid-template-columns:1fr}.rep-list{max-height:46vh}}
+@media (max-width:680px){
+  .groups{grid-template-columns:none;display:flex;justify-content:space-between}
+  .groups button{flex:1 1 auto;padding:6px 3px;font-size:10px;letter-spacing:-.01em}
+  .tvwbtn{position:fixed;right:14px;bottom:132px;z-index:26;background:var(--sel-bg);color:var(--sel-ink);border-color:transparent;box-shadow:0 12px 30px -10px rgba(0,0,0,.7)}
+  .tvwbtn span{display:none}
+  .ch-tools{opacity:.92;transform:none}.ch-tools button{width:32px;height:30px}
+  .ch-grip{display:none}
+  dialog#dlg{width:100vw;height:100dvh;border-radius:0;border:0}
+  .dlg-body{padding:12px}
+  .rep-frame{height:70vh}
+}
+
+/* Posicionamiento ya tiene sus botones de zoom en la cabecera del panel: dentro del gráfico queda solo "ampliar". */
+.po-big>.ch-tools button:not([data-a="max"]){display:none}
+
+/* Con seis grupos la cabecera necesita aire: el buscador pasa a icono antes y los grupos se compactan. */
+.top-in .brand{flex:none}
+@media (min-width:1200px){.groups button{padding:9px 13px}}
+@media (max-width:1560px){.cmdbtn span,.cmdbtn kbd{display:none}.cmdbtn{padding:0;width:36px;height:36px;flex:none;justify-content:center}}
+@media (max-width:680px){.groups{width:100%;box-sizing:border-box;justify-self:stretch}}
