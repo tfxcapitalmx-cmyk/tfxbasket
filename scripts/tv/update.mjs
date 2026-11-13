@@ -15,6 +15,9 @@ const HDR = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebK
 
 // Reads the player data of a /live page. live = a stream running now that can be embedded.
 export function parseLive(html, channelId) {
+  // A real /live page always carries the player data. Without it YouTube answered a block or consent page: that is an
+  // error (the previous value is kept), never "not live".
+  if (!html.includes('ytInitialPlayerResponse')) return { ok: false, err: 'YouTube no devolvió los datos del reproductor (' + (/<title>([^<]{0,60})/.exec(html) || [])[1] + ', ' + html.length + ' bytes)' };
   const i = html.indexOf('"videoDetails"');
   if (i < 0) return { ok: true, live: false };
   const seg = html.slice(i, i + 3000), get = re => (re.exec(seg) || [])[1] || '';
@@ -31,7 +34,9 @@ async function one([h, id, name]) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const html = await r.text();
       if (/consent\.youtube\.com|before you continue to youtube/i.test(html.slice(0, 4000))) throw new Error('página de consentimiento');
-      return { id, name, ...parseLive(html, id) };
+      const p = parseLive(html, id);
+      if (!p.ok) throw new Error(p.err);
+      return { id, name, ...p };
     } catch (e) { if (k) return { id, name, ok: false, err: String(e.message || e) }; }
   }
 }
@@ -46,6 +51,8 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '
   }
   const read = R.filter(r => r.ok).length;
   if (!read) { console.error('Ningún canal se pudo leer: no se escribe nada.'); process.exit(1); }
+  // 24/7 channels never all go dark at once; an empty result over a populated one means a bad read, not a real change.
+  if (!Object.keys(channels).length && Object.keys(prev).length > 2) { console.error('Todos los canales salieron sin directo: se considera una lectura mala y se conserva lo anterior.'); process.exit(1); }
   if (JSON.stringify(prev) === JSON.stringify(channels)) console.log('Sin cambios.');
   else { fs.writeFileSync(OUT, JSON.stringify({ asof: new Date().toISOString(), channels }, null, 1) + '\n'); console.log(`data/tv.json actualizado (${Object.keys(channels).length} en vivo de ${CH.length}).`); }
 }
