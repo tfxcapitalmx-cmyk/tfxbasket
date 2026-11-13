@@ -647,7 +647,7 @@ function spxGdpRead(h){
 // The player lives in a body-level box (#tvBox) so it survives changes of module: inside the TV module it is laid over
 // the stage placeholder (absolute, in document coordinates so it scrolls with the page); with "Mini al navegar" it docks
 // to a corner when the stage is out of view or another module is open; otherwise leaving TV stops the stream.
-const TVBB={id:'bloomberg',n:'Bloomberg TV',sub:'EE.UU. · mercados',cat:'mercados',k:'web',v:'https://www.bloomberg.com/live/us-btv',crop:{w:1521,x:134,y:236,vw:814,vh:458}};
+const TVBB={id:'bloomberg',n:'Bloomberg TV',sub:'EE.UU. · mercados',cat:'mercados',k:'video',v:'QB5BNdBFujE'};
 const tvClone=x=>JSON.parse(JSON.stringify(x));
 const tvCh=()=>Array.isArray(S.tvcfg)&&S.tvcfg.length?S.tvcfg:[TVBB];
 const tvHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}};
@@ -661,11 +661,11 @@ const tvCur=()=>{const L=tvCh();return L.find(c=>c.id===tv.sel)||L[0];};
 const tvLiveId=c=>c.k==='channel'&&S.tvlive&&S.tvlive[c.v]?S.tvlive[c.v].v:'';
 const tvProg=c=>c.k==='channel'&&S.tvlive&&S.tvlive[c.v]?(S.tvlive[c.v].t||''):'';
 const tvKnown=()=>!!(S.tvlive&&Object.keys(S.tvlive).length);
-const tvIsLive=c=>c.k==='web'?true:tvKnown()?!!tvLiveId(c):null;
+const tvIsLive=c=>c.k!=='channel'?true:tvKnown()?!!tvLiveId(c):null;
 const tvSrc=c=>{const L=tvLiveId(c);return c.k==='channel'&&!L
   ?`https://www.youtube.com/embed/live_stream?channel=${c.v}&rel=0&modestbranding=1`
   :`https://www.youtube.com/embed/${L||c.v}?rel=0&modestbranding=1`;};
-const tvLink=c=>c.k==='web'?c.v:`https://www.youtube.com/channel/${c.v}/live`;
+const tvLink=c=>c.k==='web'?c.v:c.k==='video'?`https://www.youtube.com/watch?v=${c.v}`:`https://www.youtube.com/channel/${c.v}/live`;
 const tvMono=n=>n.replace(/\(.*?\)/g,'').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const TVIC={prev:'<path d="M15 5l-7 7 7 7"></path>',next:'<path d="M9 5l7 7-7 7"></path>',mini:'<rect x="3" y="4" width="18" height="14" rx="2"></rect><rect x="12" y="11" width="7" height="5" rx="1"></rect>',
   wide:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path>',page:'<rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8"></path>',open:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path>',
