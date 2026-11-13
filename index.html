@@ -5,12 +5,14 @@
 <meta name="description" content="Terminal macro de Estados Unidos y mesa de volatilidad de TFX Academy.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Montserrat:wght@400;500;600;700&family=Syncopate:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Montserrat:wght@400;500;600;700&family=Syncopate:wght@400;700&display=swap">
 
-<script>try{var _t=localStorage.getItem('tfx-theme');if(_t==='light'||_t==='dark')document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<script>try{var _t=localStorage.getItem('tfx-theme');if(_t==='light'||_t==='dark')document.documentElement.setAttribute('data-theme',_t);}catch(e){}
+try{if(sessionStorage.getItem('tfx-intro'))document.documentElement.classList.add('nointro');else sessionStorage.setItem('tfx-intro','1');}catch(e){}</script>
 <link rel="stylesheet" href="assets/app.css">
 
-</head><body><div class="progress" aria-hidden="true"><i id="prog"></i></div>
+</head><body><div id="intro" aria-hidden="true"><div class="intro-in"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b><span style="--i:0">T</span><span style="--i:1">F</span><span style="--i:2">X</span><span style="--i:3"> </span><span style="--i:4">A</span><span style="--i:5">C</span><span style="--i:6">A</span><span style="--i:7">D</span><span style="--i:8">E</span><span style="--i:9">M</span><span style="--i:10">Y</span></b><small>Macro Intelligence</small><i></i></div></div>
+<canvas id="fx" aria-hidden="true"></canvas><div class="progress" aria-hidden="true"><i id="prog"></i></div>
 <header class="top" id="top">
   <div class="top-in">
     <div class="brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b><span>Macro Intelligence</span></div>
@@ -19,17 +21,21 @@
       <button type="button" data-g="contexto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"></path></svg><span>Contexto</span></button>
       <button type="button" data-g="catalizadores"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg><span>Catalizadores</span></button>
       <button type="button" data-g="mercado"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"></path></svg><span>Mercado</span></button>
+      <button type="button" data-g="reportes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"></path></svg><span>Reportes</span></button>
       <button type="button" data-g="tv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path></svg><span>TV</span></button>
     </nav>
     <div class="tools">
+      <button type="button" class="cmdbtn" id="cmdBtn" aria-label="Abrir el buscador rápido" title="Buscador rápido (Ctrl + K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Buscar</span><kbd>Ctrl K</kbd></button>
       <a class="nextpill" id="nextPill" href="#catalizador" hidden></a>
       <div class="lvl" id="lvl" role="group" aria-label="Nivel de detalle"><button type="button" data-lvl="simple">Simple</button><button type="button" data-lvl="pro">Pro</button></div>
     </div>
     <nav class="menu" id="menu" aria-label="Módulos de la sección">
-      <a href="#hoy">Hoy</a><a href="#resumen">Resumen</a><a href="#cuantitativo">Cuantitativo</a><a href="#ciclo">Ciclo</a><a href="#catalizador">Catalizador</a><a href="#modelos">Modelos</a><a href="#distribucion">DoR</a><a href="#posicion">Posicionamiento</a><a href="#carry">Carry</a><a href="#vol">Volatilidad</a><a href="#estacional">Estacionalidad</a><a href="#graficos">Gráficos</a><a href="#tv">TV</a>
+      <a href="#hoy">Hoy</a><a href="#resumen">Resumen</a><a href="#cuantitativo">Cuantitativo</a><a href="#ciclo">Ciclo</a><a href="#catalizador">Catalizador</a><a href="#modelos">Modelos</a><a href="#distribucion">DoR</a><a href="#posicion">Posicionamiento</a><a href="#carry">Carry</a><a href="#vol">Volatilidad</a><a href="#estacional">Estacionalidad</a><a href="#graficos">Gráficos</a><a href="#reportes">Reportes</a><a href="#tv">TV</a>
     </nav>
+    <button type="button" class="tvwbtn" id="tvwBtn" hidden aria-label="Abrir un gráfico de TradingView" title="Gráfico rápido de TradingView"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M6 8h3v7H6M15 3v18M15 7h3v9h-3"></path></svg><span>Gráfico TradingView</span></button>
     <button class="themebtn" id="themeBtn" type="button" aria-label="Cambiar a tema claro" title="Tema claro / oscuro"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg></button>
   </div>
+  <div class="tape" role="marquee"><div class="tape-in" id="tape"></div></div>
 </header>
 <script>
 (function(){var r=document.documentElement,b=document.getElementById('themeBtn'),mq=matchMedia('(prefers-color-scheme: dark)');
@@ -227,7 +233,7 @@ mq.addEventListener('change',sync);sync();})();
       <div class="po-info" id="poInfo" hidden></div>
       <div class="filters po-opts" id="poOpts"></div>
       <div class="chart po-big"><canvas id="poCv"></canvas></div>
-      <p class="po-hint">Arrastra para moverte · pellizca o Ctrl + rueda para hacer zoom · toca la leyenda para ocultar o mostrar una serie</p>
+      <p class="po-hint">Arrastra sobre el gráfico para acercar esa zona · doble clic para volver · Shift + arrastrar para moverte · clic para fijar una lectura</p>
       <div id="poExtra"></div>
     </div>
 
@@ -336,6 +342,26 @@ mq.addEventListener('change',sync);sync();})();
       <div id="gxCycles"></div>
     </div>
   </section>
+  <section id="reportes">
+    <div class="sh">
+      <div class="sh-t"><span class="eyebrow">Biblioteca</span><h2>Reportes</h2></div>
+      <span class="stamp" id="repStamp"></span>
+    </div>
+    <div class="panel rep-bar">
+      <div class="tabs" role="tablist" aria-label="Tipo de reporte" id="repTabs"></div>
+      <div class="rep-tools">
+        <input type="search" id="repQ" placeholder="Buscar por título o fecha…" autocomplete="off" aria-label="Buscar reportes">
+        <a class="rep-up" id="repUp" href="https://github.com/tfxcapitalmx-cmyk/tfxbasket/upload/main/reports/entrada" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg>Subir reporte</a>
+        <button type="button" class="po-ib" id="repInfoBtn" aria-expanded="false" aria-controls="repInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>Cómo funciona</span></button>
+      </div>
+      <div class="po-info" id="repInfo" hidden></div>
+    </div>
+    <div class="rep-grid">
+      <div class="panel rep-list" id="repList"></div>
+      <div class="panel rep-view" id="repView"></div>
+    </div>
+  </section>
+
   <section id="tv">
     <div class="sh">
       <div class="sh-t"><h2>TV</h2></div>
@@ -349,20 +375,28 @@ mq.addEventListener('change',sync);sync();})();
     </div>
     <div class="panel tvwrap">
       <div class="tvframe" id="tvFrame"></div>
-      <div class="tvfoot"><p class="cap" id="tvCap"></p><a class="chip sm" id="tvOpen" href="#" target="_blank" rel="noopener">Abrir en YouTube</a></div>
+      <div class="tvfoot"><p class="cap" id="tvCap"></p><div class="tvacts"><button type="button" class="chip sm" id="tvMode" hidden></button><a class="chip sm" id="tvOpen" href="#" target="_blank" rel="noopener">Abrir en YouTube</a></div></div>
     </div>
     <div class="panel" id="tvCfg" hidden>
       <h3>Fuentes de video</h3>
+      <div class="tvadj" id="tvAdj" hidden><span class="lab">Encuadre del video</span><button type="button" class="chip sm" data-a="l" aria-label="Mover a la izquierda">←</button><button type="button" class="chip sm" data-a="r" aria-label="Mover a la derecha">→</button><button type="button" class="chip sm" data-a="u" aria-label="Mover arriba">↑</button><button type="button" class="chip sm" data-a="d" aria-label="Mover abajo">↓</button><button type="button" class="chip sm" data-a="in" aria-label="Acercar">Acercar</button><button type="button" class="chip sm" data-a="out" aria-label="Alejar">Alejar</button><button type="button" class="chip sm" data-a="reset" aria-label="Restablecer el encuadre">Restablecer</button></div>
       <div class="scroll"><table id="tvList"></table></div>
       <div class="rp-form tvform">
         <label><span>Nombre del canal</span><input type="text" id="tvNm" placeholder="Bloomberg TV" autocomplete="off"></label>
-        <label><span>Enlace o identificador de YouTube</span><input type="text" id="tvUrl" placeholder="https://www.youtube.com/watch?v=… o /channel/UC…" autocomplete="off"></label>
+        <label><span>Enlace de YouTube o de una página con video</span><input type="text" id="tvUrl" placeholder="https://www.youtube.com/watch?v=… o https://sitio.com/en-vivo" autocomplete="off"></label>
         <div class="tvbtns"><button type="button" class="chip sm" id="tvAdd">Guardar canal</button><button type="button" class="chip sm" id="tvReset">Restablecer lista</button></div>
       </div>
       <p class="note" id="tvHelp"></p>
     </div>
   </section>
 </main>
+<footer class="site-foot">
+  <p class="sf-big" aria-hidden="true">El mercado, <em>con contexto.</em></p>
+  <div><div class="sf-brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b></div>
+    <p>Terminal de inteligencia macro para el trader de divisas. Herramienta educativa de uso propio: no es asesoría de inversión. Prueba cualquier idea en demo antes de arriesgar capital.</p></div>
+  <div class="sf-src" aria-label="Fuentes de datos"><span>FRED</span><span>CFTC</span><span>BIS</span><span>ISM</span><span>U. Michigan</span><span>Conference Board</span><span>OCDE</span><span>ForexFactory</span><span>Yahoo Finance</span></div>
+  <div class="sf-k">Datos con licencia de sus fuentes · Se actualiza sola varias veces al día</div>
+</footer>
 
 <button class="totop away" id="totop" type="button">↑ Arriba</button>
 
@@ -379,8 +413,9 @@ mq.addEventListener('change',sync);sync();})();
   const REMOTE='https://raw.githubusercontent.com/tfxcapitalmx-cmyk/tfxbasket/main/';
   const one=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' → HTTP '+r.status);return r.json();});
   const get=p=>local?one(p):one(REMOTE+p).catch(e=>{console.warn('Repo no disponible, uso la copia publicada:',e.message);return one(p);});
-  window.TFX_DATA={get,remote:!local};   // used by the auto-refresh in app.js
-  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc])=>{
+  window.TFX_DATA={get,remote:!local,file:p=>(local?'':REMOTE)+p};   // used by the auto-refresh in app.js
+  Promise.all([get('data/snapshot.json'),get('data/markets.json'),get('data/cot.json'),get('data/macro.json'),get('data/carry.json'),get('data/charts.json'),get('data/vol.json'),get('data/seas.json'),get('data/mkt-live.json').catch(()=>null),get('data/dist.json'),get('data/calendar.json').catch(()=>null),get('data/nowcast.json').catch(()=>null),get('data/reports.json').catch(()=>null)]).then(([snap,mkt,cot,macro,carry,charts,vol,seas,live,dist,cal,nc,reps])=>{
+    snap.snap.reports=reps&&Array.isArray(reps.items)?reps:{items:[]};   // report library, rebuilt by .github/workflows/reports.yml
     snap.snap.pos=cot;   // COT is refreshed weekly by .github/workflows/cot.yml
     snap.snap.asof_manual=snap.snap.asof;   // date of the hand-loaded modules, before macro.json overrides asof
     Object.assign(snap.snap,macro);   // scorecard fields, refreshed daily by .github/workflows/macro.yml
@@ -394,6 +429,7 @@ mq.addEventListener('change',sync);sync();})();
     const s=document.createElement('script');s.src='assets/app.js';document.body.appendChild(s);
   }).catch(err=>{
     console.error(err);
+    const it=document.getElementById('intro');if(it)it.remove();
     const m=document.createElement('div');m.className='panel';m.setAttribute('role','alert');
     m.style.cssText='margin:24px auto;max-width:720px';
     m.textContent='No se pudieron cargar los datos de la terminal. Recarga la página; si persiste, avisa al administrador. ('+err.message+')';

@@ -1,0 +1,39 @@
+# Clasifica los reportes que llegan a reports/entrada/ y reconstruye data/reports.json.
+name: Reportes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reports/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-reports
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the index takes each report's date from the commit that added it
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Clasificar e indexar
+        run: node scripts/reports/update.mjs
+      - name: Publicar si hubo cambios
+        run: |
+          git add -A reports data/reports.json
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git config user.name "tfx-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "reportes: $(node -p "require('./data/reports.json').items.length") en la biblioteca"
+          git pull --rebase
+          git push

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-11-12 — Reportes, Bloomberg TV, gráfico de TradingView y gráficos que se amplían
+- **Reportes** (grupo nuevo en el menú): biblioteca con tres secciones — Diarios, Semanales y Bancarios — con buscador, lector dentro de la página (HTML en marco aislado, PDF, Markdown, texto e imágenes; Word, Excel y PowerPoint se descargan), "Ampliar" y "Descargar".
+  - Subida: el archivo se deja en `reports/entrada/` (botón "Subir reporte" → GitHub). `.github/workflows/reports.yml` ejecuta `scripts/reports/update.mjs`, que lo clasifica por nombre, título y contenido (`scripts/reports/core.mjs`), le pone la fecha, lo mueve a su carpeta y reconstruye `data/reports.json`. Reglas y casos de prueba: `node scripts/reports/check.mjs`.
+  - La página lee el índice y los documentos directo del repositorio, igual que `data/`; no hace falta desplegar. El repositorio es público: lo que se suba queda visible.
+- **TV → Bloomberg TV**: la fuente por defecto pasa a ser la página en vivo de Bloomberg, incrustada y encuadrada para mostrar solo el video ("Solo el video" / "Página completa"; el encuadre se ajusta con flechas en "Editar fuentes"). Bloomberg no prohíbe el incrustado, pero dentro del recuadro puede pedir su comprobación antirrobot, que hace el usuario en "Página completa". El módulo acepta ahora cualquier enlace https además de YouTube.
+- **Mercado → Gráfico TradingView**: botón en la barra de Mercado (y acción en el buscador) que abre el gráfico avanzado de TradingView en una ventana flotante, con atajos de símbolo y temporalidad; en Posicionamiento abre el par en estudio.
+- **Gráficos**: en todos, arrastrar sobre el gráfico acerca esa zona, Ctrl + rueda o pellizco hace zoom, Shift + arrastrar mueve y doble clic restablece. Barra de herramientas dentro de cada gráfico (alejar, acercar, restablecer, ampliar a ventana) y tirador inferior para cambiar su altura.
+- Ventana flotante común (`<dialog>`) para gráficos ampliados, reportes y TradingView.
+
+## 2026-11-12 — Rediseño visual con la marca TFX, motion e interacción
+- Capa v5 al final de `assets/app.css` y bloques "Motion" e "Interacción" en `assets/app.js`. No cambia la lógica de los módulos.
+- **Marca**: Syncopate en títulos y subtítulos, Montserrat en el cuerpo, Calibri en los números (Carlito donde Calibri no está instalada, por ejemplo en celulares). Colores de marca sin redefinir: dorado #FFD248, azul marino #0F1C2E, negro. La tarjeta insignia (régimen macro) va en azul marino con un haz dorado que recorre el borde.
+- **Fondo**: sin rejilla. Lienzo `#fx` con ondas doradas que se apartan del cursor, más grano de película.
+- **Gráficos**: animación de entrada (`CHA`), guía vertical que sigue al cursor, **clic para fijar una lectura** (cuadro bajo el gráfico; otro clic o "Soltar" la libera), doble clic restablece el zoom. Arrastrar no fija. Los de dispersión conservan su propio clic.
+- **Interacción**: cursor con anillo (dice "FIJAR" sobre los gráficos), tarjetas con inclinación 3D, botones de cabecera magnéticos, onda al clic, filas de tabla con filo dorado, barras y agujas que se despliegan. Las tarjetas del resumen de Posicionamiento abren su gráfico.
+- **Navegación**: buscador rápido (Ctrl/⌘ + K o "/") para saltar a un módulo, abrir un par en Posicionamiento o cambiar tema y nivel; transición entre secciones (View Transitions); intro animada una vez por sesión; título fantasma con paralaje; cinta de cotizaciones.
+- Titulares que suben palabra por palabra (la última en contorno dorado), cifras que cuentan hasta su valor exacto, tarjetas que aparecen al hacer scroll. Todo se desactiva con "reducir movimiento"; el cursor y la inclinación solo existen con ratón.
+
 ## 2026-11-12 — Posicionamiento ordenado para el trader que está aprendiendo
 - Mercado → Posicionamiento se reorganiza en tres bloques, con los mismos datos y recursos que antes:
   1. **Resumen en 10 segundos**: la lectura del par en una frase y cuatro tarjetas con números grandes y un dibujo cada una — a qué apuestan los fondos (barras largo/corto de cada divisa), qué tan extremo (medidor 0–100 con zonas ≤ 20 y ≥ 80), si entran o salen (flecha + minigráfico de 13 semanas) y si fondos y gestores coinciden. Botón "¿Qué es el COT?" con la guía resumida.

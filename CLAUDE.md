@@ -32,6 +32,7 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Es de uso pr
 - `data/cot.json` — automático (se inyecta como `D.snap.pos`). Lo generan `scripts/cot/` y `.github/workflows/cot.yml`; patrón en `docs/data-pipeline.md`.
 - `data/dist.json` (→ `D.series`, Distribución → Datos macroeconómicos) — automático con el puntaje (`scripts/macro/dist.mjs`); `node scripts/macro/check-dist.mjs` lo compara con `scripts/reference/snapshot-2026-10-16.json`.
 - `data/vol.json` (→ `D.snap.vol`), `data/seas.json` (→ `D.snap.seas`) y `data/mkt-live.json` (velas diarias de Yahoo Finance posteriores al histórico de `markets.json`) — automáticos; `scripts/markets/` y `.github/workflows/markets.yml`. `node scripts/markets/check.mjs` verifica que el cálculo reproduce `snapshot.json`.
+- `reports/` + `data/reports.json` (→ `D.snap.reports`, sección Reportes) — biblioteca de reportes diarios, semanales y bancarios. Lo que llega a `reports/entrada/` se clasifica y se indexa solo (`scripts/reports/`, `.github/workflows/reports.yml`; reglas en `reports/README.md`, prueba con `node scripts/reports/check.mjs`). Para publicar un reporte hecho en Claude: dejar el archivo en `reports/entrada/` con la fecha en el nombre y hacer commit. El repo es público: no subir material que no deba verse.
 - Scripts de datos en JavaScript (Node 20 en Actions). `core.mjs` es puro y se prueba importándolo en el navegador contra el servidor local.
 
 ## Fuentes manuales del propietario
@@ -40,4 +41,4 @@ Terminal de inteligencia macro de TFX Academy (FX, EE.UU. primero). Es de uso pr
 - `docs/` — arquitectura, fuentes, roadmap, decisiones y changelog. Actualizar `docs/changelog.md` en cada cambio relevante.
 
 ## Verificar un cambio
-Servir la carpeta con cualquier servidor estático (no funciona con `file://` porque usa `fetch`) y comprobar que los 12 módulos del menú renderizan sin errores de consola.
+Servir la carpeta con cualquier servidor estático (no funciona con `file://` porque usa `fetch`) y comprobar que los 14 módulos del menú renderizan sin errores de consola.
