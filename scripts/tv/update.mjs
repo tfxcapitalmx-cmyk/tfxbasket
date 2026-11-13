@@ -19,8 +19,8 @@ const HDR = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebK
 // read too. The three first video ids of that page belong to the suggested next video, not to the stream.
 export function parseLive(html, channelId) {
   if (!html.includes('ytInitialPlayerResponse')) return { ok: false, err: 'YouTube no devolvió los datos del reproductor (' + (/<title>([^<]{0,60})/.exec(html) || [])[1] + ', ' + html.length + ' bytes)' };
-  if (/"playabilityStatus":{"status":"LOGIN_REQUIRED"/.test(html)) {
-    const v = (/"likeEndpoint":{"status":"LIKE","target":{"videoId":"([w-]{11})"/.exec(html) || [])[1] || '';
+  if (/"playabilityStatus":\{"status":"LOGIN_REQUIRED"/.test(html)) {
+    const v = (/"likeEndpoint":\{"status":"LIKE","target":\{"videoId":"([\w-]{11})"/.exec(html) || [])[1] || '';
     const live = !!v && /"isLive":true/.test(html) && html.includes('"browseId":"' + channelId + '"');
     const t = (/"playerOverlayVideoDetailsRenderer":{"title":{"simpleText":"([^"]{0,80})/.exec(html) || [])[1] || '';
     return { ok: true, live, v: live ? v : '', t: live ? t.replace(/\u0026/g, '&') : '', blocked: true };
@@ -28,7 +28,7 @@ export function parseLive(html, channelId) {
   const i = html.indexOf('"videoDetails"');
   if (i < 0) return { ok: true, live: false };
   const seg = html.slice(i, i + 3000), get = re => (re.exec(seg) || [])[1] || '';
-  const v = get(/"videoId":"([w-]{11})"/), ch = get(/"channelId":"(UC[w-]{22})"/);
+  const v = get(/"videoId":"([\w-]{11})"/), ch = get(/"channelId":"(UC[\w-]{22})"/);
   const embed = (/"playableInEmbed":(true|false)/.exec(html) || [])[1] !== 'false';
   const live = /"isLive":true/.test(seg) && !!v && ch === channelId && embed;
   return { ok: true, live, v: live ? v : '', t: live ? get(/"title":"([^"]{0,80})/).replace(/\u0026/g, '&') : '' };
