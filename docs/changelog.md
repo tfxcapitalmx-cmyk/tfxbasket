@@ -1,9 +1,15 @@
 # Changelog
 
-## 2026-11-13 — Más canales en TV
-- La sección TV pasa de 1 a 12 canales: Bloomberg TV, Yahoo Finance, Schwab Network, Fox Business, Reuters, Sky News, CNA, Euronews, DW News, France 24, Al Jazeera y Negocios TV (en español). Se eligieron entre candidatos comprobados en YouTube el 2026-11-13: con directo activo y que permiten incrustarse. Quedaron fuera CNBC (su YouTube no emite el canal en vivo en este momento) y Bloomberg en YouTube (sin directo).
-- Hallazgo: para Yahoo Finance, Fox Business, Reuters, Schwab y Negocios TV el incrustado "por canal" de YouTube responde "video no disponible"; por identificador de video sí funciona, y ese identificador cambia con cada programa. Por eso `scripts/tv/update.mjs` (`.github/workflows/tv.yml`, cada 30 minutos) averigua el video en vivo de cada canal y lo guarda en `data/tv.json` (`D.snap.tvlive`). Sin dato, la página cae al incrustado por canal.
-- Las listas que el usuario ya tenía guardadas en su navegador se actualizan solas: se agregan los canales nuevos y se conservan los que añadió a mano.
+## 2026-11-13 — TV: canales fijos, reproductor compacto, notas y contexto
+- **Canales fijos, solo del administrador.** Se quitó "Editar fuentes": los usuarios ya no pueden agregar ni quitar canales. La lista vive en `data/tv-config.json` (campos explicados en el propio archivo); se edita en GitHub o pidiéndoselo a Claude. El script `scripts/tv/update.mjs` lee ese mismo archivo, así que la lista ya no se duplica.
+- **12 canales**: Bloomberg TV, Yahoo Finance, Schwab Network, Fox Business, Negocios TV (español), Reuters, Sky News, CNA, Euronews, DW News, France 24 y Al Jazeera, comprobados en YouTube el 2026-11-13 (con directo activo y que permite incrustarse). Quedaron fuera CNBC y Bloomberg en YouTube (sin directo).
+- **Resolución del video en vivo.** Para Yahoo Finance, Fox Business, Reuters, Schwab y Negocios TV el incrustado "por canal" de YouTube responde "video no disponible"; por identificador de video sí funciona y cambia con cada programa. `.github/workflows/tv.yml` (cada 30 min) lo averigua y lo guarda en `data/tv.json` (`D.snap.tvlive`); sin dato, la página usa el incrustado por canal.
+- **Rediseño**: franja de canales (con filtros Todos / Mercados / Noticias / Español, el programa al aire y un punto de "en vivo"), video más chico (≈ 800 px en escritorio en lugar de todo el ancho), barra de controles (anterior / siguiente, Mini al navegar, Cine, Abrir) y dos paneles de análisis:
+  - **Mis notas** (a la derecha): se guardan con hora y canal, con etiquetas (Idea, Dato, Riesgo, Trade, Duda), filtro, borrado en dos pasos, copiar y descargar en Markdown. Solo viven en el navegador del usuario; el borrador no se pierde al cambiar de canal.
+  - **Contexto** (bajo el video): sesiones de mercado abiertas o cerradas con su cuenta regresiva (Sídney, Tokio, Londres, Nueva York), próximos datos de alto impacto con cuenta regresiva y el pulso de mercado (mismos datos de la cinta).
+- **Mini al navegar**: opcional; deja el video en una esquina cuando se baja por la página o se abre otro módulo (el reproductor vive fuera de la sección y no se reinicia). Con el botón apagado, salir de TV detiene la transmisión (antes seguía sonando oculta).
+- El buscador (Ctrl + K) suma "Ver <canal>" para cada canal. Las listas guardadas por usuarios en versiones anteriores se ignoran.
+
 
 ## 2026-11-12 — Reportes, Bloomberg TV, gráfico de TradingView y gráficos que se amplían
 - **Reportes** (grupo nuevo en el menú): biblioteca con tres secciones — Diarios, Semanales y Bancarios — con buscador, lector dentro de la página (HTML en marco aislado, PDF, Markdown, texto e imágenes; Word, Excel y PowerPoint se descargan), "Ampliar" y "Descargar".

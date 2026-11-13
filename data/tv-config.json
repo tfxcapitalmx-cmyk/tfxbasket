@@ -1,0 +1,17 @@
+{
+  "_ayuda": "Canales de la sección TV. Solo los edita el administrador (aquí en GitHub, o pidiéndoselo a Claude); los usuarios no pueden cambiarlos. El orden del arreglo es el orden en pantalla. Campos: id (único, sin espacios), n (nombre), sub (región o tipo), cat ('mercados' o 'noticias'), lang ('es' para que salga también en el filtro Español), k ('channel' = canal de YouTube con directo, o 'web' = página con reproductor), v (para 'channel': identificador del canal que empieza con UC; para 'web': el enlace https), h (solo 'channel': el @ del canal en YouTube, sin la arroba; lo usa el proceso automático que busca el video en vivo), crop (solo 'web': recuadro del reproductor dentro de la página para mostrar solo el video). Para agregar un canal: https://github.com/tfxcapitalmx-cmyk/tfxbasket/edit/main/data/tv-config.json",
+  "canales": [
+    { "id": "bloomberg", "n": "Bloomberg TV", "sub": "EE.UU. · mercados", "cat": "mercados", "k": "web", "v": "https://www.bloomberg.com/live/us-btv", "crop": { "w": 1521, "x": 134, "y": 236, "vw": 814, "vh": 458 } },
+    { "id": "yahoo", "n": "Yahoo Finance", "sub": "EE.UU. · mercados", "cat": "mercados", "k": "channel", "v": "UCEAZeUIeJs0IjQiqTCdVSIg", "h": "YahooFinance" },
+    { "id": "schwab", "n": "Schwab Network", "sub": "EE.UU. · mercados", "cat": "mercados", "k": "channel", "v": "UCqoSrYgusd8ZddtMoWhjHYA", "h": "SchwabNetwork" },
+    { "id": "foxbiz", "n": "Fox Business", "sub": "EE.UU. · negocios", "cat": "mercados", "k": "channel", "v": "UCCXoCcu9Rp7NPbTzIvogpZg", "h": "FoxBusiness" },
+    { "id": "negocios", "n": "Negocios TV", "sub": "Español · negocios", "cat": "mercados", "lang": "es", "k": "channel", "v": "UCwd8Byi93KbnsYmCcKLExvQ", "h": "NegociosTV" },
+    { "id": "reuters", "n": "Reuters", "sub": "Global · agencia", "cat": "noticias", "k": "channel", "v": "UChqUTb7kYRX8-EiaN3XFrSQ", "h": "Reuters" },
+    { "id": "sky", "n": "Sky News", "sub": "Reino Unido", "cat": "noticias", "k": "channel", "v": "UCoMdktPbSTixAyNGwb-UYkQ", "h": "SkyNews" },
+    { "id": "cna", "n": "CNA", "sub": "Asia", "cat": "noticias", "k": "channel", "v": "UC83jt4dlz1Gjl58fzQrrKZg", "h": "channelnewsasia" },
+    { "id": "euronews", "n": "Euronews", "sub": "Europa", "cat": "noticias", "k": "channel", "v": "UCSrZ3UV4jOidv8ppoVuvW9Q", "h": "euronews" },
+    { "id": "dw", "n": "DW News", "sub": "Alemania · Europa", "cat": "noticias", "k": "channel", "v": "UCknLrEdhRCp1aegoMqRaCZg", "h": "DWNews" },
+    { "id": "france24", "n": "France 24", "sub": "Francia · Europa", "cat": "noticias", "k": "channel", "v": "UCQfwfsi5VrQ8yKZ-UWmAEFg", "h": "france24_en" },
+    { "id": "aljazeera", "n": "Al Jazeera", "sub": "Medio Oriente", "cat": "noticias", "k": "channel", "v": "UCNye-wNBqNL5ZzHSJj3l8Bg", "h": "aljazeeraenglish" }
+  ]
+}

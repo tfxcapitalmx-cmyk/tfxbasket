@@ -6,14 +6,9 @@
 // Runs in .github/workflows/tv.yml. Local run: node scripts/tv/update.mjs
 import fs from 'fs';
 
-const CH = [  // [handle, channelId, name]; keep in step with TVCH in assets/app.js
-  ['YahooFinance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'Yahoo Finance'], ['SchwabNetwork', 'UCqoSrYgusd8ZddtMoWhjHYA', 'Schwab Network'],
-  ['FoxBusiness', 'UCCXoCcu9Rp7NPbTzIvogpZg', 'Fox Business'], ['Reuters', 'UChqUTb7kYRX8-EiaN3XFrSQ', 'Reuters'],
-  ['SkyNews', 'UCoMdktPbSTixAyNGwb-UYkQ', 'Sky News'], ['channelnewsasia', 'UC83jt4dlz1Gjl58fzQrrKZg', 'CNA'],
-  ['euronews', 'UCSrZ3UV4jOidv8ppoVuvW9Q', 'Euronews'], ['DWNews', 'UCknLrEdhRCp1aegoMqRaCZg', 'DW News'],
-  ['france24_en', 'UCQfwfsi5VrQ8yKZ-UWmAEFg', 'France 24'], ['aljazeeraenglish', 'UCNye-wNBqNL5ZzHSJj3l8Bg', 'Al Jazeera'],
-  ['NegociosTV', 'UCwd8Byi93KbnsYmCcKLExvQ', 'Negocios TV'],
-];
+// Channels come from data/tv-config.json (edited only by the administrator): the YouTube ones with a handle.
+const CH = JSON.parse(fs.readFileSync('data/tv-config.json', 'utf8')).canales
+  .filter(c => c.k === 'channel' && c.h).map(c => [c.h, c.v, c.n]);
 const OUT = 'data/tv.json';
 const HDR = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
   'accept-language': 'en-US,en;q=0.9', cookie: 'CONSENT=YES+1; SOCS=CAI' };

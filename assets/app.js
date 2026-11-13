@@ -642,117 +642,225 @@ function spxGdpRead(h){
 
 
 // ---------- TV ----------
-// Sources are YouTube videos or channels, or a web page with a live player. A web source may carry a crop
-// (the player's rectangle inside the page, measured at a fixed page width): the page is embedded larger than
-// the frame and shifted so that only the video shows. The crop can be nudged from "Editar fuentes".
-const TVBB={n:'Bloomberg TV',k:'web',v:'https://www.bloomberg.com/live/us-btv',crop:{w:1521,x:134,y:236,vw:814,vh:458}};
-// Channels with a public 24/7 YouTube live, checked on 2026-11-13 (live now and embeddable). They load by channel id,
-// so a stream that restarts under a new video id keeps working. Business first, then global news, then Spanish.
-const TVCH=[['Yahoo Finance','UCEAZeUIeJs0IjQiqTCdVSIg'],['Schwab Network','UCqoSrYgusd8ZddtMoWhjHYA'],['Fox Business','UCCXoCcu9Rp7NPbTzIvogpZg'],
-  ['Reuters','UChqUTb7kYRX8-EiaN3XFrSQ'],['Sky News','UCoMdktPbSTixAyNGwb-UYkQ'],['CNA (Asia)','UC83jt4dlz1Gjl58fzQrrKZg'],
-  ['Euronews','UCSrZ3UV4jOidv8ppoVuvW9Q'],['DW News','UCknLrEdhRCp1aegoMqRaCZg'],['France 24','UCQfwfsi5VrQ8yKZ-UWmAEFg'],
-  ['Al Jazeera','UCNye-wNBqNL5ZzHSJj3l8Bg'],['Negocios TV','UCwd8Byi93KbnsYmCcKLExvQ']];
-const TVDEF=[TVBB,...TVCH.map(([n,v])=>({n,k:'channel',v}))];
+// The channels are fixed: they come from data/tv-config.json, which only the administrator edits (see CLAUDE.md).
+// The user picks a channel, takes notes and reads the context panel; nothing about the channel list is editable here.
+// The player lives in a body-level box (#tvBox) so it survives changes of module: inside the TV module it is laid over
+// the stage placeholder (absolute, in document coordinates so it scrolls with the page); with "Mini al navegar" it docks
+// to a corner when the stage is out of view or another module is open; otherwise leaving TV stops the stream.
+const TVBB={id:'bloomberg',n:'Bloomberg TV',sub:'EE.UU. · mercados',cat:'mercados',k:'web',v:'https://www.bloomberg.com/live/us-btv',crop:{w:1521,x:134,y:236,vw:814,vh:458}};
 const tvClone=x=>JSON.parse(JSON.stringify(x));
-let tv=Object.assign({i:0,list:null,cfg:false,full:false,m:0},store.get('tv',{})),tvRO=null,tvFit=null;
-function tvParse(s){
-  s=(s||'').trim();if(!s)return null;
-  let m=s.match(/[?&]v=([A-Za-z0-9_-]{11})/)||s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/)
-       ||s.match(/\/(?:live|embed|shorts)\/([A-Za-z0-9_-]{11})/);
-  if(m&&/youtu/i.test(s))return{k:'video',v:m[1]};
-  m=s.match(/[?&]channel=(UC[A-Za-z0-9_-]{22})/)||s.match(/\/channel\/(UC[A-Za-z0-9_-]{22})/);
-  if(m)return{k:'channel',v:m[1]};
-  if(/^UC[A-Za-z0-9_-]{22}$/.test(s))return{k:'channel',v:s};
-  if(/^[A-Za-z0-9_-]{11}$/.test(s))return{k:'video',v:s};
-  m=s.match(/youtube\.com\/@([A-Za-z0-9._-]+)/)||s.match(/^@([A-Za-z0-9._-]+)$/);
-  if(m)return{k:'handle',v:m[1]};
-  if(/^https:\/\/[^\s]+$/i.test(s)&&!/youtu\.?be/i.test(s))return /bloomberg\.com\/live/i.test(s)?{k:'web',v:s,crop:tvClone(TVBB.crop)}:{k:'web',v:s};
-  return null;
-}
+const tvCh=()=>Array.isArray(S.tvcfg)&&S.tvcfg.length?S.tvcfg:[TVBB];
+const tvHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}};
+let tv=Object.assign({sel:'',mini:false,wide:false,cat:'todos',tab:'notas',tag:'todas'},store.get('tv2',{}));
+tv.full=false;tv.hold=false;
+let tvBox=null,tvKey='',tvLoop=0,tvRO=null,tvDraft=store.get('tvdraft',''),tvTag=null,tvTick=0,tvZ='';
+const tvSv=()=>store.set('tv2',{sel:tv.sel,mini:tv.mini,wide:tv.wide,cat:tv.cat,tab:tv.tab,tag:tv.tag});
+const tvCur=()=>{const L=tvCh();return L.find(c=>c.id===tv.sel)||L[0];};
 // A channel plays through the live video found by .github/workflows/tv.yml (data/tv.json); without it, through the
 // channel's own live embed, which not every channel answers (Yahoo Finance, Fox Business and Reuters do not).
 const tvLiveId=c=>c.k==='channel'&&S.tvlive&&S.tvlive[c.v]?S.tvlive[c.v].v:'';
+const tvProg=c=>c.k==='channel'&&S.tvlive&&S.tvlive[c.v]?(S.tvlive[c.v].t||''):'';
+const tvKnown=()=>!!(S.tvlive&&Object.keys(S.tvlive).length);
+const tvIsLive=c=>c.k==='web'?true:tvKnown()?!!tvLiveId(c):null;
 const tvSrc=c=>{const L=tvLiveId(c);return c.k==='channel'&&!L
   ?`https://www.youtube.com/embed/live_stream?channel=${c.v}&rel=0&modestbranding=1`
   :`https://www.youtube.com/embed/${L||c.v}?rel=0&modestbranding=1`;};
-const tvLink=c=>c.k==='web'?c.v:c.k==='channel'?`https://www.youtube.com/channel/${c.v}/live`
-  :c.k==='handle'?`https://www.youtube.com/@${c.v}/live`:`https://www.youtube.com/watch?v=${c.v}`;
-const tvHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}};
-function renderTV(){
-  const sv=()=>store.set('tv',{i:tv.i,list:tv.list,cfg:tv.cfg,full:tv.full,m:tv.m});
-  if(!Array.isArray(tv.list)||!tv.list.length){tv.list=TVDEF.map(tvClone);tv.m=3;}
-  // One-time update of lists saved earlier: Bloomberg's own page goes first (its dead YouTube link is dropped) and the
-  // channels added since are appended; whatever the user added by hand stays.
-  if(tv.m!==3){const had=tv.list.filter(c=>c.v!=='QB5BNdBFujE'&&c.v!==TVBB.v),vs=new Set(had.map(c=>c.v));
-    tv.list=[tvClone(TVBB),...had,...TVDEF.slice(1).filter(c=>!vs.has(c.v)).map(tvClone)];tv.i=0;tv.m=3;sv();}
-  if(tv.i>=tv.list.length)tv.i=0;
-  const C=tv.list[tv.i],web=C.k==='web',crop=web&&C.crop&&!tv.full;
-  $('tvStamp').textContent=`${tv.list.length} canal${tv.list.length===1?'':'es'} · en vivo`;
-  chipset($('tvTabs'),tv.list.map((c,i)=>({id:String(i),label:c.n})),String(tv.i),id=>{tv.i=+id;tv.full=false;sv();renderTV();},'chip sm');
+const tvLink=c=>c.k==='web'?c.v:`https://www.youtube.com/channel/${c.v}/live`;
+const tvMono=n=>n.replace(/\(.*?\)/g,'').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const TVIC={prev:'<path d="M15 5l-7 7 7 7"></path>',next:'<path d="M9 5l7 7-7 7"></path>',mini:'<rect x="3" y="4" width="18" height="14" rx="2"></rect><rect x="12" y="11" width="7" height="5" rx="1"></rect>',
+  wide:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path>',page:'<rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8"></path>',open:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path>',
+  info:'<circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>',down:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"></path>'};
+const tvI=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${TVIC[k]}</svg>`;
 
-  const F=$('tvFrame');F.innerHTML='';F.style.aspectRatio='';F.classList.toggle('tvfull',web&&!crop);
-  if(tvRO){tvRO.disconnect();tvRO=null;}tvFit=null;
-  if(C.k==='handle'){
-    F.innerHTML=`<div class="tvempty"><b>${C.n}</b><span>YouTube no permite incrustar un canal por su arroba. Abre el canal, entra al video en vivo y pega aquí ese enlace, o pega el identificador del canal que empieza con UC.</span></div>`;
-  }else{
+// ----- player box -----
+function tvBoxEnsure(){
+  if(tvBox)return;
+  tvBox=document.createElement('div');tvBox.id='tvBox';tvBox.hidden=true;
+  tvBox.innerHTML='<div class="tvb-in"></div><div class="tvb-mini"><b></b><button type="button" data-m="back" aria-label="Volver a la sección TV">↗ TV</button><button type="button" data-m="close" aria-label="Cerrar el mini reproductor">✕</button></div>';
+  tvBox.addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(b.dataset.m==='back')go('tv');else{tvStop();tv.hold=true;}});
+  document.body.appendChild(tvBox);
+}
+function tvStop(){
+  if(tvRO){tvRO.disconnect();tvRO=null;}
+  if(tvBox){tvBox.hidden=true;tvBox.querySelector('.tvb-in').innerHTML='';tvBox.className='';tvBox.removeAttribute('style');}
+  tvKey='';
+}
+function tvLoad(){
+  const C=tvCur(),stage=$('tvStage');if(!stage)return;
+  const web=C.k==='web',crop=web&&C.crop&&!tv.full;
+  stage.classList.toggle('tall',web&&!crop);
+  tvBoxEnsure();
+  const key=[C.id,tv.full?1:0,tvLiveId(C)].join('|'),In=tvBox.querySelector('.tvb-in');
+  if(key!==tvKey||!In.querySelector('iframe')){
+    if(tvRO){tvRO.disconnect();tvRO=null;}
+    In.innerHTML='';In.className='tvb-in';
     const f=document.createElement('iframe');
     f.src=web?C.v:tvSrc(C);f.title=C.n;f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
     f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';
     if(crop){
+      // The page is laid out at its own width and scaled so that only the player rectangle fills the box.
       f.className='tvcrop';f.setAttribute('scrolling','no');
-      tvFit=()=>{const k=C.crop,s=F.clientWidth/k.vw;F.style.aspectRatio=`${k.vw}/${k.vh}`;f.style.width=k.w+'px';f.style.height=Math.round(k.y+k.vh+60)+'px';
+      const k=C.crop,fit=()=>{const s=In.clientWidth/k.vw;f.style.width=k.w+'px';f.style.height=Math.round(k.y+k.vh+60)+'px';
         f.style.transform=`scale(${s.toFixed(4)}) translate(${-k.x}px,${-k.y}px)`;};
-      tvFit();if(window.ResizeObserver){tvRO=new ResizeObserver(tvFit);tvRO.observe(F);}
-    }else f.loading='lazy';
-    F.appendChild(f);
+      fit();if(window.ResizeObserver){tvRO=new ResizeObserver(fit);tvRO.observe(In);}
+    }
+    In.appendChild(f);tvKey=key;
+    tvBox.querySelector('.tvb-mini b').textContent=C.n;
   }
-  const op=$('tvOpen'),md=$('tvMode');
-  op.href=tvLink(C);op.textContent=web?'Abrir en ventana aparte':'Abrir en YouTube';
-  op.onclick=web?e=>{e.preventDefault();window.open(C.v,'tfx-tv','popup=yes,width=1180,height=700');}:null;
-  md.hidden=!(web&&C.crop);md.textContent=tv.full?'Solo el video':'Página completa';
-  md.onclick=()=>{tv.full=!tv.full;sv();renderTV();};
-  $('tvCap').innerHTML=web
-    ? (C.crop?`<b>${C.n}</b> · ${tv.full?'página completa':'solo el video'}. Si ${tvHost(C.v)} pide comprobar que no eres un robot, cambia a <b>Página completa</b>, complétalo y vuelve a <b>Solo el video</b>.`
-             :`<b>${C.n}</b> · página de ${tvHost(C.v)} incrustada completa. Si queda en blanco, ese sitio no permite mostrarse dentro de otra página: usa <b>Abrir en ventana aparte</b>.`)
-    : C.k==='channel'
-    ? (tvLiveId(C)?`<b>${C.n}</b> · en vivo: ${repEsc(S.tvlive[C.v].t||'transmisión')}. El proceso automático busca cada 30 minutos qué está transmitiendo el canal; si cambia de programa y el recuadro dice que el video no está disponible, recarga en unos minutos.`
-      :`<b>${C.n}</b> · se intenta cargar la transmisión en vivo del canal <span class="pop">${C.v}</span>. Si el recuadro aparece en negro o dice que el video no está disponible, ese canal no tiene un directo público ahora mismo o su dueño bloqueó la incrustación. Cambia la fuente en Editar fuentes.`)
-    : `<b>${C.n}</b> · video <span class="pop">${C.v}</span>. Si la transmisión termina, el enlace deja de servir: pega el nuevo en Editar fuentes.`;
+  tvPlace();
+}
+// Position of the box: over the stage, docked as a mini player, or stopped.
+function tvPlace(){
+  if(!tvBox)return;
+  const st=$('tvStage'),onTV=view==='tv'&&st&&st.offsetParent!==null,playing=!!tvBox.querySelector('iframe');
+  if(!playing){
+    if(onTV&&!tv.hold&&tvCh().length){tvLoad();}
+    return;
+  }
+  let mode;
+  if(onTV){const r=st.getBoundingClientRect();mode=tv.mini&&(r.bottom<130||r.top>innerHeight-60)?'mini':'stage';
+    if(mode==='stage'){const z=`${(r.left+scrollX).toFixed(1)}|${(r.top+scrollY).toFixed(1)}|${r.width.toFixed(1)}|${r.height.toFixed(1)}`;
+      if(z!==tvZ||tvBox.className!=='stage'){tvZ=z;tvBox.className='stage';tvBox.style.cssText=`left:${(r.left+scrollX).toFixed(1)}px;top:${(r.top+scrollY).toFixed(1)}px;width:${r.width.toFixed(1)}px;height:${r.height.toFixed(1)}px`;}}}
+  else mode=tv.mini?'mini':'off';
+  if(mode==='off'){tvStop();return;}
+  if(mode==='mini'&&tvBox.className!=='mini'){tvBox.className='mini';tvBox.removeAttribute('style');tvZ='';}
+  tvBox.hidden=false;
+}
+function tvLoopRun(){tvLoop=0;if(view!=='tv')return;tvPlace();tvLoop=requestAnimationFrame(tvLoopRun);}
+function tvLoopStart(){if(!tvLoop)tvLoop=requestAnimationFrame(tvLoopRun);}
 
-  $('tvCfgBtn').onclick=()=>{tv.cfg=!tv.cfg;sv();renderTV();};
-  $('tvCfgBtn').textContent=tv.cfg?'Ocultar fuentes':'Editar fuentes';
-  $('tvCfg').hidden=!tv.cfg;
-  if(!tv.cfg)return;
+// ----- channel rail -----
+const TVCATS=[['todos','Todos'],['mercados','Mercados'],['noticias','Noticias'],['es','Español']];
+const tvInCat=(c,k)=>k==='todos'||(k==='es'?c.lang==='es':c.cat===k);
+function tvRail(){
+  const L=tvCh();if(!TVCATS.some(x=>x[0]===tv.cat))tv.cat='todos';
+  chipset($('tvCats'),TVCATS.map(([k,l])=>({id:k,label:`${l} · ${L.filter(c=>tvInCat(c,k)).length}`})),tv.cat,id=>{tv.cat=id;tvSv();tvRail();},'chip sm');
+  const R=$('tvRail');
+  R.innerHTML=L.filter(c=>tvInCat(c,tv.cat)).map(c=>{const lv=tvIsLive(c),p=tvProg(c);
+    return `<button type="button" class="tv-ch${c.id===tv.sel?' on':''}" data-id="${repEsc(c.id)}" aria-pressed="${c.id===tv.sel}">`
+      +`<span class="tv-mono">${repEsc(tvMono(c.n))}</span><span class="tv-cn"><b>${repEsc(c.n)}</b><small>${repEsc(c.sub||'')}</small></span>`
+      +`<i class="tv-dot ${lv===false?'off':lv?'on':''}" title="${lv===false?'Sin directo ahora':lv?'En vivo':''}"></i>`
+      +`<span class="tv-p">${p?repEsc(p):(lv===false?'Sin transmisión en este momento':c.k==='web'?'Página en vivo':'Transmisión en vivo')}</span></button>`;}).join('')
+    ||'<div class="rep-empty"><span>No hay canales en esta categoría.</span></div>';
+  R.querySelectorAll('.tv-ch').forEach(b=>b.onclick=()=>tvSel(b.dataset.id));
+  const on=R.querySelector('.on');if(on&&R.scrollWidth>R.clientWidth){const x=on.offsetLeft-(R.clientWidth-on.offsetWidth)/2;R.scrollTo({left:Math.max(0,x),behavior:MOTION?'smooth':'auto'});}
+}
+function tvSel(id){
+  if(!tvCh().some(c=>c.id===id))return;
+  tv.sel=id;tv.full=false;tv.hold=false;tvSv();tvRail();tvBar();tvLoad();
+  const nc=$('tvnCh');if(nc)nc.textContent=tvCur().n;
+}
+function tvStep(d){
+  const L=tvCh().filter(c=>tvInCat(c,tv.cat));if(!L.length)return;
+  const i=L.findIndex(c=>c.id===tv.sel);tvSel(L[((i<0?0:i)+d+L.length)%L.length].id);
+}
 
-  // Crop nudging: moves or scales the visible window without reloading the embedded page.
-  const adj=$('tvAdj');adj.hidden=!crop;
-  adj.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const k=C.crop,a=b.dataset.a,r=k.vh/k.vw;
-    if(a==='l')k.x+=6;else if(a==='r')k.x-=6;else if(a==='u')k.y+=6;else if(a==='d')k.y-=6;
-    else if(a==='in'&&k.vw>320){k.vw-=24;k.vh=Math.round(k.vw*r);k.x+=12;k.y+=Math.round(12*r);}
-    else if(a==='out'){k.vw+=24;k.vh=Math.round(k.vw*r);k.x-=12;k.y-=Math.round(12*r);}
-    else if(a==='reset')Object.assign(k,tvClone(TVBB.crop));
-    sv();if(tvFit)tvFit();});
+// ----- bar under the player -----
+function tvBar(){
+  const C=tvCur(),lv=tvIsLive(C),web=C.k==='web',prog=tvProg(C);
+  $('tvBar').innerHTML=
+    `<div class="tvbar-l"><span class="tv-live${lv===false?' off':''}"><i></i>${lv===false?'Sin señal':'En vivo'}</span><div class="tvbar-t"><b>${repEsc(C.n)}</b><span>${repEsc(prog||C.sub||'')}</span></div></div>`
+    +`<div class="tvbar-r">`
+    +`<button type="button" class="po-ib sq" data-a="prev" aria-label="Canal anterior" title="Canal anterior">${tvI('prev')}</button>`
+    +`<button type="button" class="po-ib sq" data-a="next" aria-label="Canal siguiente" title="Canal siguiente">${tvI('next')}</button>`
+    +`<button type="button" class="po-ib${tv.mini?' on':''}" data-a="mini" aria-pressed="${tv.mini}" title="Sigue viendo el canal en una ventana pequeña mientras navegas por otros módulos o bajas en esta página">${tvI('mini')}<span>Mini al navegar</span></button>`
+    +`<button type="button" class="po-ib${tv.wide?' on':''}" data-a="wide" aria-pressed="${tv.wide}" title="Video grande, con las notas debajo">${tvI('wide')}<span>${tv.wide?'Compacto':'Cine'}</span></button>`
+    +(web&&C.crop?`<button type="button" class="po-ib${tv.full?' on':''}" data-a="full" aria-pressed="${tv.full}" title="Si ${repEsc(tvHost(C.v))} pide comprobar que no eres un robot, usa la página completa, complétalo y vuelve a Solo el video">${tvI('page')}<span>${tv.full?'Solo el video':'Página completa'}</span></button>`:'')
+    +`<a class="po-ib" href="${repEsc(tvLink(C))}" target="_blank" rel="noopener" title="Abrir en ${web?'una ventana aparte':'YouTube'}">${tvI('open')}<span>Abrir</span></a>`
+    +`<button type="button" class="po-ib sq" id="tvInfoBtn" aria-expanded="false" aria-controls="tvInfo" aria-label="Cómo usar esta sección" title="Cómo usar esta sección">${tvI('info')}</button></div>`;
+  $('tvBar').querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
+    if(a==='prev')tvStep(-1);else if(a==='next')tvStep(1);
+    else if(a==='mini'){tv.mini=!tv.mini;tvSv();tvBar();tvPlace();}
+    else if(a==='wide'){tv.wide=!tv.wide;tvSv();$('tvGrid').classList.toggle('wide',tv.wide);tvBar();}
+    else if(a==='full'){tv.full=!tv.full;tvBar();tvLoad();}});
+  poInfoWire('tvInfoBtn','tvInfo','tv',
+    `<ul><li><b>Canales.</b> Son fijos: los administra el equipo de TFX. Elige uno en la franja; la línea de abajo dice qué programa va al aire.</li>`
+    +`<li><b>Reproducir.</b> Pulsa play en el video (el sonido empieza apagado o en pausa según el canal).</li>`
+    +`<li><b>Mini al navegar.</b> Activa el botón y el video se queda en una esquina cuando bajas por la página o abres otro módulo. Con el botón apagado, salir de TV detiene la transmisión.</li>`
+    +`<li><b>Notas.</b> Se guardan con la hora y el canal, solo en este navegador. Puedes copiarlas o descargarlas.</li>`
+    +`<li><b>Contexto.</b> Sesiones de mercado, próximos datos de alto impacto y el pulso de los activos, para relacionar lo que oyes con lo que viene.</li></ul>`);
+}
 
-  const KN={channel:'Canal en vivo',video:'Video',handle:'Arroba sin resolver',web:'Página web'};
-  $('tvList').innerHTML=`<thead><tr><th>Canal</th><th>Tipo</th><th>Identificador</th><th></th><th></th></tr></thead><tbody>`
-    +tv.list.map((c,i)=>`<tr${i===tv.i?' class="on"':''}><td>${c.n}</td><td>${KN[c.k]||c.k}</td>
-      <td class="pop">${c.k==='web'?tvHost(c.v):c.v}</td><td><button type="button" class="tvuse" data-u="${i}">Ver</button></td>
-      <td><button type="button" class="tvx" data-d="${i}">Quitar</button></td></tr>`).join('')+'</tbody>';
-  $('tvList').querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{tv.i=+b.dataset.u;tv.full=false;sv();renderTV();});
-  $('tvList').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.d;tv.list.splice(i,1);if(tv.i>=tv.list.length)tv.i=Math.max(0,tv.list.length-1);sv();renderTV();});
-  $('tvAdd').onclick=()=>{
-    const n=$('tvNm').value.trim(),p=tvParse($('tvUrl').value);
-    if(!p){$('tvUrl').focus();$('tvCap').innerHTML='<b>No reconocí ese enlace.</b> Sirve el enlace de un video de YouTube, el de un canal con /channel/UC…, el identificador suelto, o el enlace https de una página con video en vivo.';return;}
-    tv.list.push(Object.assign({n:n||('Canal '+(tv.list.length+1))},p));tv.i=tv.list.length-1;tv.full=false;
-    $('tvNm').value='';$('tvUrl').value='';sv();renderTV();};
-  $('tvReset').onclick=()=>{tv.list=TVDEF.map(tvClone);tv.i=0;tv.full=false;tv.m=3;sv();renderTV();};
+// ----- side panel: notes and context -----
+const TVTAGS=[['idea','Idea'],['dato','Dato'],['riesgo','Riesgo'],['trade','Trade'],['duda','Duda']];
+const tvNotes=()=>{const n=store.get('tvnotes',[]);return Array.isArray(n)?n:[];};
+const tvWhen=t=>new Date(t).toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:TZ});
+function tvMd(L){
+  return `# Notas de TV · ${new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric',timeZone:TZ})}\n\n`
+    +L.map(n=>`- **${tvWhen(n.t)} · ${n.ch}${n.tag?` · #${n.tag}`:''}** — ${n.text.replace(/\n+/g,' ')}`).join('\n')+'\n';
+}
+function tvSide(){tvNotesUI();tvCtx();}
+function tvNotesUI(){
+  const all=tvNotes(),F=TVTAGS.some(t=>t[0]===tv.tag)?tv.tag:'todas',L=all.filter(x=>F==='todas'||x.tag===F);
+  const C=tvCur(),cn=$('tvnCount');cn.hidden=!all.length;cn.textContent=all.length;
+  $('tvSideBody').innerHTML=
+    `<div class="tvn-comp"><textarea id="tvnT" rows="3" maxlength="1200" placeholder="Anota lo que oyes: un dato, una cifra, una idea…" aria-label="Nueva nota">${repEsc(tvDraft)}</textarea>`
+    +`<div class="tvn-row"><div class="filters" id="tvnTags" role="group" aria-label="Etiqueta"></div><button type="button" class="rep-up" id="tvnSave">Guardar</button></div>`
+    +`<p class="po-mut">Se guarda con la hora y el canal (<b id="tvnCh">${repEsc(C.n)}</b>). Ctrl + Enter para guardar. Solo en este navegador.</p></div>`
+    +(all.length?`<div class="tvn-tools"><div class="filters" id="tvnF"></div><div class="tvn-x"><button type="button" class="po-ib" id="tvnCopy">${tvI('copy')}<span>Copiar</span></button><button type="button" class="po-ib" id="tvnDl">${tvI('down')}<span>Descargar</span></button></div></div>`:'')
+    +`<div class="tvn-list" id="tvnL">${L.length?L.map(x=>`<article class="tvn-it" data-id="${x.id}"><header><span class="rep-d">${repEsc(tvWhen(x.t))} · ${repEsc(x.ch)}</span>${x.tag?`<span class="tvn-tag t-${x.tag}">${repEsc((TVTAGS.find(t=>t[0]===x.tag)||['',x.tag])[1])}</span>`:''}<button type="button" class="tvn-del" data-d="${x.id}" aria-label="Borrar nota">Borrar</button></header><p>${repEsc(x.text)}</p></article>`).join('')
+      :`<div class="rep-empty"><b>${all.length?'Sin notas con esa etiqueta':'Aún no hay notas'}</b><span>${all.length?'Cambia el filtro para verlas.':'Lo que anotes aparece aquí, con la hora y el canal.'}</span></div>`}</div>`;
+  const ta=$('tvnT');ta.oninput=()=>{tvDraft=ta.value;store.set('tvdraft',tvDraft);};
+  tvNotesTagsOnly();
+  const save=()=>{const t=ta.value.trim();if(!t){ta.focus();return;}
+    const a=tvNotes();a.unshift({id:String(Date.now()),t:new Date().toISOString(),ch:tvCur().n,tag:tvTag,text:t.slice(0,1200)});
+    store.set('tvnotes',a.slice(0,300));tvDraft='';store.set('tvdraft','');tvSide();};
+  $('tvnSave').onclick=save;ta.onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();save();}};
+  if(all.length){
+    chipset($('tvnF'),[{id:'todas',label:'Todas'},...TVTAGS.filter(([k])=>all.some(x=>x.tag===k)).map(([k,l])=>({id:k,label:`${l} · ${all.filter(x=>x.tag===k).length}`}))],F,id=>{tv.tag=id;tvSv();tvDraftKeep();tvNotesUI();},'chip sm');
+    $('tvnCopy').onclick=async()=>{const md=tvMd(L),b=$('tvnCopy').querySelector('span');
+      try{await navigator.clipboard.writeText(md);b.textContent='Copiado ✓';}catch(e){const w=document.createElement('textarea');w.value=md;document.body.appendChild(w);w.select();try{document.execCommand('copy');b.textContent='Copiado ✓';}catch(x){b.textContent='No se pudo';}w.remove();}
+      setTimeout(()=>{b.textContent='Copiar';},1800);};
+    $('tvnDl').onclick=()=>{const u=URL.createObjectURL(new Blob([tvMd(L)],{type:'text/markdown;charset=utf-8'})),a=document.createElement('a');
+      a.href=u;a.download=`notas-tv-${new Date().toLocaleDateString('sv-SE',{timeZone:TZ})}.md`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);};
+    $('tvnL').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;
+      if(b.dataset.arm){const a=tvNotes().filter(x=>x.id!==b.dataset.d);store.set('tvnotes',a);tvDraftKeep();tvSide();return;}
+      b.dataset.arm='1';b.textContent='¿Borrar?';b.classList.add('arm');setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent='Borrar';b.classList.remove('arm');}},3000);};
+  }
+}
+const tvDraftKeep=()=>{const t=$('tvnT');if(t){tvDraft=t.value;store.set('tvdraft',tvDraft);}};
+// Selecting a tag for the new note only repaints the chips, so the text being typed is not lost.
+const tvNotesTagsOnly=()=>chipset($('tvnTags'),[{id:'',label:'Sin etiqueta'},...TVTAGS.map(([k,l])=>({id:k,label:l}))],tvTag||'',id=>{tvTag=id||null;tvNotesTagsOnly();},'chip sm');
 
-  $('tvHelp').innerHTML=
-    `<p><b>Bloomberg TV.</b> Se incrusta la página en vivo de Bloomberg y se encuadra para mostrar solo el video. Bloomberg puede pedir una comprobación ("pulsar y mantener") la primera vez; se hace en <b>Página completa</b>. El navegador aísla ese recuadro del resto de tus pestañas, así que tu sesión de Bloomberg no se aplica dentro de él. Si Bloomberg cambia el diseño de su página, ajusta el encuadre con las flechas de arriba.</p>`
-    +`<p><b>Canales incluidos.</b> Bloomberg TV, Yahoo Finance, Schwab Network, Fox Business, Reuters, Sky News, CNA, Euronews, DW News, France 24, Al Jazeera y Negocios TV (en español). Se cargan por canal de YouTube, así que siguen funcionando aunque el directo se reinicie; si uno no transmite en ese momento, el recuadro sale en negro. Puedes quitar los que no uses y agregar los tuyos.</p>`
-    +`<p><b>Qué pegar.</b> De YouTube, lo más estable es el enlace del video en vivo; también acepta el enlace del canal con <span class="pop">/channel/UC…</span> y el identificador suelto. La arroba del canal no sirve: YouTube no la admite para incrustar. De otros sitios, el enlace https de la página con el reproductor: se muestra completa, salvo que el sitio prohíba incrustarse.</p>`
-    +`<p><b>Dónde se guarda.</b> En el navegador que estés usando, no en el archivo. Tu lista no viaja a otro equipo y nadie más la ve; si borras los datos del sitio, vuelve a la lista inicial. El recuadro necesita conexión: es lo único del dashboard que no funciona sin internet.</p>`;
+// Market sessions (FX trading hours of each financial centre, in its own time zone).
+const TVSES=[['Sídney','Australia/Sydney',8,17],['Tokio','Asia/Tokyo',9,18],['Londres','Europe/London',8,17],['Nueva York','America/New_York',8,17]];
+const tvFmtCache={};
+function tvLocal(tz,ms){
+  const f=tvFmtCache[tz]||(tvFmtCache[tz]=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short',hour:'numeric',minute:'numeric',hourCycle:'h23'}));
+  const p={};f.formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value;});
+  return {wd:p.weekday,min:(+p.hour)*60+(+p.minute)};
+}
+const tvOpenAt=(tz,o,c,ms)=>{const l=tvLocal(tz,ms);return !/^(Sat|Sun)$/.test(l.wd)&&l.min>=o*60&&l.min<c*60;};
+function tvSession(s,now){
+  const [,tz,o,c]=s,st=tvOpenAt(tz,o,c,now);let t=now,step=30*6e4,lim=now+8*864e5;
+  while(t<lim&&tvOpenAt(tz,o,c,t+step)===st)t+=step;
+  step=6e4;while(tvOpenAt(tz,o,c,t+step)===st&&step<=30*6e4)t+=step;
+  return {open:st,left:t+6e4-now};
+}
+const tvDur=ms=>{const m=Math.max(1,Math.round(ms/6e4)),d=Math.floor(m/1440),h=Math.floor(m%1440/60),n=m%60;return d?`${d} d ${h} h`:h?`${h} h ${n} min`:`${n} min`;};
+function tvCtx(){
+  const now=Date.now(),B=$('tvCtxBody');
+  const ses=TVSES.map(s=>({n:s[0],...tvSession(s,now)}));
+  const ev=(S.calendar||[]).filter(e=>e.major&&Date.parse(e.t)>now).sort((a,b)=>Date.parse(a.t)-Date.parse(b.t)).slice(0,4);
+  const day=t=>{const a=new Date(t).toLocaleDateString('sv-SE',{timeZone:TZ}),b=new Date(now).toLocaleDateString('sv-SE',{timeZone:TZ}),d=Math.round((Date.parse(a)-Date.parse(b))/864e5);
+    return d<=0?'Hoy':d===1?'Mañana':new Date(t).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short',timeZone:TZ});};
+  const items=(typeof tapeItems==='function'?tapeItems():[]).slice(0,12);
+  B.innerHTML=
+    `<div class="tvc-col"><h4 class="tvc-h">Sesiones de mercado</h4><div class="tvc-ses">${ses.map(s=>`<div class="tvc-s ${s.open?'on':''}"><span class="tvc-d"></span><b>${s.n}</b><small>${s.open?'Abierta · cierra en':'Cerrada · abre en'} ${tvDur(s.left)}</small></div>`).join('')}</div>`
+    +`<h4 class="tvc-h">Próximos datos de alto impacto <small>${repEsc(TZN())}</small></h4>`
+    +(ev.length?`<div class="tvc-ev">${ev.map((e,i)=>`<div class="tvc-e${i?'':' first'}"><span class="tvc-w">${day(e.t)}<b>${fTime(e.t)}</b></span><span class="tvc-n"><b>${repEsc(CATN[e.key]||e.name)}</b><small>${[e.country,e.cons?`consenso ${repEsc(e.cons)}`:'',e.prev?`previo ${repEsc(e.prev)}`:''].filter(Boolean).join(' · ')}</small></span>${i?'':`<span class="tvc-c">en ${tvDur(Date.parse(e.t)-now)}</span>`}</div>`).join('')}</div>`
+      :'<p class="po-mut">No hay datos de alto impacto programados.</p>')
+    +`</div><div class="tvc-col"><h4 class="tvc-h">Pulso de mercado</h4><div class="tvc-p">${items.map(([k,v,ch])=>`<div class="tvc-t"><small>${k}</small><b>${v}</b>${ch==null?'':`<i class="${ch>=0?'u':'d'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}%</i>`}</div>`).join('')}</div>`
+    +`<p class="po-mut">Cambio diario con las velas guardadas; no es una cotización en tiempo real.</p></div>`;
+}
+
+function renderTV(){
+  const L=tvCh();if(!L.some(c=>c.id===tv.sel))tv.sel=L[0].id;
+  const live=L.filter(c=>tvIsLive(c)).length;
+  $('tvStamp').textContent=`${L.length} canales · ${tvKnown()?`${live} en vivo ahora`:'en vivo'}`;
+  $('tvGrid').classList.toggle('wide',tv.wide);
+  tv.hold=false;tvRail();tvBar();tvSide();tvLoad();tvLoopStart();
+  clearInterval(tvTick);tvTick=setInterval(()=>{if(view!=='tv'){clearInterval(tvTick);return;}if(!document.hidden)tvCtx();},30000);
 }
 // ---------- Posicionamiento (COT) ----------
 let po=Object.assign({p:'EURUSD',w:'5',nb:52,tf:'D',ix:52,tab:'rel',cmp:'mapa',cc:'b'},store.get('po',{})),poC={};
@@ -2121,6 +2229,7 @@ function show(id,hash=true){
   try{VIEWS[id]();}catch(e){console.error(e);}
   try{window.scrollTo(0,0);}catch(e){}
   motionShow(id);
+  try{tvPlace();}catch(e){console.error(e);}
 }
 function wireNav(){
   document.querySelectorAll('nav.menu a').forEach(a=>{a.onclick=e=>{e.preventDefault();go(a.getAttribute('href').slice(1));};});
@@ -2404,8 +2513,8 @@ function fxWaves(){
     document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);if(!document.hidden)raf=requestAnimationFrame(frame);});}
 }
 // Quote tape: last close and daily change of the majors (stored candles) plus the macro dashboard figures.
-function tape(){
-  const el=$('tape');if(!el)return;const it=[],dp=v=>v>=20?2:v>=2?3:4;
+function tapeItems(){
+  const it=[],dp=v=>v>=20?2:v>=2?3:4;
   const has=p=>typeof MKSEED!=='undefined'&&MKSEED.has&&MKSEED.has(p,'D');
   ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','XAUUSD'].filter(has).forEach(p=>{
     const r=MKSEED.get(p,'D');if(!r||r.length<2)return;const c=r[0][4],pv=r[1][4];
@@ -2415,6 +2524,10 @@ function tape(){
   m('CPI A/A',S.cpi_yy!=null?S.cpi_yy.toFixed(1)+'%':null);m('DESEMPLEO',S.unrate!=null?S.unrate.toFixed(1)+'%':null);
   m('ISM MANUF.',S.pmi!=null?S.pmi.toFixed(1):null);m('VIX',V.vix!=null?V.vix.toFixed(2):null);
   m('S&P 500',V.spx!=null?V.spx.toLocaleString('es-MX',{maximumFractionDigits:0}):null);m('SESGO TFX',S.composite!=null?sg(S.composite)+' / ±2':null);
+  return it;
+}
+function tape(){
+  const el=$('tape');if(!el)return;const it=tapeItems();
   if(!it.length){el.parentNode.hidden=true;return;}
   const one=it.map(([k,v,ch])=>`<span class="tk"><span class="tl">${k}</span><b>${v}</b>${ch==null?'':`<i class="${ch>=0?'u':'d'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}%</i>`}</span>`).join('');
   el.innerHTML=one+one;el.style.setProperty('--tape-d',Math.max(40,it.length*5)+'s');
@@ -2550,6 +2663,7 @@ function palette(){
     const A=[];document.querySelectorAll('nav.menu a').forEach(a=>{const id=a.getAttribute('href').slice(1),g=Object.keys(GROUPS).find(k=>GROUPS[k].includes(id));
       A.push({t:a.textContent,k:'Módulo · '+(GN[g]||''),run:()=>go(id)});});
     poPairs().forEach(p=>A.push({t:p+' · posicionamiento',k:'Par',run:()=>{po.p=p;store.set('po',po);go('posicion');}}));
+    tvCh().forEach(c=>A.push({t:'Ver '+c.n,k:'TV',run:()=>{tv.sel=c.id;tv.full=false;tvSv();go('tv');}}));
     A.push({t:'Abrir gráfico de TradingView',k:'Acción',run:()=>tvwOpen()});
     A.push({t:'Cambiar tema claro / oscuro',k:'Acción',run:()=>$('themeBtn').click()});
     A.push({t:'Nivel Simple',k:'Acción',run:()=>document.querySelector('#lvl [data-lvl="simple"]').click()});
