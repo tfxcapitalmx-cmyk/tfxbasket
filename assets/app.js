@@ -1611,16 +1611,6 @@ const MK=(function(){
     const b=$('mkEx');b.innerHTML='';
     const bt=document.createElement('button');bt.type='button';bt.className='chip sm';bt.textContent='Excluir vela en curso';
     bt.setAttribute('aria-pressed',String(st.ex));bt.onclick=()=>{st.ex=!st.ex;save();render();};b.appendChild(bt);
-    // tira de instrumentos
-    const items=ps.map(p=>{
-      let r=rowsOf(p,st.tf);if(!r||r.length<3)return null;
-      if(st.ex)r=r.slice(1);
-      const c=r[0][4],pc=r[1][4],ch=(c-pc)/pc;
-      return {p,c:fx(c,priceDec(p,c)),ch:(ch>=0?'+':'')+(ch*100).toFixed(2)+'%',up:ch>=0};
-    }).filter(Boolean);
-    $('mkTick').innerHTML=items.map(it=>
-      `<button type="button" class="tk${it.p===st.pair?' on':''}" data-p="${esc(it.p)}"><b>${esc(it.p)}</b><span class="num">${it.c}</span><span class="${it.up?'gain':'loss'}">${it.up?'▲':'▼'} ${it.ch}</span></button>`).join('');
-    $('mkTick').querySelectorAll('.tk').forEach(el=>{el.onclick=()=>{st.pair=el.dataset.p;save();render();};});
   }
 
   /* ---------- cabecera ---------- */
@@ -1660,7 +1650,7 @@ const MK=(function(){
     $('mkReg').innerHTML=`<div class="mk-h"><span>Régimen de volatilidad</span><span class="num">×${ratio.toFixed(2)}</span></div>
       <div class="mk-reg ${reg[1]}">${reg[0]}</div>
       <div class="mk-track"><i style="left:${pos}%"></i></div>
-      <p class="cap">ATRP ${a0?a0.label:''} frente a ${a2?a2.label:''}. Por encima de ×1.15 el mercado se mueve más de lo habitual; por debajo de ×0.85, menos.</p>`;
+      <p class="cap" data-keep>ATRP ${a0?a0.label:''} frente a ${a2?a2.label:''}. Por encima de ×1.15 el mercado se mueve más de lo habitual; por debajo de ×0.85, menos.</p>`;
   }
 
   /* ---------- niveles + calculadora ---------- */
@@ -2243,7 +2233,7 @@ function wireNav(){
   const onScroll=()=>{const h=document.documentElement,max=h.scrollHeight-h.clientHeight,y=h.scrollTop;prog.style.width=(max>0?y/max*100:0)+'%';top.classList.toggle('scrolled',y>8);totop.classList.toggle('away',y<600);};
   window.addEventListener('scroll',onScroll,{passive:true});onScroll();
   totop.onclick=()=>window.scrollTo({top:0});
-  document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();p.style.setProperty('--mx',(e.clientX-r.left)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
+  document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();p.style.setProperty('--mx',((e.clientX-r.left)/UIZ)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
 }
 // ---------- Antigüedad de los datos ----------
 // Every panel says whether its data updates itself or is loaded by hand, and how old it is.
@@ -2305,6 +2295,11 @@ function freshBadges(){
   }
 }
 setNivel(store.get('nivel','simple'));chartTheme();
+// UI scale: the page is drawn at --ui (0.85 on wide screens) with CSS zoom. Pointer positions come in screen pixels,
+// so anything that is written back as a CSS length inside the zoomed area is divided by this factor.
+let UIZ=1;
+function uiz(){const m=document.querySelector('main');UIZ=m&&parseFloat(getComputedStyle(m).zoom)||1;}
+addEventListener('resize',uiz);
 // ---------- Ventana flotante ----------
 // One <dialog> shared by the enlarged charts, the enlarged report and the TradingView chart. With restore:true the
 // node is borrowed from the page (a placeholder keeps its place) and goes back when the window closes.
@@ -2335,11 +2330,23 @@ function chMax(host){
   const cv=host.querySelector('canvas'),p=host.closest('.panel'),h=p&&p.querySelector('h3'),sec=host.closest('section'),h2=sec&&sec.querySelector('.sh h1,.sh h2');
   const title=(h&&h.textContent.trim())||(h2&&(h2.getAttribute('aria-label')||h2.textContent.trim()))||'Gráfico';
   host.classList.add('max');
-  const ok=openDlg(title,host,{restore:true,cls:'dlg-chart',onClose:back=>{host.classList.remove('max');
-    const k=cv&&window.Chart&&Chart.getChart(cv);if(k){k.$pin=null;if(back)k.draw();else k.destroy();}
+  let ro=null;
+  const ok=openDlg(title,host,{restore:true,cls:'dlg-chart',onClose:back=>{if(ro)ro.disconnect();host.classList.remove('max');
+    const k=cv&&window.Chart&&Chart.getChart(cv);if(k){k.$pin=null;if(back){k.draw();[60,350].forEach(t=>setTimeout(()=>chFit(cv),t));}else k.destroy();}
     if(!back){try{VIEWS[view]&&VIEWS[view]();}catch(e){console.error(e);}}}});
   if(!ok)host.classList.remove('max');
+  // The chart was measured in its small place: fit it to the window once it is laid out.
+  else{[60,350].forEach(t=>setTimeout(()=>chFit(cv),t));if(window.ResizeObserver){ro=new ResizeObserver(()=>chFit(cv));ro.observe(host);}}
 }
+// Chart.js measures its container in screen pixels but draws in layout pixels; under the page's CSS zoom the two differ,
+// so every chart came out smaller than its box. Its resize always takes the container's layout size instead.
+function chartResizeFix(){
+  if(!window.Chart||Chart.prototype.$zfix)return;
+  const o=Chart.prototype.resize;
+  Chart.prototype.resize=function(w,h){const p=this.canvas&&this.canvas.parentNode;if(UIZ!==1&&p&&p.clientWidth>0){w=p.clientWidth;h=p.clientHeight;}return o.call(this,w,h);};
+  Chart.prototype.$zfix=1;
+}
+function chFit(cv){const z=cv&&window.Chart&&Chart.getChart(cv);if(z)z.resize();}
 function chTools(c){
   const host=c.canvas.parentNode;if(!host||!host.classList||host.id==='dlgB')return;
   if(!(chX(c)||c.config.type==='scatter'))return;
@@ -2355,7 +2362,7 @@ function chTools(c){
     else if(a==='max'){if(host.classList.contains('max'))dlgEl.close();else chMax(host);}};
   const g=document.createElement('div');g.className='ch-grip';g.title='Arrastra para hacer el gráfico más alto o más bajo';host.appendChild(g);
   g.addEventListener('pointerdown',e=>{e.preventDefault();g.setPointerCapture(e.pointerId);const y0=e.clientY,h0=host.offsetHeight;g.classList.add('on');
-    const mv=ev=>{host.style.height=Math.max(160,Math.min(1100,h0+ev.clientY-y0))+'px';};
+    const mv=ev=>{host.style.height=Math.max(160,Math.min(1100,h0+(ev.clientY-y0)/UIZ))+'px';};
     const up=()=>{g.classList.remove('on');g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up);};
     g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);});
 }
@@ -2651,12 +2658,14 @@ function chartFx(){
       if(cv.$tfx)return;cv.$tfx=1;
       cv.addEventListener('pointerdown',e=>{cv.$dn=[e.clientX,e.clientY];});
       cv.addEventListener('dblclick',()=>{const k=Chart.getChart(cv);if(!k)return;if(k.resetZoom)k.resetZoom();k.$pin=null;pinRead(k);});},
+    // Chart.js maps the pointer with layout pixels; under the page's CSS zoom the pointer is in screen pixels. Rescaled once per event.
+    beforeEvent(c,args){const e=args.event;if(UIZ!==1&&e&&!e.$z){e.$z=1;if(typeof e.x==='number'){e.x/=UIZ;e.y/=UIZ;}}},
     // The scales exist only after the first update, so the toolbar is added then.
     afterUpdate(c){if(c.$tl)return;c.$tl=1;try{chTools(c);}catch(e){console.error(e);}},
     afterEvent(c,a){const e=a.event;if(e.type!=='click'||!chX(c))return;const cv=c.canvas,n=e.native;
       if(cv.$dn&&n&&Math.hypot(n.clientX-cv.$dn[0],n.clientY-cv.$dn[1])>6)return;   // it was a drag (pan), not a click
       const A=c.chartArea;if(e.x<A.left||e.x>A.right||e.y<A.top||e.y>A.bottom)return;
-      const els=c.getElementsAtEventForMode(n,'index',{intersect:false},false);if(!els.length)return;
+      const els=c.getElementsAtEventForMode(e,'index',{intersect:false},false);if(!els.length)return;
       c.$pin=c.$pin===els[0].index?null:els[0].index;pinRead(c);a.changed=true;},
     afterDraw(c){if(!chX(c))return;const A=c.chartArea,x=c.ctx,gold=css('--gold')||'#FFD248',act=c.getActiveElements();
       x.save();
@@ -2739,7 +2748,7 @@ function introOut(){
   const it=$('intro');if(!it)return;const wait=MOTION&&getComputedStyle(it).display!=='none'?Math.max(0,1700-performance.now()):0;
   setTimeout(()=>{it.classList.add('out');setTimeout(()=>it.remove(),950);},wait);
 }
-try{chartZoomDefaults();chartFx();pointerFx();palette();howInit();}catch(e){console.error(e);}
+try{uiz();chartResizeFix();chartZoomDefaults();chartFx();pointerFx();palette();howInit();}catch(e){console.error(e);}
 // Tema común de los gráficos: tipografía, rejilla, leyendas con punto y tooltip oscuro. Se recalcula al cambiar de tema.
 function chartTheme(){
   try{fxTheme();}catch(e){}
