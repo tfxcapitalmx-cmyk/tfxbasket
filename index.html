@@ -166,7 +166,7 @@ mq.addEventListener('change',sync);sync();})();
       <div class="tabs" role="tablist" id="dorTabs"></div>
       <div class="tabpanel" id="dor-resumen">
         <div class="split"><div style="display:grid;gap:20px;align-content:start"><div class="chart"><canvas id="hist"></canvas></div>
-          <div class="phbox"><div><h3>Distribución por fase del ciclo</h3><p class="cap" id="phCap"></p></div><div id="phPlot"></div><p class="note" id="phRead"></p></div></div>
+          <div class="phbox"><div><h3>Distribución por fase del ciclo</h3><p class="cap" id="phCap"></p></div><div id="phPlot"></div><p class="note" id="phRead" data-keep></p></div></div>
           <div class="scroll"><table id="desc"></table></div></div>
         <div class="scroll"><table id="posneg"></table></div>
       </div>
@@ -222,7 +222,7 @@ mq.addEventListener('change',sync);sync();})();
       <div class="po-head">
         <div class="po-head-t"><h3 id="poChT"></h3><p class="po-sub" id="poChS"></p></div>
         <div class="po-tools">
-          <button type="button" class="po-ib" id="poInfoBtn" aria-expanded="false" aria-controls="poInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>Cómo leerlo</span></button>
+          <button type="button" class="po-ib" id="poInfoBtn" aria-expanded="false" aria-controls="poInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>¿Cómo funciona?</span></button>
           <div class="po-zoom" role="group" aria-label="Zoom del gráfico">
             <button type="button" id="poZout" aria-label="Alejar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
             <button type="button" id="poZin" aria-label="Acercar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
@@ -233,7 +233,6 @@ mq.addEventListener('change',sync);sync();})();
       <div class="po-info" id="poInfo" hidden></div>
       <div class="filters po-opts" id="poOpts"></div>
       <div class="chart po-big"><canvas id="poCv"></canvas></div>
-      <p class="po-hint">Arrastra sobre el gráfico para acercar esa zona · doble clic para volver · Shift + arrastrar para moverte · clic para fijar una lectura</p>
       <div id="poExtra"></div>
     </div>
 
@@ -242,7 +241,7 @@ mq.addEventListener('change',sync);sync();})();
       <div class="po-head">
         <div class="po-head-t"><h3 id="poCmpT"></h3><p class="po-sub" id="poCmpS"></p></div>
         <div class="po-tools">
-          <button type="button" class="po-ib" id="poCmpInfoBtn" aria-expanded="false" aria-controls="poCmpInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>Cómo leerlo</span></button>
+          <button type="button" class="po-ib" id="poCmpInfoBtn" aria-expanded="false" aria-controls="poCmpInfo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>¿Cómo funciona?</span></button>
         </div>
       </div>
       <div class="po-info" id="poCmpInfo" hidden></div>
@@ -288,7 +287,7 @@ mq.addEventListener('change',sync);sync();})();
       <div class="chart" style="height:360px"><canvas id="vlChart"></canvas></div>
       <p class="note" id="vlCorr"></p>
     </div>
-    <div class="panel">
+    <div class="panel" id="vlWarnPanel">
       <h3>Advertencias del estudio</h3>
       <div id="vlWarn"></div>
       <p class="cap">Resumen del documento «VIX Hedges» del Institute of Trading &amp; Portfolio Management. Las conclusiones son del ITPM; las cifras de correlación y volatilidad de las tablas anteriores están medidas sobre las series propias de la mesa.</p>
@@ -389,8 +388,6 @@ mq.addEventListener('change',sync);sync();})();
   <p class="sf-big" aria-hidden="true">El mercado, <em>con contexto.</em></p>
   <div><div class="sf-brand"><svg viewBox="0 0 164 226" aria-hidden="true" focusable="false"><path d="M160 2 L24 82 L71 121 Q77 127 72 134 L4 223 L144 131 L97 92 Q91 86 96 79 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></path></svg><b>TFX Academy</b></div>
     <p>Terminal de inteligencia macro para el trader de divisas. Herramienta educativa de uso propio: no es asesoría de inversión. Prueba cualquier idea en demo antes de arriesgar capital.</p></div>
-  <div class="sf-src" aria-label="Fuentes de datos"><span>FRED</span><span>CFTC</span><span>BIS</span><span>ISM</span><span>U. Michigan</span><span>Conference Board</span><span>OCDE</span><span>ForexFactory</span><span>Yahoo Finance</span></div>
-  <div class="sf-k">Datos con licencia de sus fuentes · Se actualiza sola varias veces al día</div>
 </footer>
 
 <button class="totop away" id="totop" type="button">↑ Arriba</button>

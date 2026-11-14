@@ -1049,3 +1049,18 @@ dialog#dlg::backdrop{background:color-mix(in srgb,#000 62%,transparent);backdrop
   .tv-ctx .tv-side-b{grid-template-columns:minmax(0,1fr)}.tvc-p{grid-template-columns:repeat(2,minmax(0,1fr))}.tvc-ses{grid-template-columns:1fr}
   .tv-side-b{padding:14px}
 }
+
+/* ---- Mercado: las descripciones viven detrás de "¿Cómo funciona?" ---- */
+:is(#distribucion,#carry,#vol,#estacional) :is(.cap,.note,.mk-det):not([data-keep]):not(.how-box *){display:none}
+#vlWarnPanel{display:none}
+.how-btn{align-self:center}
+.how-btn[hidden]{display:none}
+.how-box{margin-top:-8px;display:grid;gap:12px}
+.how-box[hidden]{display:none}
+.how-box .how-it{font-size:14px;line-height:1.6}
+.how-box .how-it+.how-it{border-top:1px solid color-mix(in srgb,var(--gold) 22%,transparent);padding-top:12px}
+.how-box .cap,.how-box .note{display:block!important;margin:0 0 8px;background:none;padding:0;font-size:14px;color:inherit;max-width:none}
+.how-box h3{margin:0 0 10px;font-size:12px}
+.how-box details{display:block}
+.how-box summary{cursor:pointer;font-weight:600}
+.how-box ul{margin:8px 0 0;padding-left:18px}

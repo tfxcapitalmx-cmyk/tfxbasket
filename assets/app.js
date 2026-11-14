@@ -488,7 +488,7 @@ function renderDor(){
         <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f('Rango actual',fmtU(rc,ru,false),R.dates.at(-1))+f('Media',fmtU(rs.mean,ru,false),'σ '+rs.sd.toFixed(3))+f('Mediana',fmtU(med,ru,false),'Percentil actual '+(rs.s.filter(x=>x<=rc).length/rs.n*100).toFixed(0))}</div>
         <div class="scroll"><table><thead><tr><th>El rango alcanza al menos…</th><th class="num">Tamaño</th></tr></thead><tbody>${reach}</tbody></table></div>${dorBox}</div>
       <div class="scroll"><table><thead><tr><th>Intervalo de rango</th><th class="num">Frecuencia</th><th class="num">Probabilidad</th><th class="num">Acumulado</th><th style="width:24%"></th></tr></thead><tbody>${rows.map(r=>{const p=r.c/rs.n;cum+=p;const here=r.lo!=null&&rc>r.lo&&rc<=r.hi;return `<tr class="${here?'here':''}"><td>${r.lab}${here?' <b>· actual</b>':''}</td><td class="num">${r.c}</td><td class="num">${(p*100).toFixed(2)}%</td><td class="num">${(cum*100).toFixed(2)}%</td><td><span class="fbar" style="width:${(r.c/mx*100).toFixed(0)}%"></span></td></tr>`;}).join('')}</tbody></table>
-      <p class="cap">${ru==='%'?'Rango = (máximo − mínimo) / mínimo del periodo, con cierres diarios (no hay máximos ni mínimos intradía en FRED).':'Rango = máximo − mínimo del periodo, en puntos básicos.'} Intervalos en múltiplos de 0.4 × la mediana.</p></div></div>`;
+      <p class="cap">${ru==='%'?'Rango = (máximo − mínimo) / mínimo del periodo, con cierres diarios (no hay máximos ni mínimos intradía).':'Rango = máximo − mínimo del periodo, en puntos básicos.'} Intervalos en múltiplos de 0.4 × la mediana.</p></div></div>`;
   }
   if(dst.t==='serie'){
     let dd=H.dates,vv=v;if(vv.length>2500){dd=dd.slice(-2500);vv=vv.slice(-2500);}
@@ -1002,7 +1002,7 @@ function renderPos(){
   const sp=A.rel.slice(Math.max(0,nA-13));
   $('poHero').innerHTML=
     `<div class="po-verdict"><span class="poex ${read[0]}">${read[1]}</span><p><b>${po.p}.</b> ${read[2]}</p>`
-    +`<button type="button" class="po-ib" id="poGuideBtn" aria-expanded="false" aria-controls="poGuide"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>¿Qué es el COT?</span></button></div>`
+    +`<button type="button" class="po-ib" id="poGuideBtn" aria-expanded="false" aria-controls="poGuide"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg><span>¿Cómo funciona?</span></button></div>`
     +`<div class="po-info" id="poGuide" hidden></div>`
     +`<div class="po-tiles">`
     +`<div class="po-tile"><span class="po-tk">¿A qué apuestan los fondos?</span><div class="po-tv ${relNow>0?'gain':relNow<0?'loss':''}">${fav(relNow)}</div>`
@@ -1013,7 +1013,7 @@ function renderPos(){
       +`<span class="po-tn">${fl4>0?`Entran compras de ${b}`:fl4<0?`Entran ventas de ${b}`:'Sin cambio'} · última semana ${sgp(fl1,2)} pp.</span></div>`
     +t4+`</div>`;
   poInfoWire('poGuideBtn','poGuide','guide',
-    `<ul><li><b>Qué es.</b> El informe COT de la CFTC: cuántos contratos de futuros tiene cada tipo de participante. Posiciones del martes, publicadas el viernes 15:30 (Nueva York).</li>`
+    `<ul><li><b>Qué es.</b> El informe COT (Commitment of Traders): cuántos contratos de futuros tiene cada tipo de participante. Posiciones del martes, publicadas el viernes 15:30 (Nueva York).</li>`
     +`<li><b>A quién seguimos.</b> <i>Leveraged Funds</i>: hedge funds y CTA, el dinero especulativo.</li>`
     +`<li><b>Cómo se mide.</b> Neto (largos − cortos) ÷ contratos abiertos, para comparar divisas de distinto tamaño. El dólar usa el contrato USD Index.</li>`
     +`<li><b>Cómo usarlo.</b> Un extremo no es una señal de entrada: avisa que queda poco combustible de ese lado. Cambia el tamaño de la posición, no la dirección.</li></ul>`);
@@ -1115,7 +1115,7 @@ function renderPos(){
     case 'div':{
       const kk=Math.min(kW,B.d.length),j0=B.d.length-kk,dv=B.now.shL-B.now.nshL;
       T=`Fondos vs cuentas pequeñas · ${b}`;Sb=`Hoy: fondos ${B.now.shL.toFixed(0)}% largos · cuentas pequeñas ${B.now.nshL.toFixed(0)}% · diferencia ${sgp(dv,0)} pts`;
-      I=`<p><b>Cuentas pequeñas:</b> las que quedan bajo el umbral de reporte de la CFTC. No es el sentimiento de un bróker, pero es lo más cercano al trader minorista dentro del informe.</p>`
+      I=`<p><b>Cuentas pequeñas:</b> las que quedan bajo el umbral de reporte del informe. No es el sentimiento de un bróker, pero es lo más cercano al trader minorista dentro del informe.</p>`
         +`<p>Una separación grande indica que cada grupo apuesta a un lado distinto.</p>`;
       cfg={type:'line',data:{labels:B.d.slice(j0).map(poFmtD),datasets:[
         {label:`Leveraged Funds · % largo`,data:B.shL.slice(j0),borderColor:ac,borderWidth:2,pointRadius:0,fill:false},
@@ -1130,7 +1130,7 @@ function renderPos(){
       break;}
   }
   $('poChT').textContent=T;$('poChS').textContent=Sb;
-  poInfoWire('poInfoBtn','poInfo','main',I);
+  poInfoWire('poInfoBtn','poInfo','main',I+'<p class="po-mut">Arrastra sobre el gráfico para acercar esa zona · doble clic para volver · Shift + arrastrar para moverte · clic para fijar una lectura · toca la leyenda para ocultar una serie.</p>');
   const big=$('poCv').parentNode;big.hidden=!cfg;
   if(cfg&&window.Chart)poC.main=new Chart($('poCv'),cfg);
   const zb=(f)=>()=>{const c=poC.main;if(c&&c.zoom)f(c);};
@@ -1559,14 +1559,14 @@ const MK=(function(){
   const GRPL={maj:'Divisa mayor',min:'Divisa menor',idx:'Índice',com:'Materia prima'};
   const TABS=[['niveles','Niveles'],['atrp','ATRP'],['cc','DoR C-C'],['hl','DoR H-L'],['pct','Percentiles'],['matriz','Matriz'],['pips','Pips'],['datos','Actualizar datos']];
   const INCID=[
-    'FX (18 cruces EUR, AUD y GBP), XAUUSD, XAGUSD, WTI, US30, NAS100 y SPX500 exportados de Investing.com con datos al 12-10-2026 (VIX y SPX500 diario al 16-10-2026).',
-    'Desde esa fecha las velas se extienden solas cada día hábil con Yahoo Finance. Índices y VIX coinciden exactamente con Investing.com; FX difiere ~0.1 % en el cierre (otro corte horario) y WTI, oro y plata ~0.3-0.6 % (Yahoo usa futuros continuos, no spot).',
-    'US30 diario: el archivo de Investing.com terminaba el 31-10-2025; el hueco hasta hoy lo cubre Yahoo Finance.',
+    'FX (18 cruces EUR, AUD y GBP), XAUUSD, XAGUSD, WTI, US30, NAS100 y SPX500 con datos al 12-10-2026 (VIX y SPX500 diario al 16-10-2026).',
+    'Desde esa fecha las velas se extienden solas cada día hábil. Índices y VIX coinciden exactamente con el histórico; FX difiere ~0.1 % en el cierre (otro corte horario) y WTI, oro y plata ~0.3-0.6 % (se usan futuros continuos, no spot).',
+    'US30 diario: el archivo original terminaba el 31-10-2025; el hueco hasta hoy se cubre solo.',
     'XAUUSD y XAGUSD semanal y mensual empiezan en febrero de 2006: antes de esa fecha el archivo trae velas inválidas (Máximo y Mínimo iguales al Cierre).',
     'US30 mensual: el archivo traía 68 velas duplicadas; se dejó una por mes.',
     'Las series semanales y mensuales anteriores a ~1990 traen velas planas (Apertura = Máximo = Mínimo = Cierre). Inflan el tramo «Igual a 0.00%» del H-L y bajan su media.'
   ];
-  const UPMSG0='Formatos aceptados: exportación de Investing.com, MT4/MT5, TradingView o tus propias hojas. Detecta coma decimal y fechas DD.MM.AAAA, MM/DD/AAAA o AAAA-MM-DD.';
+  const UPMSG0='Formatos aceptados: exportaciones de plataformas de precios, MT4/MT5, TradingView o tus propias hojas. Detecta coma decimal y fechas DD.MM.AAAA, MM/DD/AAAA o AAAA-MM-DD.';
 
   let st=Object.assign({pair:'EURUSD',tf:'W',ex:false,tab:'niveles',
     price:'',dir:'L',slI:0,tpI:0,
@@ -2007,7 +2007,7 @@ const MK=(function(){
           <option value="M"${up.tf==='M'?' selected':''}>Mensuales</option></select></label>
       </div>
       <div class="filters"><button type="button" class="chip primary" id="mkApply"${up.pending?'':' disabled style="opacity:.4;cursor:not-allowed"'}>Aplicar</button><button type="button" class="chip" id="mkReset">Restaurar originales</button></div>
-      <p class="note" ${up.warn?'style="color:var(--hot)"':''}>${esc(up.msg)}</p>
+      <p class="note" data-keep ${up.warn?'style="color:var(--hot)"':''}>${esc(up.msg)}</p>
       <details class="mk-det"><summary>Incidencias detectadas en los archivos originales</summary><ul class="notes">${INCID.map(x=>`<li>${x}</li>`).join('')}</ul></details>`;
     const drop=$('mkDrop'),fi=$('mkFile');
     drop.onclick=()=>fi.click();
@@ -2292,16 +2292,16 @@ function staleInputs(id){
   return [...new Set(L)];
 }
 function freshBadges(){
+  // The badge only says whether the terminal is working; where the data comes from is not shown anywhere.
   for(const [id,f] of Object.entries(freshSources())){
     const sh=document.querySelector(`#${id} > .sh`);if(!sh)continue;
     let b=sh.querySelector('.fresh');if(!b){b=document.createElement('span');sh.appendChild(b);}
     const t=freshDate(f.date),age=t==null?null:Math.floor((Date.now()-t)/864e5),old=age==null||age>f.max;
-    const when=t==null?'sin fecha':`${f.lab||'datos al'} ${freshLab(t)}`;
-    const late=f.auto&&!old?staleInputs(id):[];
-    b.className='fresh '+(f.auto?(old?'old':late.length?'manold':'ok'):(old?'manold':'man'));
-    b.innerHTML=`<i></i>${f.auto?(old?'Sin actualizar':'Automático · '+f.src):'Manual'} · ${when}${old&&age!=null?` · hace ${age} días`:''}${late.length?` · ${late.length} ${late.length===1?'insumo atrasado':'insumos atrasados'}`:''}`;
-    b.title=f.auto?(old?`La actualización automática desde ${f.src} no trae datos nuevos desde hace ${age} días. Se muestra el último dato válido.`:`Se actualiza solo desde ${f.src}.`+(late.length?`\nAtrasados frente a su calendario habitual:\n- ${late.join('\n- ')}`:''))
-      :`Estos datos se cargan a mano.${old?` Tienen más de ${f.max} días.`:''}`;
+    const late=!old?staleInputs(id):[];
+    b.className='fresh '+(old?'old':late.length?'manold':'ok');
+    b.innerHTML=`<i></i>${old?`Sin actualizar${age!=null?` · hace ${age} días`:''}`:'Terminal conectada'}${late.length?` · ${late.length} ${late.length===1?'insumo atrasado':'insumos atrasados'}`:''}`;
+    b.title=old?'No hay datos nuevos en este módulo. Se muestra el último dato válido.'+(t!=null?`\nÚltimo dato: ${freshLab(t)}.`:'')
+      :'La terminal está conectada y funcionando correctamente.'+(t!=null?`\nDatos al ${freshLab(t)}.`:'')+(late.length?`\nAtrasados frente a su calendario habitual:\n- ${late.join('\n- ')}`:'');
   }
 }
 setNivel(store.get('nivel','simple'));chartTheme();
@@ -2482,6 +2482,54 @@ function renderReports(){
   const L=list(),cur=L.find(x=>x.id===rep.id)||L[0]||null;
   if(cur){rep.id=cur.id;$('repList').querySelectorAll('.rep-it').forEach(e=>e.classList.toggle('on',e.dataset.id===cur.id));}
   repOpen(cur,false);
+}
+// ---------- ¿Cómo funciona? (Mercado) ----------
+// In the Mercado modules every explanatory text (captions, notes, the study warnings) is hidden by CSS and gathered
+// into one box behind a "¿Cómo funciona?" button next to the title. The box is rebuilt from the descriptions that
+// belong to what is on screen (active tab, active sub-view), so it follows the user's choices. Copies lose their ids
+// so that the code that fills the originals never hits a duplicate. Elements marked data-keep stay visible.
+const HOWSEC=['distribucion','carry','vol','estacional'];
+const HOWSEL='.cap,.note,.mk-det,#vlWarnPanel';
+const HOWICON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg>';
+const howOpen={};
+function howCtx(e,sec){
+  for(let n=e;n&&n!==sec;n=n.parentElement){
+    if(n.hidden||n.classList.contains('how-box'))return false;
+    if(n.classList.contains('subview')&&!n.classList.contains('on'))return false;
+  }
+  return true;
+}
+function howRefresh(id){
+  const sec=$(id);if(!sec)return;
+  const box=sec.querySelector(':scope>.how-box'),btn=sec.querySelector('.how-btn');if(!box||!btn)return;
+  const seen=new Set(),parts=[];
+  sec.querySelectorAll(HOWSEL).forEach(e=>{
+    if(e.hasAttribute('data-keep')||!howCtx(e,sec))return;
+    if(e.id!=='vlWarnPanel'&&e.closest('#vlWarnPanel'))return;   // already inside the warnings block
+    const h=e.innerHTML.replace(/\sid="[^"]*"/g,'').trim(),k=e.textContent.replace(/\s+/g,' ').trim();
+    if(!h||!k||seen.has(k))return;seen.add(k);parts.push(h);
+  });
+  const html=parts.map(p=>`<div class="how-it">${p}</div>`).join('');
+  btn.hidden=!parts.length;
+  if(!parts.length)box.hidden=true;else box.hidden=!howOpen[id];
+  btn.setAttribute('aria-expanded',String(!box.hidden));
+  if(box.dataset.h!==html){box.dataset.h=html;box.innerHTML=html;}
+}
+function howInit(){
+  HOWSEC.forEach(id=>{
+    const sec=$(id),sh=sec&&sec.querySelector(':scope>.sh');if(!sh||sec.querySelector('.how-btn'))return;
+    const btn=document.createElement('button');btn.type='button';btn.className='po-ib how-btn';btn.setAttribute('aria-expanded','false');btn.hidden=true;
+    btn.innerHTML=`${HOWICON}<span>¿Cómo funciona?</span>`;
+    const box=document.createElement('div');box.className='po-info how-box';box.hidden=true;box.setAttribute('role','region');box.setAttribute('aria-label','Cómo funciona');
+    sh.appendChild(btn);sh.after(box);
+    btn.onclick=()=>{howOpen[id]=!howOpen[id];howRefresh(id);};
+    let t=0;
+    new MutationObserver(recs=>{
+      if(recs.every(r=>r.target.nodeType===1&&r.target.closest('.how-box,.how-btn')))return;
+      clearTimeout(t);t=setTimeout(()=>howRefresh(id),70);
+    }).observe(sec,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
+    howRefresh(id);
+  });
 }
 // ---------- Motion ----------
 // Generative background, quote tape, word-by-word titles, counting figures, scroll reveal and chart sweep.
@@ -2691,7 +2739,7 @@ function introOut(){
   const it=$('intro');if(!it)return;const wait=MOTION&&getComputedStyle(it).display!=='none'?Math.max(0,1700-performance.now()):0;
   setTimeout(()=>{it.classList.add('out');setTimeout(()=>it.remove(),950);},wait);
 }
-try{chartZoomDefaults();chartFx();pointerFx();palette();}catch(e){console.error(e);}
+try{chartZoomDefaults();chartFx();pointerFx();palette();howInit();}catch(e){console.error(e);}
 // Tema común de los gráficos: tipografía, rejilla, leyendas con punto y tooltip oscuro. Se recalcula al cambiar de tema.
 function chartTheme(){
   try{fxTheme();}catch(e){}
